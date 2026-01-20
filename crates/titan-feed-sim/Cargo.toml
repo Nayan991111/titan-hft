@@ -1,0 +1,10 @@
+[package]
+name = "titan-feed-sim"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+titan-common = { path = "../titan-common" }
+rand = "0.9"
+zerocopy = "0.8"
+socket2 = { version = "0.5", features = ["all"] }

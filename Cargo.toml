@@ -1,0 +1,10 @@
+[workspace]
+members = ["crates/titan-core", "crates/titan-feed-sim", "crates/titan-common"]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

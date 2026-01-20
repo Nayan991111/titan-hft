@@ -1,0 +1,17 @@
+[package]
+name = "titan-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+titan-common = { path = "../titan-common" }
+libc = "0.2"
+rustc-hash = "1.1.0"
+log = "0.4"
+crossbeam-utils = "0.8"
+zerocopy = { version = "0.8", features = ["derive"] }
+socket2 = { version = "0.5", features = ["all"] }
+array-init = "2.1" # ADDED: For zero-overhead buffer initialization
+
+[dev-dependencies]
+criterion = "0.5"
