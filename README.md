@@ -5,11 +5,13 @@
 ![Latency](https://img.shields.io/badge/Latency-30ns_Tick--to--Trade-brightgreen?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
-**Titan** is a high-frequency trading engine architected for the **Apple M4** silicon. It leverages unsafe Rust, lock-free concurrency, and cache-line aligned memory structures to achieve sub-microsecond tick-to-trade latencies.
+**Titan** is an ultra-low latency high-frequency trading (HFT) engine built from first principles in Rust. 
 
-## 🏗 Architecture
+Architected specifically for the **Apple M4 Silicon**, Titan exploits the ARM64 memory model to achieve **30-nanosecond** internal decision latency. It bypasses standard kernel networking overheads using Jumbo Packet processing and utilizes a custom Single-Producer Single-Consumer (SPSC) lock-free ring buffer to eliminate thread contention.
 
-Titan utilizes a **Single-Producer Single-Consumer (SPSC)** architecture to eliminate thread contention.
+## 🏗 System Architecture
+
+Titan relies on a zero-copy data path. Market data is read directly from the socket into a memory-aligned ring buffer, where the strategy engine reads it via atomic pointers.
 
 ```mermaid
 graph LR
