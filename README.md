@@ -1,25 +1,23 @@
-# Titan HFT Engine
+# ⚡ Titan HFT Engine
 
-**Architect:** Nayan Pandit
-**Platform:** Apple Silicon M4 (ARM64)
-**Performance:** ~30ns Internal Latency | 8.5M msgs/sec
+![Platform](https://img.shields.io/badge/Platform-Apple_Silicon_M4-gray?style=for-the-badge&logo=apple)
+![Language](https://img.shields.io/badge/Rust-1.75+-orange?style=for-the-badge&logo=rust)
+![Latency](https://img.shields.io/badge/Latency-30ns_Tick--to--Trade-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
-## Overview
-Titan HFT is an ultra-low latency trading engine built in Rust from first principles. It is designed to exploit the specific hardware characteristics of the Apple M4 chip, utilizing cache-line aligned data structures and lock-free concurrency patterns to achieve nanosecond-scale decision loops.
+**Titan** is a high-frequency trading engine architected for the **Apple M4** silicon. It leverages unsafe Rust, lock-free concurrency, and cache-line aligned memory structures to achieve sub-microsecond tick-to-trade latencies.
 
-## Key Architecture
-* **Core:** Rust-based engine with zero-allocation hot paths.
-* **Concurrency:** Single-Producer Single-Consumer (SPSC) Lock-Free Ring Buffer.
-* **Memory:** Custom memory layout with 128-byte padding to prevent False Sharing on ARM64.
-* **Network:** Jumbo Packet processing (32 ticks/packet) to minimize syscall overhead.
+## 🏗 Architecture
 
-## Benchmarks
-Running on MacBook Air (M4):
-* **Avg Latency:** 30 nanoseconds (Tick-to-Trade)
-* **p99 Latency:** < 1 microsecond
-* **Throughput:** ~9 Million ticks/second
+Titan utilizes a **Single-Producer Single-Consumer (SPSC)** architecture to eliminate thread contention.
 
-## Usage
-### 1. Start the Engine
-```bash
-cargo run --release --bin titan-core
+```mermaid
+graph LR
+    A[Market Feed] -->|UDP Jumbo Packets| B(Kernel Bypass / Socket)
+    B -->|Zero Copy| C{Ring Buffer}
+    C -->|Atomic Read| D[Strategy Engine]
+    D -->|Signal| E[Risk Check]
+    E -->|Approved| F[Order Execution]
+    
+    style C fill:#f9f,stroke:#333,stroke-width:2px,color:black
+    style D fill:#bbf,stroke:#333,stroke-width:2px,color:black
