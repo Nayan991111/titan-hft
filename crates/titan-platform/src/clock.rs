@@ -1,9 +1,13 @@
 //! Generic timer access.
 //!
-//! On arm64 the virtual counter `CNTVCT_EL0` is readable from user space. On
-//! Apple silicon it runs at 24 MHz (41.67 ns per tick), so it is used for
-//! wall-clock spans and frequency calibration, never for single events shorter
-//! than a tick. Cycle-accurate counts come from [`crate::kperf`].
+//! On arm64 the virtual counter `CNTVCT_EL0` is readable from user space.
+//! Its unit is given by `CNTFRQ_EL0`, but its resolution can be much coarser:
+//! from Armv8.6 the reported frequency is fixed at 1 GHz while an
+//! implementation may advance the counter in steps larger than one. Always
+//! measure the step with [`resolution`] instead of assuming 1 / frequency.
+//! The counter is used for wall-clock spans and frequency calibration, never
+//! for single events shorter than one step. Cycle counts come from
+//! [`crate::kperf`].
 
 #[cfg(target_arch = "aarch64")]
 use core::arch::asm;
@@ -78,6 +82,60 @@ pub fn mach_timebase() -> (u32, u32) {
     (1, 1)
 }
 
+/// Observed counter resolution from back-to-back reads.
+#[derive(Clone, Copy, Debug)]
+pub struct Resolution {
+    /// Smallest non-zero delta seen, in counter units.
+    pub min_step: u64,
+    /// Most frequent non-zero delta, in counter units.
+    pub modal_step: u64,
+    /// Mean delta over all pairs, in counter units (an estimate of read cost).
+    pub mean_delta: f64,
+    /// Fraction of pairs with a zero delta.
+    pub zero_fraction: f64,
+    /// Pairs whose delta exceeded 8 times the modal step (interruptions).
+    pub outliers: u64,
+    pub pairs: u64,
+}
+
+/// Measure the counter's effective resolution with `pairs` back-to-back reads.
+pub fn resolution(pairs: usize) -> Resolution {
+    let mut deltas: Vec<u64> = Vec::with_capacity(pairs);
+    for _ in 0..pairs {
+        let a = counter();
+        let b = counter();
+        deltas.push(b.wrapping_sub(a));
+    }
+    let zeros = deltas.iter().filter(|&&d| d == 0).count();
+    let mut nonzero: Vec<u64> = deltas.iter().copied().filter(|&d| d != 0).collect();
+    nonzero.sort_unstable();
+    let min_step = nonzero.first().copied().unwrap_or(0);
+    let mut modal_step = 0;
+    let mut best = 0usize;
+    let mut i = 0;
+    while i < nonzero.len() {
+        let mut j = i;
+        while j < nonzero.len() && nonzero[j] == nonzero[i] {
+            j += 1;
+        }
+        if j - i > best {
+            best = j - i;
+            modal_step = nonzero[i];
+        }
+        i = j;
+    }
+    let sum: u128 = deltas.iter().map(|&d| d as u128).sum();
+    let outliers = if modal_step == 0 { 0 } else { deltas.iter().filter(|&&d| d > 8 * modal_step).count() as u64 };
+    Resolution {
+        min_step,
+        modal_step,
+        mean_delta: sum as f64 / pairs.max(1) as f64,
+        zero_fraction: zeros as f64 / pairs.max(1) as f64,
+        outliers,
+        pairs: pairs as u64,
+    }
+}
+
 /// Distribution of back-to-back counter deltas over `pairs` samples.
 /// Index k holds the count of deltas equal to k ticks; the last slot is "k or more".
 pub fn back_to_back_histogram(pairs: usize) -> [u64; 8] {
@@ -103,6 +161,14 @@ mod tests {
             assert!(now >= prev);
             prev = now;
         }
+    }
+
+    #[test]
+    fn resolution_is_consistent() {
+        let r = resolution(100_000);
+        assert_eq!(r.pairs, 100_000);
+        assert!(r.min_step <= r.modal_step || r.modal_step == 0);
+        assert!((0.0..=1.0).contains(&r.zero_fraction));
     }
 
     #[test]
