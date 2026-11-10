@@ -149,6 +149,25 @@ unsafe fn cstr(p: *const c_char) -> String {
     if p.is_null() { String::new() } else { CStr::from_ptr(p).to_string_lossy().into_owned() }
 }
 
+/// Privilege levels an event counts in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CountMode {
+    /// User and kernel. Kernel work done on the thread's behalf (interrupts,
+    /// the counter-read syscall itself) is included.
+    All,
+    /// User space only.
+    UserOnly,
+}
+
+impl CountMode {
+    fn flag(self) -> u32 {
+        match self {
+            CountMode::All => 0,
+            CountMode::UserOnly => 1,
+        }
+    }
+}
+
 /// One entry of the CPU's event database.
 #[derive(Clone, Debug)]
 pub struct EventInfo {
@@ -242,6 +261,11 @@ impl Kperf {
     /// is a list of candidate names (canonical name first, aliases after); the
     /// first one present in this CPU's database is used.
     pub fn session(self, events: &[&[&str]]) -> Result<Session, KperfError> {
+        self.session_with_mode(events, CountMode::All)
+    }
+
+    /// As [`Kperf::session`], choosing which privilege levels are counted.
+    pub fn session_with_mode(self, events: &[&[&str]], mode: CountMode) -> Result<Session, KperfError> {
         let api = &self.api;
         let mut cfg = std::ptr::null_mut();
         check("kpep_config_create", unsafe { (api.kpep_config_create)(self.db, &mut cfg) })?;
@@ -251,7 +275,7 @@ impl Kperf {
         for cands in events {
             let (mut ev, name) = session.kperf.lookup(cands)?;
             let mut err = 0u32;
-            check("kpep_config_add_event", unsafe { (api.kpep_config_add_event)(cfg, &mut ev, 0, &mut err) })?;
+            check("kpep_config_add_event", unsafe { (api.kpep_config_add_event)(cfg, &mut ev, mode.flag(), &mut err) })?;
             session.names.push(name);
         }
         let mut classes = 0u32;
@@ -366,7 +390,7 @@ fn serialize() {
     std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
 }
 
-/// Candidate names for the events the paper uses. Canonical database names
+/// Candidate names for the events used by the benchmarks. Canonical database names
 /// first, then the generic aliases kperfdata also accepts.
 pub mod events {
     pub const CYCLES: &[&str] = &["FIXED_CYCLES", "CORE_ACTIVE_CYCLE", "Cycles"];

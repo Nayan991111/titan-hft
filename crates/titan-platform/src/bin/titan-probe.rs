@@ -9,7 +9,7 @@
 
 use titan_platform::alloc_count::{thread_allocations, CountingAlloc};
 use titan_platform::clock;
-use titan_platform::kperf::{events, Kperf};
+use titan_platform::kperf::{events, CountMode, Kperf};
 use titan_platform::mem::{page_size, PinnedRegion};
 use titan_platform::qos::{self, Qos};
 use titan_platform::rusage::Usage;
@@ -29,13 +29,13 @@ fn main() {
     println!("qos_user_interactive={:?}", qos::set_current_thread(Qos::UserInteractive));
 
     println!("== timer");
-    let h = clock::back_to_back_histogram(10_000_000);
-    let total: u64 = h.iter().sum();
-    for (k, c) in h.iter().enumerate() {
-        println!("b2b_delta_{}{}={}", k, if k == 7 { "_plus" } else { "" }, c);
-    }
-    let mean_ticks: f64 = h[..7].iter().enumerate().map(|(k, &c)| k as f64 * c as f64).sum::<f64>() / total as f64;
-    println!("counter_read_cost_ns_est={:.2}", mean_ticks * 1e9 / f as f64);
+    let r = clock::resolution(10_000_000);
+    let ns = |units: f64| units * 1e9 / f as f64;
+    println!("counter_min_step_units={} ({:.2} ns)", r.min_step, ns(r.min_step as f64));
+    println!("counter_modal_step_units={} ({:.2} ns)", r.modal_step, ns(r.modal_step as f64));
+    println!("counter_zero_fraction={:.4}", r.zero_fraction);
+    println!("counter_read_cost_ns_est={:.2}", ns(r.mean_delta));
+    println!("counter_outliers_gt_8_steps={} per_million={:.2}", r.outliers, r.outliers as f64 * 1e6 / r.pairs as f64);
 
     println!("== memory");
     let mut r = PinnedRegion::new(64 << 20).expect("mmap");
@@ -92,7 +92,22 @@ fn main() {
         return;
     }
     println!("pmu_permission={}", k.has_permission());
-    let s = match k.session(&[events::CYCLES, events::INSTRUCTIONS, events::L1D_LOAD_MISS, events::BRANCH_MISPREDICT]) {
+    drop(k);
+    for mode in [CountMode::All, CountMode::UserOnly] {
+        run_pmu(mode);
+    }
+}
+
+fn run_pmu(mode: CountMode) {
+    println!("-- mode={mode:?}");
+    let k = match Kperf::open() {
+        Ok(k) => k,
+        Err(e) => {
+            println!("pmu_open_error=\"{e}\"");
+            return;
+        }
+    };
+    let s = match k.session_with_mode(&[events::CYCLES, events::INSTRUCTIONS, events::L1D_LOAD_MISS, events::BRANCH_MISPREDICT], mode) {
         Ok(s) => s,
         Err(e) => {
             println!("pmu_session_error=\"{e}\"");
@@ -100,12 +115,11 @@ fn main() {
         }
     };
     println!("pmu_events={:?}", s.names());
-
     let mut oh: Vec<Vec<u64>> = s.read_overhead(10_000);
     oh.sort_by_key(|row| row[0]);
     println!("read_overhead_cycles min={} p50={} p99={}", oh[0][0], oh[oh.len() / 2][0], oh[oh.len() * 99 / 100][0]);
-    println!("read_overhead_instructions_p50={}", oh[oh.len() / 2][1]);
-
+    oh.sort_by_key(|row| row[1]);
+    println!("read_overhead_instructions min={} p50={}", oh[0][1], oh[oh.len() / 2][1]);
     validate_chain(&s);
 }
 
