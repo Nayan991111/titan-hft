@@ -1,7 +1,6 @@
 use zerocopy::{IntoBytes, FromBytes, Immutable};
 
 #[repr(C)]
-// ADDED "Default" to the derive list below
 #[derive(Debug, Clone, Copy, IntoBytes, FromBytes, Immutable, Default)]
 pub struct MarketTick {
     pub symbol: [u8; 8],

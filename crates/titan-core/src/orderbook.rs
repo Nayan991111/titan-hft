@@ -58,7 +58,7 @@ impl GlobalOrderBook {
                 self.trades_count += 1;
                 return Some(Trade {
                     price: self.best_ask,
-                    quantity: quantity as f64, // FIX 1: Cast to f64
+                    quantity: quantity as f64,
                     buyer_order_id: order_id,
                     seller_order_id: 0, 
                 });
@@ -66,7 +66,7 @@ impl GlobalOrderBook {
                 // NO MATCH: Book it
                 self.bids.insert(order_id, Order { 
                     price, 
-                    quantity: quantity as f64, // FIX 2: Cast to f64
+                    quantity: quantity as f64,
                     order_id 
                 });
                 if price > self.best_bid {
@@ -80,7 +80,7 @@ impl GlobalOrderBook {
                 self.trades_count += 1;
                 return Some(Trade {
                     price: self.best_bid,
-                    quantity: quantity as f64, // FIX 3: Cast to f64
+                    quantity: quantity as f64,
                     buyer_order_id: 0, 
                     seller_order_id: order_id,
                 });
@@ -88,7 +88,7 @@ impl GlobalOrderBook {
                 // NO MATCH: Book it
                 self.asks.insert(order_id, Order { 
                     price, 
-                    quantity: quantity as f64, // FIX 4: Cast to f64
+                    quantity: quantity as f64,
                     order_id 
                 });
                 if price < self.best_ask {
