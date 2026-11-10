@@ -1,25 +1,67 @@
-# ⚡ Titan HFT Engine
+# Titan
 
-![Platform](https://img.shields.io/badge/Platform-Apple_Silicon_M4-gray?style=for-the-badge&logo=apple)
-![Language](https://img.shields.io/badge/Rust-1.75+-orange?style=for-the-badge&logo=rust)
-![Latency](https://img.shields.io/badge/Latency-30ns_Tick--to--Trade-brightgreen?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+Titan is a Rust market-data pipeline and measurement harness for studying
+nanosecond-scale latency on Apple silicon (M4, macOS, arm64).
 
-**Titan** is an ultra-low latency high-frequency trading (HFT) engine built from first principles in Rust. 
+The project asks a narrow question: on a modern weakly ordered Arm core,
+what does it actually cost to hand a market-data event from one core to
+another and act on it? The answer depends on memory ordering (`ldapr`,
+`ldar`, `dmb`), cache-line layout, how the waiting thread waits, and how the
+XNU scheduler places threads that cannot be pinned. Titan measures each of
+these with hardware performance counters instead of wall-clock timers.
 
-Architected specifically for the **Apple M4 Silicon**, Titan exploits the ARM64 memory model to achieve **30-nanosecond** internal decision latency. It bypasses standard kernel networking overheads using Jumbo Packet processing and utilizes a custom Single-Producer Single-Consumer (SPSC) lock-free ring buffer to eliminate thread contention.
+## Status
 
-## 🏗 System Architecture
+Work in progress. No performance figures are published yet. Numbers will be
+added here only together with the exact command, commit, hardware state and
+raw data that produced them.
 
-Titan relies on a zero-copy data path. Market data is read directly from the socket into a memory-aligned ring buffer, where the strategy engine reads it via atomic pointers.
+| Component | State |
+|---|---|
+| `titan-platform`: pinned memory, counter timer, QoS, kperf PMU access, allocation accounting | done, self-test in `titan-probe` |
+| SPSC ring with selectable ordering, padding and wait strategy | in progress |
+| ITCH 5.0 decoder and zero-allocation L3 order book | planned |
+| Shared-memory and UDP (MoldUDP64) transports | planned |
+| Reproduction script and analysis | planned |
 
-```mermaid
-graph LR
-    A[Market Feed] -->|UDP Jumbo Packets| B(Kernel Bypass / Socket)
-    B -->|Zero Copy| C{Ring Buffer}
-    C -->|Atomic Read| D[Strategy Engine]
-    D -->|Signal| E[Risk Check]
-    E -->|Approved| F[Order Execution]
-    
-    style C fill:#f9f,stroke:#333,stroke-width:2px,color:black
-    style D fill:#bbf,stroke:#333,stroke-width:2px,color:black
+The original prototype (`titan-core`, `titan-feed-sim`) is kept as a
+baseline and is being replaced component by component.
+
+## Layout
+
+```
+crates/
+  titan-platform/   platform layer and the titan-probe self-test
+  titan-core/       engine prototype (SPSC ring, order book, strategy, risk)
+  titan-common/     shared wire types
+  titan-feed-sim/   UDP feed simulator
+```
+
+## Measurement principles
+
+* The arm64 generic timer on Apple silicon ticks at 24 MHz (41.67 ns). It is
+  used for spans and frequency calibration only. Per-operation costs come from
+  PMU cycle counts over batches.
+* Counter reads enter the kernel, so they bracket batches, never single events.
+* macOS has no hard thread affinity on Apple silicon. Threads are steered with
+  QoS classes and placement effects are reported, not assumed away.
+* Hot-path memory is page aligned (16 KiB), pre-faulted and locked; fault and
+  allocation counts are checked to be zero inside measured regions.
+
+## Build and self-test
+
+Tested with Rust 1.92 (macOS 27, Apple M4) and Rust 1.97 (Linux x86_64).
+
+```
+cargo build --release
+cargo test --release -- --test-threads=1
+./target/release/titan-probe            # platform checks, no root
+sudo ./target/release/titan-probe pmu   # also programs and validates the PMU
+```
+
+PMU access uses the private `kperf` and `kperfdata` frameworks and needs root.
+Quit `powermetrics` and Instruments first; they hold the counters.
+
+## License
+
+MIT
