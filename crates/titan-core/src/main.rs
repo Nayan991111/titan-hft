@@ -21,13 +21,12 @@ const BENCHMARK_SAMPLES: usize = 1_000_000;
 
 fn main() {
     println!("=== TITAN HFT ENGINE v1.0 (Benchmark Mode) ===");
-    println!(">>> Hardware: Apple M4 (ARM64)");
+    println!(">>> Target: {}-{}", std::env::consts::ARCH, std::env::consts::OS);
     println!(">>> Mode: Latency Benchmarking (Recording {} samples)", BENCHMARK_SAMPLES);
 
     let ring = Arc::new(RingBuffer::new(16_384));
     
-    // We keep the logger reference to prevent it from dropping, 
-    // even though we don't use it in the hot loop.
+    // Held so the logger thread stays alive; not used in the hot loop.
     let _logger = Arc::new(AsyncLogger::new("/dev/null")); 
     let kill_switch = Arc::new(GlobalKillSwitch::new());
 
@@ -39,6 +38,7 @@ fn main() {
         set_high_priority();
         let mut orderbook = GlobalOrderBook::new();
         let mut strategy = MarketMaker::new();
+        println!(">>> [CORE] Strategy: {}", strategy.name());
         let risk_manager = RiskManager::new(consumer_kill_switch);
         
         // Pre-allocate latency histogram (bucketed by microseconds)

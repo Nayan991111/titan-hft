@@ -16,7 +16,7 @@ pub struct AsyncLogger {
 
 impl AsyncLogger {
     pub fn new(filename: &str) -> Self {
-        // Initialize with HUGE capacity
+        // 1M slots so the hot path never waits on the writer in practice.
         let ring = Arc::new(RingBuffer::new(LOG_RING_CAPACITY));
         let ring_consumer = ring.clone();
         let filename = filename.to_string();
@@ -37,7 +37,6 @@ impl AsyncLogger {
                     };
                     
                     if let Err(_) = writer.write_all(bytes) {
-                        // Error handling
                     }
                     
                     drained += 1;
@@ -59,8 +58,7 @@ impl AsyncLogger {
 
     #[inline(always)]
     pub fn log(&self, tick: MarketTick) {
-        // If 1M buffer is full, we are in serious trouble. 
-        // We spin, but with 1M slots, this should almost never happen.
+        // Spin if the ring is full; with 1M slots this indicates a stalled writer.
         while !self.ring.write(tick) {
             std::hint::spin_loop();
         }

@@ -3,7 +3,9 @@ use titan_common::MarketTick;
 use socket2::{Socket, Domain, Type, Protocol};
 use std::net::SocketAddr;
 use std::io;
+#[cfg(not(target_os = "linux"))]
 use std::mem::MaybeUninit;
+#[cfg(not(target_os = "linux"))]
 use zerocopy::FromBytes;
 use std::os::unix::io::AsRawFd;
 
@@ -11,9 +13,11 @@ use std::os::unix::io::AsRawFd;
 const TICKS_PER_PACKET: usize = 32;
 const TICK_SIZE: usize = std::mem::size_of::<MarketTick>();
 const PACKET_SIZE: usize = TICK_SIZE * TICKS_PER_PACKET;
+#[cfg(not(target_os = "linux"))]
 const BATCH_READ_LOOPS: usize = 16;
 
 pub struct BatchReceiver {
+    #[cfg_attr(target_os = "linux", allow(dead_code))]
     socket: Socket,
     #[allow(dead_code)]
     buffer: [u8; PACKET_SIZE], 
@@ -43,13 +47,13 @@ impl BatchReceiver {
         }
 
         socket.bind(&addr.into())?;
-        println!(">>> [NETWORK] Jumbo Receiver initialized (32 ticks/pkt).");
+        println!(">>> [NETWORK] UDP receiver bound (32 ticks per datagram).");
         Ok(Self { socket, buffer: [0u8; PACKET_SIZE] })
     }
 
     #[cfg(not(target_os = "linux"))]
     pub fn listen_loop(&mut self, ring_buffer: &RingBuffer) {
-        println!(">>> [NETWORK] Starting Jumbo Packet Processing...");
+        println!(">>> [NETWORK] Receiving...");
         
         let mut buf = [MaybeUninit::<u8>::uninit(); PACKET_SIZE];
         

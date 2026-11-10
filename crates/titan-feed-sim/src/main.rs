@@ -3,7 +3,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use titan_common::MarketTick;
 
-// PROTOCOL CONSTANTS
+// Wire format.
 const TICKS_PER_PACKET: usize = 32;
 const PACKET_SIZE: usize = std::mem::size_of::<MarketTick>() * TICKS_PER_PACKET;
 
@@ -19,11 +19,11 @@ fn main() {
 
     println!(">>> [FEED] Generating batches...");
 
-    // 1. PRE-COMPUTE JUMBO PACKETS
+    // Pre-build all datagrams so generation cost is outside the send loop.
     let total_orders = 10_000_000; // 10 Million orders
     let total_packets = total_orders / TICKS_PER_PACKET;
     
-    // Vector of Byte Buffers (each buffer is 1280 bytes)
+    // One buffer per datagram, 32 ticks x 40 bytes = 1280 bytes.
     let mut packets: Vec<Vec<u8>> = Vec::with_capacity(total_packets);
 
     for i in 0..total_packets {
@@ -33,7 +33,7 @@ fn main() {
             let id = (i * TICKS_PER_PACKET + j) as u64;
             let side = if id % 2 == 0 { 1 } else { 2 };
             
-            // CRITICAL CHANGE: Both sides agree on 100.0. INSTANT EXECUTION.
+            // Both sides quote 100.0 so incoming orders cross.
             let price = 100.0;
             
             let mut tick = MarketTick::new("AAPL", price, 10, side);
@@ -51,7 +51,7 @@ fn main() {
         packets.push(batch_buffer);
     }
 
-    println!(">>> [FEED] {} Jumbo Packets ready. Launching in 3s...", packets.len());
+    println!(">>> [FEED] {} datagrams ready. Sending in 3 s...", packets.len());
     thread::sleep(Duration::from_secs(3));
     println!(">>> [FEED] FIRE!");
 
@@ -73,7 +73,7 @@ fn main() {
                 orders_sent / 1_000_000.0, 
                 orders_sent / elapsed / 1_000_000.0
             );
-            // Don't spam console too fast
+            // Stop after 5 s.
             if elapsed > 5.0 { break; } 
         }
     }

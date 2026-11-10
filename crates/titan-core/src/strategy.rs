@@ -1,13 +1,13 @@
 use titan_common::MarketTick;
 
-/// The Brain.
+/// A strategy consumes ticks and reports whether it acted.
 pub trait TradingStrategy {
     fn name(&self) -> &str;
     
     fn on_tick(&mut self, tick: &MarketTick) -> bool;
 }
 
-// --- STRATEGY 1: NAIVE MARKET MAKER ---
+/// Baseline market maker used to load the hot path.
 pub struct MarketMaker {
     pub position: i64,
     pub pnl: f64,
