@@ -1,8 +1,5 @@
+# Build for the host CPU (apple-m4 on the reference machine).
+# Paper benchmarks pin the CPU explicitly via RUSTFLAGS in scripts/, so this
+# default only affects day-to-day development builds.
 [build]
 rustflags = ["-C", "target-cpu=native"]
-
-[target.aarch64-apple-darwin]
-rustflags = [
-    "-C", "link-arg=-undefined",
-    "-C", "link-arg=dynamic_lookup",
-]

@@ -14,7 +14,7 @@ fn bench_ring_buffer_throughput(c: &mut Criterion) {
 
     group.bench_function("spsc_throughput", |b| {
         b.iter(|| {
-            let ring = Arc::new(RingBuffer::new());
+            let ring = Arc::new(RingBuffer::new(16_384));
             let producer_ring = ring.clone();
             let consumer_ring = ring.clone();
 
