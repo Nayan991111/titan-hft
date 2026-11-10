@@ -1,11 +1,9 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-/// Global Kill Switch.
-/// If true, the system MUST stop trading immediately.
-/// Using Relaxed ordering for 'load' in the hot loop is usually acceptable for 
-/// this specific flag to minimize cache coherency traffic, but we will use 
-/// Acquire/Release to ensure memory visibility of the reason for the kill.
+/// Global kill switch. Once tripped, trading stops.
+/// Acquire/Release so that state written before `trip` is visible to any
+/// thread that observes the flag.
 pub struct GlobalKillSwitch {
     tripped: AtomicBool,
 }
@@ -26,8 +24,7 @@ impl GlobalKillSwitch {
     }
 }
 
-/// Thread-local Risk Manager for the Consumer thread.
-/// Tracks aggregate stats across all strategies (currently just one).
+/// Per-thread risk limits for the consumer thread.
 pub struct RiskManager {
     // Limits
     max_position: i64,
@@ -46,23 +43,22 @@ impl RiskManager {
         }
     }
 
-    /// Returns TRUE if the state is safe.
-    /// Returns FALSE if a limit is breached (triggers kill switch).
+    /// True if all limits hold; false (and trips the kill switch) otherwise.
     #[inline(always)]
     pub fn check(&self, current_position: i64, current_pnl: f64) -> bool {
-        // 1. Check Global Kill Switch (Atomic Load - ~10-20 cycles)
+        // Kill switch.
         if self.kill_switch.is_tripped() {
             return false;
         }
 
-        // 2. Check Position Limits (Integer comparison - ~1 cycle)
+        // Position limit.
         if current_position.abs() > self.max_position {
             println!(">>> [RISK] Position Limit Breached: {} > {}", current_position, self.max_position);
             self.kill_switch.trip();
             return false;
         }
 
-        // 3. Check Drawdown (Float comparison - ~3 cycles)
+        // Drawdown limit.
         if current_pnl < self.max_drawdown {
             println!(">>> [RISK] Max Drawdown Breached: {:.2} < {:.2}", current_pnl, self.max_drawdown);
             self.kill_switch.trip();

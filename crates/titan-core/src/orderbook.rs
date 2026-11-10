@@ -1,4 +1,6 @@
-// crates/titan-core/src/orderbook.rs
+//! Prototype order book kept as a baseline. It keys resting orders by id in
+//! hash maps and never recomputes best prices on removal; the ITCH L3 book
+//! replaces it.
 
 use rustc_hash::FxHashMap;
 use titan_common::MarketTick;
@@ -19,15 +21,12 @@ pub struct Order {
 }
 
 pub struct GlobalOrderBook {
-    // STORAGE
     bids: FxHashMap<u64, Order>,
     asks: FxHashMap<u64, Order>,
     
-    // CACHE
     pub best_bid: f64,
     pub best_ask: f64,
     
-    // METRICS
     pub trades_count: u64,
 }
 
@@ -44,17 +43,14 @@ impl GlobalOrderBook {
 
     #[inline(always)]
     pub fn execute_order(&mut self, tick: &MarketTick) -> Option<Trade> {
-        // 1. Parse Fields
         let is_bid = tick.side == 1; 
         let price = tick.price;
         let quantity = tick.quantity; // This is u64
         let order_id = tick.timestamp;
 
-        // 2. MATCHING ENGINE LOGIC
         if is_bid {
-            // INCOMING BID vs BEST ASK
+            // Incoming bid against best ask.
             if price >= self.best_ask {
-                // MATCH!
                 self.trades_count += 1;
                 return Some(Trade {
                     price: self.best_ask,
@@ -63,7 +59,7 @@ impl GlobalOrderBook {
                     seller_order_id: 0, 
                 });
             } else {
-                // NO MATCH: Book it
+                // No cross: rest the order.
                 self.bids.insert(order_id, Order { 
                     price, 
                     quantity: quantity as f64,
@@ -74,9 +70,8 @@ impl GlobalOrderBook {
                 }
             }
         } else {
-            // INCOMING ASK vs BEST BID
+            // Incoming ask against best bid.
             if price <= self.best_bid {
-                // MATCH!
                 self.trades_count += 1;
                 return Some(Trade {
                     price: self.best_bid,
@@ -85,7 +80,7 @@ impl GlobalOrderBook {
                     seller_order_id: order_id,
                 });
             } else {
-                // NO MATCH: Book it
+                // No cross: rest the order.
                 self.asks.insert(order_id, Order { 
                     price, 
                     quantity: quantity as f64,

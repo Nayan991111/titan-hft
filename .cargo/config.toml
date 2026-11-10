@@ -1,5 +1,5 @@
 # Build for the host CPU (apple-m4 on the reference machine).
-# Paper benchmarks pin the CPU explicitly via RUSTFLAGS in scripts/, so this
-# default only affects day-to-day development builds.
+# Measurement runs set the CPU explicitly with RUSTFLAGS so results do not
+# depend on where they were built.
 [build]
 rustflags = ["-C", "target-cpu=native"]

@@ -1,4 +1,4 @@
-# Titan HFT Engine - Automation Interface
+# Titan prototype: build and run targets.
 
 .PHONY: all run sim clean bench check
 
@@ -8,7 +8,7 @@ all:
 
 # Run the Engine (Consumer)
 run:
-	@echo ">>> Launching Titan Engine (M4 Optimized)..."
+	@echo ">>> Launching titan-core..."
 	cargo run --release --bin titan-core
 
 # Run the Feed Simulator (Producer)
