@@ -535,6 +535,7 @@ dependencies = [
  "rustc-hash",
  "socket2",
  "titan-common",
+ "titan-platform",
  "zerocopy",
 ]
 
@@ -546,6 +547,13 @@ dependencies = [
  "socket2",
  "titan-common",
  "zerocopy",
+]
+
+[[package]]
+name = "titan-platform"
+version = "0.1.0"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

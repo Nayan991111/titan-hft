@@ -9,14 +9,13 @@ use titan_core::risk::{RiskManager, GlobalKillSwitch};
 mod strategy;
 use crate::strategy::{TradingStrategy, MarketMaker};
 
-// Apple Silicon M4 High Priority Enforcement
-#[cfg(target_os = "macos")]
+// Request the highest QoS class so XNU prefers a performance core.
+// macOS offers no hard affinity on Apple silicon; this is a scheduling hint.
 fn set_high_priority() {
-    // In a real deployment, we would use thread_policy_set via libc
-    // For this lab, we assume the OS scheduler favors active threads
+    if let Err(e) = titan_platform::qos::set_current_thread(titan_platform::qos::Qos::UserInteractive) {
+        eprintln!(">>> [CORE] QoS request not applied (code {e})");
+    }
 }
-#[cfg(not(target_os = "macos"))]
-fn set_high_priority() {}
 
 const BENCHMARK_SAMPLES: usize = 1_000_000;
 
