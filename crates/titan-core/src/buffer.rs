@@ -13,7 +13,6 @@ pub struct RingBuffer {
     _pad1: [u8; CACHE_LINE_SIZE],
     tail: AtomicU64,
     _pad2: [u8; CACHE_LINE_SIZE],
-    // Changed from fixed array to Vec (Heap)
     buffer: Vec<UnsafeCell<MarketTick>>, 
     capacity: usize,
     mask: usize,
@@ -23,7 +22,7 @@ unsafe impl Sync for RingBuffer {}
 unsafe impl Send for RingBuffer {}
 
 impl RingBuffer {
-    // Now accepts a specific capacity
+    /// `capacity` must be a power of two so indices wrap with a mask.
     pub fn new(capacity: usize) -> Self {
         // Ensure power of 2 for fast bitwise masking
         assert!(capacity.is_power_of_two(), "Buffer capacity must be power of 2");
@@ -49,14 +48,12 @@ impl RingBuffer {
         let tail = self.tail.load(Ordering::Relaxed);
         let head = self.head.load(Ordering::Acquire);
         
-        // Use dynamic capacity
         if tail.wrapping_sub(head) >= self.capacity as u64 { 
             return false; 
         }
         
         let index = (tail as usize) & self.mask;
-        // Unsafe get check eliminated by logic above, but Vec bounds check exists technically. 
-        // For raw speed we use get_unchecked or just array indexing (Rust optimizes Vec index well)
+        // In bounds: index is masked to capacity - 1.
         unsafe { *self.buffer.get_unchecked(index).get() = value; }
         
         self.tail.store(tail.wrapping_add(1), Ordering::Release);

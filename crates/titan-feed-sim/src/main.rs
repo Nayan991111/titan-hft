@@ -9,7 +9,7 @@ const PACKET_SIZE: usize = std::mem::size_of::<MarketTick>() * TICKS_PER_PACKET;
 
 fn main() {
     println!("==================================================");
-    println!("   titan FEED SIMULATOR (Day 11: JUMBO BATCH)   ");
+    println!("   TITAN FEED SIMULATOR (UDP, 32 ticks/datagram)");
     println!("   Mode: 32 Ticks Per Packet (MTU Safe)           ");
     println!("   Scenario: CROSSING MARKETS (Force Execution)   ");
     println!("==================================================");
