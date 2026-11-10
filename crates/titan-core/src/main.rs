@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::thread;
-use std::time::Instant; // Removed unused 'Duration'
+use std::time::Instant;
 use titan_core::buffer::RingBuffer;
 use titan_core::orderbook::GlobalOrderBook;
 use titan_core::network::BatchReceiver;
@@ -48,7 +48,7 @@ fn main() {
         let mut samples_collected = 0;
         let mut total_latency_ns = 0u64;
 
-        println!(">>> [CORE] Warmup complete. Capturing metrics...");
+        println!(">>> [CORE] Capturing metrics (legacy harness, no warm-up phase)...");
 
         loop {
             match consumer_ring.read() {
@@ -97,24 +97,31 @@ fn main() {
         
         // REPORT GENERATION
         let avg_ns = total_latency_ns as f64 / samples_collected as f64;
-        let mut count = 0;
-        let mut p50 = 0;
-        let mut p99 = 0;
-        let mut p999 = 0;
-        
+        // Percentiles over 1 us buckets. Option is used as "not yet found" so that
+        // bucket 0 is a valid answer (the previous sentinel of 0 skipped it).
+        let mut count = 0u64;
+        let mut p50: Option<usize> = None;
+        let mut p99: Option<usize> = None;
+        let mut p999: Option<usize> = None;
+        let n = samples_collected as f64;
         for (us, &c) in histogram.iter().enumerate() {
             count += c;
-            if p50 == 0 && count >= (samples_collected / 2) as u64 { p50 = us; }
-            if p99 == 0 && count >= (samples_collected as f64 * 0.99) as u64 { p99 = us; }
-            if p999 == 0 && count >= (samples_collected as f64 * 0.999) as u64 { p999 = us; }
+            if p50.is_none() && count as f64 >= n * 0.50 { p50 = Some(us); }
+            if p99.is_none() && count as f64 >= n * 0.99 { p99 = Some(us); }
+            if p999.is_none() && count as f64 >= n * 0.999 { p999 = Some(us); }
         }
+        let fmt = |v: Option<usize>| match v {
+            Some(0) => "< 1 us".to_string(),
+            Some(u) => format!("< {} us", u + 1),
+            None => "n/a".to_string(),
+        };
 
         println!("\n=== TITAN BENCHMARK RESULTS (M4/ARM64) ===");
         println!("Samples: {}", samples_collected);
         println!("Avg Latency: {:.2} us", avg_ns / 1000.0);
-        println!("p50 (Median): {} us", p50);
-        println!("p99 (Tail):   {} us", p99);
-        println!("p99.9:        {} us", p999);
+        println!("p50 (Median): {}", fmt(p50));
+        println!("p99 (Tail):   {}", fmt(p99));
+        println!("p99.9:        {}", fmt(p999));
         println!("==========================================\n");
     });
 

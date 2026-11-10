@@ -4,13 +4,14 @@ use socket2::{Socket, Domain, Type, Protocol};
 use std::net::SocketAddr;
 use std::io;
 use std::mem::MaybeUninit;
+use zerocopy::FromBytes;
 use std::os::unix::io::AsRawFd;
 
 // CONFIGURATION
 const TICKS_PER_PACKET: usize = 32;
 const TICK_SIZE: usize = std::mem::size_of::<MarketTick>();
 const PACKET_SIZE: usize = TICK_SIZE * TICKS_PER_PACKET;
-const BATCH_READ_LOOPS: usize = 16; 
+const BATCH_READ_LOOPS: usize = 16;
 
 pub struct BatchReceiver {
     socket: Socket,
@@ -50,30 +51,27 @@ impl BatchReceiver {
     pub fn listen_loop(&mut self, ring_buffer: &RingBuffer) {
         println!(">>> [NETWORK] Starting Jumbo Packet Processing...");
         
-        // Correct: Buffer of MaybeUninit
         let mut buf = [MaybeUninit::<u8>::uninit(); PACKET_SIZE];
         
         loop {
             let mut received_any = false;
             
             for _ in 0..BATCH_READ_LOOPS {
-                // FIXED: Pass the MaybeUninit buffer directly
                 match self.socket.recv(&mut buf) {
                     Ok(size) => {
                         if size == PACKET_SIZE {
                             received_any = true;
                             
-                            // Interpret the initialized bytes as MarketTicks
-                            let ticks = unsafe { 
-                                std::slice::from_raw_parts(
-                                    buf.as_ptr() as *const MarketTick, 
-                                    TICKS_PER_PACKET
-                                ) 
+                            // SAFETY: recv initialised the first `size` bytes.
+                            let bytes = unsafe {
+                                std::slice::from_raw_parts(buf.as_ptr() as *const u8, size)
                             };
-
-                            // Push all 32 ticks to RingBuffer
-                            for tick in ticks {
-                                while !ring_buffer.write(*tick) { std::hint::spin_loop(); }
+                            // read_from_bytes copies each tick out, so the receive
+                            // buffer's alignment (1) does not matter.
+                            for chunk in bytes.chunks_exact(TICK_SIZE) {
+                                if let Ok(tick) = MarketTick::read_from_bytes(chunk) {
+                                    while !ring_buffer.write(tick) { std::hint::spin_loop(); }
+                                }
                             }
                         }
                     }
