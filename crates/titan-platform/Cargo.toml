@@ -1,0 +1,13 @@
+[package]
+name = "titan-platform"
+version = "0.1.0"
+edition = "2021"
+description = "Apple silicon platform layer for Titan: pinned memory, counter timer, QoS, kperf PMU access, allocation accounting"
+license = "MIT"
+
+[dependencies]
+libc = "0.2"
+
+[[bin]]
+name = "titan-probe"
+path = "src/bin/titan-probe.rs"
