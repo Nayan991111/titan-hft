@@ -97,7 +97,14 @@ impl L3Book {
     }
 
     #[inline(always)]
-    fn slot(&self, i: usize) -> &mut Slot {
+    fn slot(&self, i: usize) -> &Slot {
+        debug_assert!(i <= self.mask);
+        unsafe { &*self.slots.add(i) }
+    }
+
+    #[inline(always)]
+    fn slot_mut(&mut self, i: usize) -> &mut Slot {
+        debug_assert!(i <= self.mask);
         unsafe { &mut *self.slots.add(i) }
     }
 
@@ -124,7 +131,7 @@ impl L3Book {
         while self.slot(i).order != 0 {
             i = (i + 1) & self.mask;
         }
-        *self.slot(i) = s;
+        *self.slot_mut(i) = s;
         self.live += 1;
     }
 
@@ -142,11 +149,11 @@ impl L3Book {
             // Move sj back to i unless its home lies cyclically in (i, j].
             let stays = if i <= j { i < k && k <= j } else { i < k || k <= j };
             if !stays {
-                *self.slot(i) = sj;
+                *self.slot_mut(i) = sj;
                 i = j;
             }
         }
-        self.slot(i).order = 0;
+        self.slot_mut(i).order = 0;
         self.live -= 1;
     }
 
@@ -193,7 +200,7 @@ impl L3Book {
         if gone {
             self.remove_at(i);
         } else {
-            self.slot(i).shares -= n;
+            self.slot_mut(i).shares -= n;
         }
     }
 
