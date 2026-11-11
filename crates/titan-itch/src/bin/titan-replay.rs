@@ -12,6 +12,13 @@
 //! allocation count of measured epochs shows whether the hot path allocates.
 //!
 //!   titan-replay [messages] [instruments] [epochs] [pmu]
+//!   titan-replay file=PATH [limit=MESSAGES] [epochs=N] [pmu]
+//!   titan-replay write=PATH [messages=N] [instruments=M]
+//!
+//! File mode replays a NASDAQ ITCH 5.0 binary file (decompressed). Before
+//! timing, a verification pass applies every message to both the L3 book and
+//! the reference book and compares the best bid and ask of the instrument
+//! touched after each message; any mismatch aborts the run.
 
 use std::hint::black_box;
 use titan_itch::book::L3Book;
@@ -110,11 +117,161 @@ fn measure(run: &Run, epoch: usize, f: &mut dyn FnMut(&[u8]) -> (u64, u64)) {
     );
 }
 
+fn kv<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
+    args.iter().find_map(|a| a.strip_prefix(key).and_then(|r| r.strip_prefix('=')))
+}
+
+/// Byte length of the first `limit` messages, maximum stock locate, count.
+fn scan(buf: &[u8], limit: usize) -> (usize, u16, usize) {
+    let mut r = Reader::new(buf);
+    let mut max_locate = 0u16;
+    let mut n = 0usize;
+    let mut end = 0usize;
+    while n < limit {
+        match r.next_raw() {
+            Some(Ok(b)) => {
+                if b.len() >= 3 {
+                    max_locate = max_locate.max(u16::from_be_bytes([b[1], b[2]]));
+                }
+                n += 1;
+                end += 2 + b.len();
+            }
+            Some(Err(e)) => {
+                eprintln!("malformed input after {n} messages: {e:?}");
+                break;
+            }
+            None => break,
+        }
+    }
+    (end, max_locate, n)
+}
+
+/// Apply every message to both books; compare top of book after each one.
+fn verify(buf: &[u8], log2: u32, instruments: usize) -> (u64, u64, u64) {
+    let mut fast = L3Book::new(log2, instruments);
+    let mut slow = RefBook::default();
+    let mut r = Reader::new(buf);
+    let mut n = 0u64;
+    let mut mismatches = 0u64;
+    while let Some(m) = r.next_msg() {
+        let m = m.expect("well-formed feed");
+        fast.apply(&m);
+        slow.apply(&m);
+        let loc = locate_of(&m);
+        if !matches!(m, Msg::Other { .. }) {
+            for side in [Side::Buy, Side::Sell] {
+                if fast.best(loc, side) != slow.best(loc, side) {
+                    if mismatches < 5 {
+                        eprintln!("mismatch at message {n}: {m:?} side {side:?} fast {:?} ref {:?}", fast.best(loc, side), slow.best(loc, side));
+                    }
+                    mismatches += 1;
+                }
+            }
+        }
+        n += 1;
+    }
+    assert_eq!(fast.live_orders(), slow.live_orders(), "live order counts differ");
+    (n, mismatches, fast.unknown)
+}
+
+fn file_mode(args: &[String], path: &str, pmu: Option<&Session>) {
+    let limit: usize = kv(args, "limit").and_then(|v| v.parse().ok()).unwrap_or(usize::MAX);
+    let epochs: usize = kv(args, "epochs").and_then(|v| v.parse().ok()).unwrap_or(3);
+    let raw = std::fs::read(path).unwrap_or_else(|e| panic!("cannot read {path}: {e}"));
+    let (len, max_locate, n) = scan(&raw, limit);
+    let mut region = PinnedRegion::new(len).expect("feed region");
+    region.as_mut_slice()[..len].copy_from_slice(&raw[..len]);
+    drop(raw);
+    let buf = &region.as_mut_slice()[..len];
+    let instruments = max_locate as usize + 1;
+    let name = std::path::Path::new(path).file_name().and_then(|f| f.to_str()).unwrap_or("file").replace('.', "_");
+
+    let mut kinds = [0u64; 256];
+    let mut r = Reader::new(buf);
+    let mut probe = RefBook::default();
+    let mut peak = 0usize;
+    while let Some(b) = r.next_raw() {
+        let b = b.expect("well-formed feed");
+        kinds[b[0] as usize] += 1;
+        if let Ok(m) = titan_itch::decode::decode(b) {
+            probe.apply(&m);
+            peak = peak.max(probe.live_orders());
+        }
+    }
+    drop(probe);
+    let mix: Vec<String> = (0..256).filter(|&k| kinds[k] > 0).map(|k| format!("{}:{}", k as u8 as char, kinds[k])).collect();
+    let mut log2 = 10u32;
+    while ((1usize << log2) / 2) < peak {
+        log2 += 1;
+    }
+    println!(
+        "rp_feed mix={name} source=file messages={n} bytes={len} instruments={instruments} peak_live_orders={peak} order_table_slots={} types={}",
+        1usize << log2,
+        mix.join(",")
+    );
+
+    let (vn, mismatches, unknown) = verify(buf, log2, instruments);
+    println!("rp_verify mix={name} messages={vn} top_of_book_mismatches={mismatches} unknown_order_refs={unknown}");
+    assert_eq!(mismatches, 0, "L3 book disagrees with the reference book on real data");
+
+    let mut l3 = L3Book::new(log2, instruments);
+    replay_book(buf, &mut l3);
+    let base = Run { mix: Box::leak(name.into_boxed_str()), imp: "l3", buf, pmu };
+    for epoch in 0..epochs {
+        let dec = Run { imp: "decode", ..base };
+        measure(&dec, epoch, &mut |b| replay_decode(b));
+        l3.clear();
+        {
+            let book = &mut l3;
+            measure(&base, epoch, &mut |b| replay_book(b, book));
+        }
+        let mut rf = RefBook::default();
+        {
+            let book = &mut rf;
+            let rr = Run { imp: "ref", ..base };
+            measure(&rr, epoch, &mut |b| replay_book(b, book));
+        }
+        black_box(&rf);
+    }
+}
+
+/// Write a synthetic feed in NASDAQ binary file format, with a system event
+/// first and a non-displayed trade ('P', 44 bytes) after every 20th message,
+/// so file mode also exercises message types the book ignores.
+fn write_mode(args: &[String], path: &str) {
+    let messages: usize = kv(args, "messages").and_then(|v| v.parse().ok()).unwrap_or(1_000_000);
+    let instruments: u16 = kv(args, "instruments").and_then(|v| v.parse().ok()).unwrap_or(500);
+    let book = feed(99, instruments, messages, Mix::default());
+    let mut out = Vec::with_capacity(book.len() + book.len() / 10);
+    let mut sys = vec![0u8; 12];
+    sys[0] = b'S';
+    sys[11] = b'O';
+    out.extend_from_slice(&12u16.to_be_bytes());
+    out.extend_from_slice(&sys);
+    let mut trade = vec![0u8; 44];
+    trade[0] = b'P';
+    let mut r = Reader::new(&book);
+    let mut i = 0usize;
+    while let Some(b) = r.next_raw() {
+        let b = b.expect("generator output");
+        out.extend_from_slice(&(b.len() as u16).to_be_bytes());
+        out.extend_from_slice(b);
+        i += 1;
+        if i % 20 == 0 {
+            out.extend_from_slice(&44u16.to_be_bytes());
+            out.extend_from_slice(&trade);
+        }
+    }
+    std::fs::write(path, &out).unwrap_or_else(|e| panic!("cannot write {path}: {e}"));
+    println!("rp_write path={path} book_messages={messages} bytes={}", out.len());
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let messages: usize = args.get(1).and_then(|v| v.parse().ok()).unwrap_or(5_000_000);
-    let instruments: u16 = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(500);
-    let epochs: usize = args.get(3).and_then(|v| v.parse().ok()).unwrap_or(3);
+    if let Some(path) = kv(&args, "write") {
+        write_mode(&args, path);
+        return;
+    }
     let pmu = if args.iter().any(|a| a == "pmu") {
         match Kperf::open().and_then(|k| {
             k.session(&[events::CYCLES, events::INSTRUCTIONS, events::L1D_LOAD_MISS, events::BRANCH_MISPREDICT])
@@ -129,6 +286,14 @@ fn main() {
         None
     };
     let _ = qos::set_current_thread(Qos::UserInteractive);
+    if let Some(path) = kv(&args, "file") {
+        println!("rp_config source=file pmu={}", pmu.is_some());
+        file_mode(&args, path, pmu.as_ref());
+        return;
+    }
+    let messages: usize = args.get(1).and_then(|v| v.parse().ok()).unwrap_or(5_000_000);
+    let instruments: u16 = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(500);
+    let epochs: usize = args.get(3).and_then(|v| v.parse().ok()).unwrap_or(3);
 
     let mixes: [(&'static str, Mix); 3] = [
         ("default", Mix::default()),
