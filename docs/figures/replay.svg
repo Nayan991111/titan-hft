@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="330" viewBox="0 0 820 330" role="img" aria-labelledby="title desc">
+<title id="title">L3 book vs reference book</title>
+<desc id="desc">CPU cycles: Titan 98.3, reference 326; instructions: Titan 176, reference 865; L1D load misses: Titan 5.98, reference 16.8</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; }
+  .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+  .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .tile { fill: #f3f2ee; } .big { fill: #0b0b0b; } .accent { fill: #2a78d6; }
+  .good { fill: #0ca30c; } .bad { fill: #d03b3b; } .warn { fill: #fab219; } .none { fill: #b9b8b2; }
+  .chip { fill: #ffffff; stroke: #d9d8d3; stroke-width: 1; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .frame { stroke: #383835; }
+    .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
+    .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; }
+    .box { fill: #242422; stroke: #46453f; }
+    .hot { fill: #1c2a3d; stroke: #3987e5; }
+    .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
+    .bracket { stroke: #3987e5; }
+    .tile { fill: #242422; } .big { fill: #f0efec; } .accent { fill: #3987e5; }
+    .none { fill: #57564f; } .chip { fill: #1f1f1e; stroke: #46453f; }
+  }
+</style>
+<rect class="bg" x="0.5" y="0.5" width="819" height="329" rx="10"/>
+<rect class="frame" x="0.5" y="0.5" width="819" height="329" rx="10"/>
+<text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Book update on real data: where the 3.3x comes from</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">Per message, decode plus book update, NASDAQ BX day, median of 3 epochs (lower is better).</text>
+<rect class="s1" x="28" y="76" width="12" height="12" rx="2"/>
+<text x="46.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">Titan L3 book</text>
+<rect class="s2" x="165.60000000000002" y="76" width="12" height="12" rx="2"/>
+<text x="183.6" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">BTreeMap reference book</text>
+<text x="28.0" y="122.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" text-anchor="start">CPU cycles</text>
+<line class="axis" x1="28" y1="262" x2="264" y2="262"/>
+<path class="s1" d="M58,262 V232.8 Q58,228.8 62.0,228.8 H110.0 Q114,228.8 114,232.8 V262 Z"/>
+<text x="86.0" y="221.8" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">98.3</text>
+<path class="s2" d="M150,262 V156.0 Q150,152.0 154.0,152.0 H202.0 Q206,152.0 206,156.0 V262 Z"/>
+<text x="178.0" y="145.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">326</text>
+<text x="28.0" y="284.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">3.3x fewer with Titan</text>
+<text x="290.0" y="122.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" text-anchor="start">instructions</text>
+<line class="axis" x1="290" y1="262" x2="526" y2="262"/>
+<path class="s1" d="M320,262 V243.6 Q320,239.6 324.0,239.6 H372.0 Q376,239.6 376,243.6 V262 Z"/>
+<text x="348.0" y="232.6" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">176</text>
+<path class="s2" d="M412,262 V156.0 Q412,152.0 416.0,152.0 H464.0 Q468,152.0 468,156.0 V262 Z"/>
+<text x="440.0" y="145.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">865</text>
+<text x="290.0" y="284.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">4.9x fewer with Titan</text>
+<text x="552.0" y="122.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" text-anchor="start">L1D load misses</text>
+<line class="axis" x1="552" y1="262" x2="788" y2="262"/>
+<path class="s1" d="M582,262 V226.8 Q582,222.8 586.0,222.8 H634.0 Q638,222.8 638,226.8 V262 Z"/>
+<text x="610.0" y="215.8" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">5.98</text>
+<path class="s2" d="M674,262 V156.0 Q674,152.0 678.0,152.0 H726.0 Q730,152.0 730,156.0 V262 Z"/>
+<text x="702.0" y="145.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">16.8</text>
+<text x="552.0" y="284.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">2.8x fewer with Titan</text>
+<text x="792.0" y="316.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-11_m4.txt (titan-replay with PMU, commit c3b850d)</text>
+</svg>

@@ -31,6 +31,9 @@ STYLE = """
   .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
   .tip { fill: #75746f; }
   .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .tile { fill: #f3f2ee; } .big { fill: #0b0b0b; } .accent { fill: #2a78d6; }
+  .good { fill: #0ca30c; } .bad { fill: #d03b3b; } .warn { fill: #fab219; } .none { fill: #b9b8b2; }
+  .chip { fill: #ffffff; stroke: #d9d8d3; stroke-width: 1; }
   @media (prefers-color-scheme: dark) {
     .bg { fill: #1a1a19; } .frame { stroke: #383835; }
     .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
@@ -40,6 +43,8 @@ STYLE = """
     .hot { fill: #1c2a3d; stroke: #3987e5; }
     .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
     .bracket { stroke: #3987e5; }
+    .tile { fill: #242422; } .big { fill: #f0efec; } .accent { fill: #3987e5; }
+    .none { fill: #57564f; } .chip { fill: #1f1f1e; stroke: #46453f; }
   }
 </style>"""
 
@@ -215,9 +220,209 @@ def fig_pingpong():
     return svg(W, H, b, "Cross-core ping-pong", desc)
 
 
+EXPERIMENTS = ROOT / "docs" / "experiments.md"
+
+ITCH_NAMES = {"A": "Add order", "F": "Add order, attributed", "E": "Order executed", "C": "Executed at price",
+              "X": "Order cancel", "D": "Order delete", "U": "Order replace", "P": "Trade, non-cross",
+              "N": "Retail price improvement", "H": "Trading action", "R": "Stock directory",
+              "Y": "Reg SHO restriction", "L": "Market participant position", "S": "System event",
+              "V": "MWCB decline level"}
+BOOK_TYPES = set("AFECXDU")
+
+
+def real_feed():
+    """Message counts by type and verification counts for the real day."""
+    types, msgs, mism, unk = {}, None, None, None
+    for line in T2T.read_text().splitlines():
+        if line.startswith("rp_feed ") and "types=" in line:
+            for kv in line.split("types=")[1].split(","):
+                k, v = kv.split(":")
+                types[k] = int(v)
+        if line.startswith("rp_verify "):
+            f = dict(x.split("=", 1) for x in line.split()[1:])
+            msgs, mism, unk = int(f["messages"]), int(f["top_of_book_mismatches"]), int(f["unknown_order_refs"])
+    if not types or msgs is None:
+        sys.exit(f"{T2T}: no rp_feed or rp_verify line")
+    return types, msgs, mism, unk
+
+
+def replay_pmu():
+    """{impl: {metric: value}} from the PMU summary of the real-data replay."""
+    out = {}
+    pat = re.compile(r"^impl=(\w+) mix=20190730_BX_ITCH_50\s+n=\d+\s+([\d.]+) \[.*?msg_cycles=")
+    for line in T2T.read_text().splitlines():
+        m = pat.match(line)
+        if m:
+            f = dict(x.split("=", 1) for x in line.split() if "=" in x)
+            out[m.group(1)] = {k: float(f[k]) for k in ("msg_cycles", "msg_instructions", "msg_l1d_miss")}
+            out[m.group(1)]["ns"] = float(m.group(2))
+    if not {"l3", "ref"} <= out.keys():
+        sys.exit(f"{T2T}: no replay PMU summary")
+    return out
+
+
+def hypotheses():
+    rows = []
+    for line in EXPERIMENTS.read_text().splitlines():
+        p = [c.strip() for c in line.split("|")]
+        if len(p) > 4 and re.fullmatch(r"H\d+b?", p[1]):
+            rows.append((p[1], p[3]))
+    if not rows:
+        sys.exit(f"{EXPERIMENTS}: no hypothesis table")
+    return rows
+
+
+def status_class(st):
+    s = st.lower()
+    if s.startswith(("supported", "confirmed")):
+        return "good", "supported"
+    if s.startswith("not supported"):
+        return "bad", "not supported"
+    if s.startswith("refuted"):
+        return "bad", "refuted"
+    if s.startswith("inconclusive"):
+        return "warn", "inconclusive"
+    return "none", "pending"
+
+
+def fig_hero():
+    types, msgs, mism, unk = real_feed()
+    full = t2t_cycles()["20190730_BX_ITCH_50"]["full"]
+    one_way = None
+    for line in PP.read_text().splitlines():
+        p = line.split()
+        if len(p) == 4 and p[0] == "pp":
+            one_way = float(p[3]) if one_way is None else min(one_way, float(p[3]))
+    W, H = 980, 270
+    b = [text(36, 58, "Titan", size=34, weight=700),
+         text(36, 88, "What one Apple M4 core costs to read a market-data message, update a full order book "
+              "and decide,", "t2", 15),
+         text(36, 109, "measured with hardware counters and checked against a reference on a real NASDAQ day.",
+              "t2", 15)]
+    tiles = [(f"{msgs / 1e6:.1f}M", f"real NASDAQ messages, {mism} book mismatches"),
+             (f"{full[0]:.0f}", f"cycles per message, full trading path ({full[1]:.1f} ns)"),
+             (f"{one_way:.1f} ns", "one-way hand-off between two cores")]
+    tw, gap, x, y = (W - 72 - 2 * 18) / 3, 18, 36, 136
+    for big, small in tiles:
+        b.append(f'<rect class="tile" x="{x:.1f}" y="{y}" width="{tw:.1f}" height="102" rx="10"/>')
+        b.append(f'<rect class="accent" x="{x:.1f}" y="{y}" width="4" height="102" rx="2"/>')
+        b.append(text(x + 22, y + 52, big, "big", 32, weight=700))
+        b.append(text(x + 22, y + 80, small, "t2", 12.5))
+        x += tw + gap
+    desc = (f"{msgs} real messages verified with {mism} mismatches; full path {full[0]:.0f} cycles per message; "
+            f"one-way hand-off {one_way} ns.")
+    return svg(W, H, b, "Titan headline results", desc)
+
+
+def fig_mix():
+    types, msgs, _, _ = real_feed()
+    total = sum(types.values())
+    top = sorted(types.items(), key=lambda kv: -kv[1])[:8]
+    rest = total - sum(v for _, v in top)
+    rows = [(f"{k}  {ITCH_NAMES.get(k, k)}", v, k in BOOK_TYPES) for k, v in top]
+    rows.append((f"{len(types) - len(top)} other types", rest, False))
+    book = sum(v for k, v in types.items() if k in BOOK_TYPES)
+    W, left, right = 820, 250, 110
+    top_y, band, bh = 112, 30, 16
+    H = top_y + band * len(rows) + 74
+    vmax = max(v for _, v, _ in rows) * 1.05
+    scale = (W - left - right) / vmax
+    b = [text(28, 38, "What a real trading day looks like to the order book", size=17, weight=600),
+         text(28, 60, f"NASDAQ BX, 2019-07-30: {total:,} ITCH 5.0 messages by type. "
+              f"{book / total:.1%} of them change the order book.", "t2", 13),
+         f'<rect class="s1" x="28" y="76" width="12" height="12" rx="2"/>',
+         text(46, 86.5, "changes the book", "t2", 12.5),
+         f'<rect class="none" x="190" y="76" width="12" height="12" rx="2"/>',
+         text(208, 86.5, "other message types", "t2", 12.5)]
+    for i, (label, v, is_book) in enumerate(rows):
+        y = top_y + i * band
+        b.append(text(28, y + bh - 3, label, "t1", 12.5, family=MONO if False else FONT))
+        b.append(bar(left, y, max(v * scale, 2), bh, "s1" if is_book else "none"))
+        b.append(text(left + max(v * scale, 2) + 6, y + bh - 3, f"{v / total:.1%}", "t2", 11.5))
+    b.append(f'<line class="axis" x1="{left}" y1="{top_y - 6}" x2="{left}" y2="{top_y + band * len(rows)}"/>')
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4.txt (message counts from titan-replay)",
+                  "t3", 11, "end"))
+    desc = ", ".join(f"{k} {v}" for k, v in sorted(types.items(), key=lambda kv: -kv[1]))
+    return svg(W, H, b, "ITCH message mix on a real day", desc)
+
+
+def fig_replay():
+    d = replay_pmu()
+    panels = [("msg_cycles", "CPU cycles"), ("msg_instructions", "instructions"), ("msg_l1d_miss", "L1D load misses")]
+    impls = [("l3", "Titan L3 book", "s1"), ("ref", "BTreeMap reference book", "s2")]
+    W, H = 820, 330
+    pw, gap, x0, base, ph = 236, 26, 28, 262, 110
+    cyc_ratio = d["ref"]["msg_cycles"] / d["l3"]["msg_cycles"]
+    b = [text(28, 38, f"Book update on real data: where the {cyc_ratio:.1f}x comes from", size=17, weight=600),
+         text(28, 60, "Per message, decode plus book update, NASDAQ BX day, median of 3 epochs (lower is better).",
+              "t2", 13)]
+    lx = 28
+    for _, label, cls in impls:
+        b.append(f'<rect class="{cls}" x="{lx}" y="76" width="12" height="12" rx="2"/>')
+        b.append(text(lx + 18, 86.5, label, "t2", 12.5))
+        lx += 18 + 7.2 * len(label) + 26
+    for i, (key, name) in enumerate(panels):
+        x = x0 + i * (pw + gap)
+        vmax = max(d[k][key] for k, _, _ in impls)
+        b.append(text(x, 122, name, "t1", 13.5, weight=600))
+        b.append(f'<line class="axis" x1="{x}" y1="{base}" x2="{x + pw}" y2="{base}"/>')
+        for j, (k, _, cls) in enumerate(impls):
+            v = d[k][key]
+            h = v / vmax * ph
+            bx = x + 30 + j * 92
+            r = min(4.0, h)
+            b.append(f'<path class="{cls}" d="M{bx},{base} V{base - h + r:.1f} Q{bx},{base - h:.1f} {bx + r},{base - h:.1f} '
+                     f'H{bx + 56 - r} Q{bx + 56},{base - h:.1f} {bx + 56},{base - h + r:.1f} V{base} Z"/>')
+            b.append(text(bx + 28, base - h - 7, f"{v:.2f}" if v < 10 else (f"{v:.1f}" if v < 100 else f"{v:.0f}"),
+                          "t2", 12, "middle"))
+        ratio = d["ref"][key] / d["l3"][key]
+        b.append(text(x, base + 22, f"{ratio:.1f}x fewer with Titan", "t3", 12))
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4.txt (titan-replay with PMU, commit c3b850d)",
+                  "t3", 11, "end"))
+    desc = "; ".join(f"{name}: Titan {d['l3'][k]:.3g}, reference {d['ref'][k]:.3g}" for k, name in panels)
+    return svg(W, H, b, "L3 book vs reference book", desc)
+
+
+def fig_hypotheses():
+    rows = hypotheses()
+    counts = {}
+    for _, st in rows:
+        cls = status_class(st)[0]
+        counts[cls] = counts.get(cls, 0) + 1
+    cols = 11
+    W = 820
+    cw, ch, gx, gy, x0, y0 = 64, 54, 6, 8, 28, 104
+    nrows = (len(rows) + cols - 1) // cols
+    H = y0 + nrows * (ch + gy) + 34
+    b = [text(28, 38, "Every prediction is committed before the run that tests it", size=17, weight=600),
+         text(28, 60, f"{len(rows)} hypotheses so far: {counts.get('good', 0)} supported, "
+              f"{counts.get('bad', 0)} refuted or not supported, {counts.get('warn', 0)} inconclusive, "
+              f"{counts.get('none', 0)} pending. Failed predictions stay in the log.", "t2", 13)]
+    lx = 28
+    for cls, label in (("good", "supported"), ("bad", "refuted or not supported"), ("warn", "inconclusive"),
+                       ("none", "pending")):
+        b.append(f'<rect class="{cls}" x="{lx}" y="76" width="12" height="12" rx="2"/>')
+        b.append(text(lx + 18, 86.5, label, "t2", 12.5))
+        lx += 18 + 7.0 * len(label) + 24
+    for i, (hid, st) in enumerate(rows):
+        cls, label = status_class(st)
+        x = x0 + (i % cols) * (cw + gx)
+        y = y0 + (i // cols) * (ch + gy)
+        b.append(f'<rect class="chip" x="{x}" y="{y}" width="{cw}" height="{ch}" rx="7"/>')
+        b.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{cw}" height="5" rx="2"/>')
+        b.append(text(x + cw / 2, y + 27, hid, "t1", 14, "middle", 700))
+        b.append(text(x + cw / 2, y + 44, label, "t2", 9.5 if len(label) > 12 else 10.5, "middle"))
+    b.append(text(W - 28, H - 14, "Source: docs/experiments.md", "t3", 11, "end"))
+    desc = "; ".join(f"{h} {status_class(s)[1]}" for h, s in rows)
+    return svg(W, H, b, "Pre-registered hypotheses", desc)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, fn in (("t2t-path.svg", fig_path), ("t2t-stages.svg", fig_stages), ("pingpong.svg", fig_pingpong)):
+    figs = (("hero.svg", fig_hero), ("t2t-path.svg", fig_path), ("t2t-stages.svg", fig_stages),
+            ("pingpong.svg", fig_pingpong), ("itch-mix.svg", fig_mix), ("replay.svg", fig_replay),
+            ("hypotheses.svg", fig_hypotheses))
+    for name, fn in figs:
         (OUT / name).write_text(fn())
         print(f"wrote {(OUT / name).relative_to(ROOT)}")
 

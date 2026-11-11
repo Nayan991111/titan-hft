@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="456" viewBox="0 0 820 456" role="img" aria-labelledby="title desc">
+<title id="title">ITCH message mix on a real day</title>
+<desc id="desc">A 10580123, D 10164658, N 4636704, U 2046443, E 679389, X 299199, P 243778, F 49470, Y 8959, H 8867, R 8849, L 5936, C 2304, S 6, V 1</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; }
+  .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+  .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .tile { fill: #f3f2ee; } .big { fill: #0b0b0b; } .accent { fill: #2a78d6; }
+  .good { fill: #0ca30c; } .bad { fill: #d03b3b; } .warn { fill: #fab219; } .none { fill: #b9b8b2; }
+  .chip { fill: #ffffff; stroke: #d9d8d3; stroke-width: 1; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .frame { stroke: #383835; }
+    .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
+    .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; }
+    .box { fill: #242422; stroke: #46453f; }
+    .hot { fill: #1c2a3d; stroke: #3987e5; }
+    .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
+    .bracket { stroke: #3987e5; }
+    .tile { fill: #242422; } .big { fill: #f0efec; } .accent { fill: #3987e5; }
+    .none { fill: #57564f; } .chip { fill: #1f1f1e; stroke: #46453f; }
+  }
+</style>
+<rect class="bg" x="0.5" y="0.5" width="819" height="455" rx="10"/>
+<rect class="frame" x="0.5" y="0.5" width="819" height="455" rx="10"/>
+<text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">What a real trading day looks like to the order book</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">NASDAQ BX, 2019-07-30: 28,734,686 ITCH 5.0 messages by type. 82.9% of them change the order book.</text>
+<rect class="s1" x="28" y="76" width="12" height="12" rx="2"/>
+<text x="46.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">changes the book</text>
+<rect class="none" x="190" y="76" width="12" height="12" rx="2"/>
+<text x="208.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">other message types</text>
+<text x="28.0" y="125.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">A  Add order</text>
+<path class="s1" d="M250.0,112.0 H684.1 Q688.1,112.0 688.1,116.0 V124.0 Q688.1,128.0 684.1,128.0 H250.0 Z"/>
+<text x="694.1" y="125.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">36.8%</text>
+<text x="28.0" y="155.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">D  Order delete</text>
+<path class="s1" d="M250.0,142.0 H666.9 Q670.9,142.0 670.9,146.0 V154.0 Q670.9,158.0 666.9,158.0 H250.0 Z"/>
+<text x="676.9" y="155.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">35.4%</text>
+<text x="28.0" y="185.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">N  Retail price improvement</text>
+<path class="none" d="M250.0,172.0 H438.0 Q442.0,172.0 442.0,176.0 V184.0 Q442.0,188.0 438.0,188.0 H250.0 Z"/>
+<text x="448.0" y="185.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">16.1%</text>
+<text x="28.0" y="215.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">U  Order replace</text>
+<path class="s1" d="M250.0,202.0 H330.7 Q334.7,202.0 334.7,206.0 V214.0 Q334.7,218.0 330.7,218.0 H250.0 Z"/>
+<text x="340.7" y="215.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">7.1%</text>
+<text x="28.0" y="245.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">E  Order executed</text>
+<path class="s1" d="M250.0,232.0 H274.1 Q278.1,232.0 278.1,236.0 V244.0 Q278.1,248.0 274.1,248.0 H250.0 Z"/>
+<text x="284.1" y="245.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">2.4%</text>
+<text x="28.0" y="275.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">X  Order cancel</text>
+<path class="s1" d="M250.0,262.0 H258.4 Q262.4,262.0 262.4,266.0 V274.0 Q262.4,278.0 258.4,278.0 H250.0 Z"/>
+<text x="268.4" y="275.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">1.0%</text>
+<text x="28.0" y="305.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">P  Trade, non-cross</text>
+<path class="none" d="M250.0,292.0 H256.1 Q260.1,292.0 260.1,296.0 V304.0 Q260.1,308.0 256.1,308.0 H250.0 Z"/>
+<text x="266.1" y="305.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">0.8%</text>
+<text x="28.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">F  Add order, attributed</text>
+<path class="s1" d="M250.0,322.0 H250.0 Q252.0,322.0 252.0,324.0 V336.0 Q252.0,338.0 250.0,338.0 H250.0 Z"/>
+<text x="258.0" y="335.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">0.2%</text>
+<text x="28.0" y="365.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">7 other types</text>
+<path class="none" d="M250.0,352.0 H250.0 Q252.0,352.0 252.0,354.0 V366.0 Q252.0,368.0 250.0,368.0 H250.0 Z"/>
+<text x="258.0" y="365.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">0.1%</text>
+<line class="axis" x1="250" y1="106" x2="250" y2="382"/>
+<text x="792.0" y="442.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-11_m4.txt (message counts from titan-replay)</text>
+</svg>
