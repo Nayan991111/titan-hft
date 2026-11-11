@@ -19,7 +19,7 @@ use titan_platform::qos::{self, Qos};
 use titan_platform::rusage::Usage;
 use titan_spsc::order::{AcqRel, Fenced, Order, SeqCst};
 use titan_spsc::pad::{IndexCell, Pad128, Pad64};
-use titan_spsc::ring::channel;
+use titan_spsc::ring::{channel, same_line_128};
 use titan_spsc::wait::{SpinHint, Wait, Wfe};
 use titan_spsc::{Rx, Tx};
 
@@ -29,6 +29,8 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(epoch: usize, n: usize, 
     let warm = n / 10 + 1000;
     let total = (warm + n) as u64;
     let (mut tx, mut rx) = channel::<O, P, W, C>(CAPACITY);
+    let (ha, ta) = tx.inner.index_addresses();
+    let layout = format!(" head_off128={} tail_off128={} same_line={}", ha % 128, ta % 128, same_line_128(ha, ta) as u8);
     let producer = std::thread::spawn(move || {
         let _ = qos::set_current_thread(Qos::UserInteractive);
         for i in 0..total {
@@ -75,7 +77,7 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(epoch: usize, n: usize, 
         _ => String::new(),
     };
     println!(
-        "st impl=ring order={} pad={} cached={} wait={} epoch={epoch} messages={n} ns_per_msg={ns_per_msg:.3} mmsg_per_s={:.2} invol_switches={invol}{pmu_txt}",
+        "st impl=ring order={} pad={} cached={} wait={} epoch={epoch} messages={n} ns_per_msg={ns_per_msg:.3} mmsg_per_s={:.2} invol_switches={invol}{layout}{pmu_txt}",
         O::NAME,
         P::ALIGN,
         C as u8,

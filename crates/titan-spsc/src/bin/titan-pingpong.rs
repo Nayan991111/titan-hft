@@ -29,7 +29,7 @@ use titan_platform::qos::{self, Qos};
 use titan_platform::rusage::Usage;
 use titan_spsc::order::{AcqRel, Fenced, Order, SeqCst};
 use titan_spsc::pad::{IndexCell, Pad128, Pad64};
-use titan_spsc::ring::channel;
+use titan_spsc::ring::{channel, same_line_128};
 use titan_spsc::wait::{Spin, SpinHint, Wait, Wfe, Yield};
 use titan_spsc::{Rx, Tx};
 
@@ -150,8 +150,11 @@ struct Cfg {
 fn ring_case<O: Order, P: IndexCell, W: Wait, const C: bool>(epoch: usize, n: usize, cfg: &Cfg) {
     let (a_tx, b_rx) = channel::<O, P, W, C>(CAPACITY);
     let (b_tx, a_rx) = channel::<O, P, W, C>(CAPACITY);
+    let (h1, t1) = a_tx.inner.index_addresses();
+    let (h2, t2) = b_tx.inner.index_addresses();
+    let same = (same_line_128(h1, t1) && same_line_128(h2, t2)) as u8;
     let s = measure(a_tx, a_rx, b_tx, b_rx, n, cfg);
-    let label = format!("impl=ring order={} pad={} cached={} wait={}", O::NAME, P::ALIGN, C as u8, W::NAME);
+    let label = format!("impl=ring order={} pad={} cached={} wait={} same_line={same}", O::NAME, P::ALIGN, C as u8, W::NAME);
     report(&label, epoch, n, &s, cfg);
 }
 

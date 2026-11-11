@@ -14,12 +14,21 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use titan_platform::mem::PinnedRegion;
 
+/// Both index cells in one 128-byte-aligned block, so their placement
+/// relative to Apple silicon's 128-byte lines is fixed rather than left to the
+/// allocator: with `Pad64` head and tail always share one line, with `Pad128`
+/// they never do.
+#[repr(C, align(128))]
+struct Indices<P: IndexCell> {
+    /// Consumer cell: `head` plus the consumer's cache of `tail`.
+    head: P,
+    /// Producer cell: `tail` plus the producer's cache of `head`.
+    tail: P,
+}
+
 #[repr(C)]
 struct Shared<T, P: IndexCell> {
-    /// Consumer line: `head` plus the consumer's cache of `tail`.
-    head: P,
-    /// Producer line: `tail` plus the producer's cache of `head`.
-    tail: P,
+    ix: Indices<P>,
     slots: *mut T,
     mask: usize,
     capacity: usize,
@@ -48,8 +57,7 @@ pub fn ring<T: Copy + Send, O: Order, P: IndexCell, const CACHED: bool>(
     let region = PinnedRegion::new(bytes).expect("ring storage");
     assert!(std::mem::align_of::<T>() <= region.page_size());
     let s = Arc::new(Shared {
-        head: P::default(),
-        tail: P::default(),
+        ix: Indices { head: P::default(), tail: P::default() },
         slots: region.as_ptr() as *mut T,
         mask: capacity - 1,
         capacity,
@@ -63,27 +71,37 @@ impl<T: Copy + Send, O: Order, P: IndexCell, const CACHED: bool> Producer<T, O, 
     #[inline(always)]
     pub fn push(&mut self, v: T) -> bool {
         let s = &*self.s;
-        let tail = s.tail.index().load(Ordering::Relaxed);
+        let tail = s.ix.tail.index().load(Ordering::Relaxed);
         if CACHED {
-            let cached = unsafe { *s.tail.cache() };
+            let cached = unsafe { *s.ix.tail.cache() };
             if tail.wrapping_sub(cached) == s.capacity {
-                let head = O::load(s.head.index());
-                unsafe { *s.tail.cache() = head };
+                let head = O::load(s.ix.head.index());
+                unsafe { *s.ix.tail.cache() = head };
                 if tail.wrapping_sub(head) == s.capacity {
                     return false;
                 }
             }
-        } else if tail.wrapping_sub(O::load(s.head.index())) == s.capacity {
+        } else if tail.wrapping_sub(O::load(s.ix.head.index())) == s.capacity {
             return false;
         }
         unsafe { s.slots.add(tail & s.mask).write(v) };
-        O::store(s.tail.index(), tail.wrapping_add(1));
+        O::store(s.ix.tail.index(), tail.wrapping_add(1));
         true
     }
 
     pub fn capacity(&self) -> usize {
         self.s.capacity
     }
+
+    /// Placement of the index cells: (head address, tail address).
+    pub fn index_addresses(&self) -> (usize, usize) {
+        (self.s.ix.head.index() as *const _ as usize, self.s.ix.tail.index() as *const _ as usize)
+    }
+}
+
+/// Whether two addresses fall in the same 128-byte line.
+pub fn same_line_128(a: usize, b: usize) -> bool {
+    a / 128 == b / 128
 }
 
 impl<T: Copy + Send, O: Order, P: IndexCell, const CACHED: bool> Consumer<T, O, P, CACHED> {
@@ -91,26 +109,27 @@ impl<T: Copy + Send, O: Order, P: IndexCell, const CACHED: bool> Consumer<T, O, 
     #[inline(always)]
     pub fn pop(&mut self) -> Option<T> {
         let s = &*self.s;
-        let head = s.head.index().load(Ordering::Relaxed);
+        let head = s.ix.head.index().load(Ordering::Relaxed);
         if CACHED {
-            if head == unsafe { *s.head.cache() } {
-                let tail = O::load(s.tail.index());
-                unsafe { *s.head.cache() = tail };
+            if head == unsafe { *s.ix.head.cache() } {
+                let tail = O::load(s.ix.tail.index());
+                unsafe { *s.ix.head.cache() = tail };
                 if head == tail {
                     return None;
                 }
             }
-        } else if head == O::load(s.tail.index()) {
+        } else if head == O::load(s.ix.tail.index()) {
             return None;
         }
         let v = unsafe { s.slots.add(head & s.mask).read() };
-        O::store(s.head.index(), head.wrapping_add(1));
+        O::store(s.ix.head.index(), head.wrapping_add(1));
         Some(v)
     }
 }
 
 /// A ring half combined with a wait strategy, as a blocking channel end.
 pub struct WaitingProducer<O: Order, P: IndexCell, W: Wait, const CACHED: bool> {
+    /// The underlying producer; exposed for layout inspection.
     pub inner: Producer<u64, O, P, CACHED>,
     _w: PhantomData<W>,
 }
@@ -132,7 +151,7 @@ impl<O: Order, P: IndexCell, W: Wait, const CACHED: bool> Tx for WaitingProducer
     fn send(&mut self, v: u64) {
         while !self.inner.push(v) {
             let s = &*self.inner.s;
-            W::wait(s.head.index(), s.head.index().load(Ordering::Relaxed));
+            W::wait(s.ix.head.index(), s.ix.head.index().load(Ordering::Relaxed));
         }
     }
 }
@@ -145,7 +164,7 @@ impl<O: Order, P: IndexCell, W: Wait, const CACHED: bool> Rx for WaitingConsumer
                 return v;
             }
             let s = &*self.inner.s;
-            W::wait(s.tail.index(), s.head.index().load(Ordering::Relaxed));
+            W::wait(s.ix.tail.index(), s.ix.head.index().load(Ordering::Relaxed));
         }
     }
 }
@@ -167,6 +186,21 @@ mod tests {
             assert_eq!(c.pop(), Some(i));
         }
         assert_eq!(c.pop(), None);
+    }
+
+    #[test]
+    fn index_placement_is_controlled() {
+        use crate::pad::Pad64;
+        for _ in 0..64 {
+            let (p64, _c) = ring::<u64, AcqRel, Pad64, true>(8);
+            let (h, t) = p64.index_addresses();
+            assert_eq!(h % 128, 0);
+            assert!(same_line_128(h, t), "Pad64 cells must share a 128-byte line");
+            let (p128, _c) = ring::<u64, AcqRel, Pad128, true>(8);
+            let (h, t) = p128.index_addresses();
+            assert_eq!(h % 128, 0);
+            assert!(!same_line_128(h, t), "Pad128 cells must not share a line");
+        }
     }
 
     #[test]
