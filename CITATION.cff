@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software or its measurements, please cite it as below."
+type: software
+title: "Titan: cycle-level measurement of market-data handling and inter-core hand-off on Apple M4"
+authors:
+  - family-names: Pandit
+    given-names: Nayan
+repository-code: "https://github.com/Nayan991111/titan-hft"
+license: MIT
+keywords:
+  - performance measurement
+  - Apple silicon
+  - Arm memory ordering
+  - SPSC queue
+  - order book
+  - NASDAQ ITCH
+  - hardware performance counters
