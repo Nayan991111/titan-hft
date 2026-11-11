@@ -25,7 +25,7 @@ raw data that produced them.
 | `scripts/census.sh`, `scripts/analyze.py`: instruction census, per-epoch statistics (bootstrap CI, Mann-Whitney U, Cliff's delta) | done |
 | `titan-itch`: ITCH 5.0 decoder, zero-allocation L3 order book (Fibonacci-hashed order table, sorted price levels, fixed-point prices), reference book, synthetic feed generator | done; differential-tested against the reference after every message, mutation-checked |
 | `titan-replay`: order-book replay benchmark | done |
-| Replay of a real NASDAQ ITCH 5.0 sample day | planned |
+| Replay of a real NASDAQ ITCH 5.0 sample day (`scripts/fetch_itch_sample.sh`, `titan-replay file=...`), verified against the reference book after every message | done |
 | Shared-memory and UDP (MoldUDP64) transports | planned |
 | Reproduction script and analysis | planned |
 
@@ -44,6 +44,9 @@ scripts/            instruction census and result analysis
   titan-common/     shared wire types
   titan-feed-sim/   UDP feed simulator
 ```
+
+Hypotheses are recorded in `docs/experiments.md` before the runs that test
+them.
 
 ## Measurement principles
 
@@ -70,6 +73,8 @@ sudo ./target/release/titan-probe pmu   # also programs and validates the PMU
 sudo ./target/release/titan-pingpong 200000 3 pmu    # with PMU counters
 ./target/release/titan-stream 10000000 3             # messages per case, epochs
 ./target/release/titan-replay 5000000 500 3          # messages, instruments, epochs
+scripts/fetch_itch_sample.sh                         # public BX sample day into data/
+./target/release/titan-replay file=data/20190730.BX_ITCH_50 limit=20000000 epochs=3
 scripts/census.sh --list                             # ring instructions
 scripts/analyze.py results.txt                       # statistics over epochs
 ```
