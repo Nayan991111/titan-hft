@@ -26,6 +26,7 @@ raw data that produced them.
 | `titan-itch`: ITCH 5.0 decoder, zero-allocation L3 order book (Fibonacci-hashed order table, sorted price levels, fixed-point prices), reference book, synthetic feed generator | done; differential-tested against the reference after every message, mutation-checked |
 | `titan-replay`: order-book replay benchmark | done |
 | Replay of a real NASDAQ ITCH 5.0 sample day (`scripts/fetch_itch_sample.sh`, `titan-replay file=...`), verified against the reference book after every message | done |
+| `titan-t2t`: single-core software tick-to-trade path (ingress ring, decode, L3 book, signal, egress ring) with component ablation | done; measurement in progress |
 | Shared-memory and UDP (MoldUDP64) transports | planned |
 | Reproduction script and analysis | planned |
 
@@ -38,11 +39,13 @@ baseline and is being replaced component by component.
 crates/
   titan-platform/   platform layer and the titan-probe self-test
   titan-spsc/       SPSC rings, wait strategies, titan-pingpong and titan-stream
-  titan-itch/       ITCH 5.0 decoder, L3 book, reference book, generator, titan-replay
-scripts/            instruction census and result analysis
+  titan-itch/       ITCH 5.0 decoder, L3 book, reference book, generator,
+                    titan-replay and titan-t2t
   titan-core/       engine prototype (SPSC ring, order book, strategy, risk)
   titan-common/     shared wire types
   titan-feed-sim/   UDP feed simulator
+scripts/            data download, instruction census and result analysis
+docs/               experiment log
 ```
 
 Hypotheses are recorded in `docs/experiments.md` before the runs that test
@@ -75,6 +78,9 @@ sudo ./target/release/titan-pingpong 200000 3 pmu    # with PMU counters
 ./target/release/titan-replay 5000000 500 3          # messages, instruments, epochs
 scripts/fetch_itch_sample.sh                         # public BX sample day into data/
 ./target/release/titan-replay file=data/20190730.BX_ITCH_50 limit=20000000 epochs=3
+./target/release/titan-t2t messages=5000000 epochs=5          # tick-to-trade stages
+sudo ./target/release/titan-t2t messages=5000000 epochs=5 pmu # with PMU counters
+./target/release/titan-t2t file=data/20190730.BX_ITCH_50 limit=20000000 epochs=5
 scripts/census.sh --list                             # ring instructions
 scripts/analyze.py results.txt                       # statistics over epochs
 ```

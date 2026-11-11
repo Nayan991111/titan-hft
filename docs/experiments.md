@@ -40,6 +40,25 @@ are added afterwards and are never edited away when a prediction fails.
 | H11 | L3 book allocates nothing in measured epochs | supported | 0 vs 21k to 27k |
 | H12 | L3 book takes at least 1 L1D miss per message | supported | 13.1 to 16.0 |
 | H13 | Decoding is under 20% of L3 per-message cycles | supported | 14.6% |
-| H14 | With head and tail forced into one 128-byte line, 64-byte padding is faster than 128-byte padding in uncached streaming | pending | |
+| H14 | With head and tail forced into one 128-byte line, 64-byte padding is faster than 128-byte padding in uncached streaming | inconclusive | cycles 169 vs 220 per message, lower in 3 of 3 PMU epochs; timing epochs p = 0.69; retest at N = 30 |
 | H15 | On a real NASDAQ BX day the L3 book matches the reference book after every message, with no unknown order references | pending | |
 | H16 | On real data the L3 book takes fewer L1D misses per message than on the synthetic default mix (13.8) | pending | |
+| H17 | SeqCst at or below AcqRel cost (seen in three runs) is a code placement effect, not an ordering effect: it disappears when loop alignment is fixed | pending | streaming uncached -4.4% (p = 0.03), cached -3.7% |
+| H18 | Single-core software tick-to-trade (`titan-t2t` stage `full`, synthetic default mix) costs more than 30 ns per message; predicted 45 to 60 ns | pending | |
+| H19 | Ring operations add less than 10% to the trading path: `full` within 10% of `direct` in cycles per message | pending | |
+| H20 | Component ablation is subtractive: stage `book` costs no more cycles per message than stage `full` | pending | on the x86 development VM `book` was slower than `full` (115 to 142 vs 94 to 123 ns per message) while executing fewer instructions (223 vs 274 per message, callgrind) |
+
+## Notes on `titan-t2t`
+
+* What is timed: the trading path on one core for messages already in the
+  ingress ring. Filling the ingress ring and draining the egress ring happen
+  on the same thread outside the timed region. No NIC, network stack or
+  kernel I/O is included, so the result is a software path cost, not a
+  wire-to-wire latency, and it is not comparable to published wire-to-wire
+  figures.
+* Values are batch means (default 4,096 messages per batch). The generic
+  counter steps in 41.67 ns units and one PMU read costs about 2,500 cycles,
+  so single messages cannot be timed; batch percentiles describe batch
+  means, not per-message tail latency.
+* `full` and `direct` must produce the same intents and checksum; the
+  harness aborts if they differ.
