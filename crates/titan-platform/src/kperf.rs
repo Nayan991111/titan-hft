@@ -19,6 +19,7 @@
 
 use std::ffi::{c_char, c_int, c_void, CStr, CString};
 use std::fmt;
+use std::ptr::NonNull;
 
 const KPERF_PATH: &str = "/System/Library/PrivateFrameworks/kperf.framework/kperf";
 const KPERFDATA_PATH: &str = "/System/Library/PrivateFrameworks/kperfdata.framework/kperfdata";
@@ -241,14 +242,18 @@ impl Kperf {
         })?;
         let mut out: Vec<EventInfo> = evs
             .into_iter()
-            .filter(|e| !e.is_null())
+            .filter_map(NonNull::new)
             .map(|e| unsafe { self.info(e) })
             .collect();
         out.sort_by(|a, b| a.name.cmp(&b.name));
         Ok(out)
     }
 
-    unsafe fn info(&self, e: *mut Event) -> EventInfo {
+    /// Name, alias and description of an event. Taking `NonNull` makes the
+    /// non-null requirement part of the type; strings the library leaves null
+    /// come back empty.
+    unsafe fn info(&self, e: NonNull<Event>) -> EventInfo {
+        let e = e.as_ptr();
         let (mut n, mut a, mut d) = (std::ptr::null(), std::ptr::null(), std::ptr::null());
         (self.api.kpep_event_name)(e, &mut n);
         (self.api.kpep_event_alias)(e, &mut a);
@@ -260,8 +265,11 @@ impl Kperf {
         for &c in candidates {
             let name = CString::new(c).expect("event name has no NUL");
             let mut ev = std::ptr::null_mut();
-            if unsafe { (self.api.kpep_db_event)(self.db, name.as_ptr(), &mut ev) } == 0 && !ev.is_null() {
-                let resolved = unsafe { self.info(ev) }.name;
+            if unsafe { (self.api.kpep_db_event)(self.db, name.as_ptr(), &mut ev) } != 0 {
+                continue;
+            }
+            if let Some(nn) = NonNull::new(ev) {
+                let resolved = unsafe { self.info(nn) }.name;
                 return Ok((ev, if resolved.is_empty() { c.to_string() } else { resolved }));
             }
         }
