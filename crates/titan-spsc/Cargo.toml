@@ -11,3 +11,7 @@ titan-platform = { path = "../titan-platform" }
 [[bin]]
 name = "titan-pingpong"
 path = "src/bin/titan-pingpong.rs"
+
+[[bin]]
+name = "titan-stream"
+path = "src/bin/titan-stream.rs"
