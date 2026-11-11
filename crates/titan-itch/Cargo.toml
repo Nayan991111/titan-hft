@@ -7,7 +7,12 @@ license = "MIT"
 
 [dependencies]
 titan-platform = { path = "../titan-platform" }
+titan-spsc = { path = "../titan-spsc" }
 
 [[bin]]
 name = "titan-replay"
 path = "src/bin/titan-replay.rs"
+
+[[bin]]
+name = "titan-t2t"
+path = "src/bin/titan-t2t.rs"
