@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/titan-core", "crates/titan-feed-sim", "crates/titan-common", "crates/titan-platform", "crates/titan-spsc"]
+members = ["crates/titan-core", "crates/titan-feed-sim", "crates/titan-common", "crates/titan-platform", "crates/titan-spsc", "crates/titan-itch"]
 resolver = "2"
 
 [profile.release]
