@@ -41,12 +41,12 @@ are added afterwards and are never edited away when a prediction fails.
 | H12 | L3 book takes at least 1 L1D miss per message | supported | 13.1 to 16.0 |
 | H13 | Decoding is under 20% of L3 per-message cycles | supported | 14.6% |
 | H14 | With head and tail forced into one 128-byte line, 64-byte padding is faster than 128-byte padding in uncached streaming | inconclusive | cycles 169 vs 220 per message, lower in 3 of 3 PMU epochs; timing epochs p = 0.69; retest at N = 30 |
-| H15 | On a real NASDAQ BX day the L3 book matches the reference book after every message, with no unknown order references | pending | |
-| H16 | On real data the L3 book takes fewer L1D misses per message than on the synthetic default mix (13.8) | pending | |
+| H15 | On a real NASDAQ BX day the L3 book matches the reference book after every message, with no unknown order references | supported | BX 2019-07-30, 28,734,686 messages: 0 top-of-book mismatches, 0 unknown references |
+| H16 | On real data the L3 book takes fewer L1D misses per message than on the synthetic default mix (13.8) | supported | 5.98 per message (98.3 cycles, 24.2 ns); peak 67,283 live orders vs 982,360 synthetic |
 | H17 | SeqCst at or below AcqRel cost (seen in three runs) is a code placement effect, not an ordering effect: it disappears when loop alignment is fixed | pending | streaming uncached -4.4% (p = 0.03), cached -3.7% |
-| H18 | Single-core software tick-to-trade (`titan-t2t` stage `full`, synthetic default mix) costs more than 30 ns per message; predicted 45 to 60 ns | pending | |
-| H19 | Ring operations add less than 10% to the trading path: `full` within 10% of `direct` in cycles per message | pending | |
-| H20 | Component ablation is subtractive: stage `book` costs no more cycles per message than stage `full` | pending | on the x86 development VM `book` was slower than `full` (115 to 142 vs 94 to 123 ns per message) while executing fewer instructions (223 vs 274 per message, callgrind) |
+| H18 | Single-core software tick-to-trade (`titan-t2t` stage `full`, synthetic default mix) costs more than 30 ns per message; predicted 45 to 60 ns | supported; predicted range missed (low) | 42.7 ns (bootstrap 95% CI 42.7 to 42.9), 189 cycles per message; real BX data 31.8 ns (31.8 to 32.2), 135 cycles |
+| H19 | Ring operations add less than 10% to the trading path: `full` within 10% of `direct` in cycles per message | supported | +7.8% cycles synthetic (189 vs 176), +6.7% real (135 vs 127) |
+| H20 | Component ablation is subtractive: stage `book` costs no more cycles per message than stage `full` | supported on M4 | 169 vs 189 cycles synthetic, 119 vs 135 real, 5 of 5 epochs each. The inversion seen first on the x86 development VM did not reproduce: on the VM `book` was slower than `full` (115 to 142 vs 94 to 123 ns per message) while executing fewer instructions (223 vs 274 per message, callgrind) |
 
 ## Notes on `titan-t2t`
 
@@ -62,3 +62,6 @@ are added afterwards and are never edited away when a prediction fails.
   means, not per-message tail latency.
 * `full` and `direct` must produce the same intents and checksum; the
   harness aborts if they differ.
+* Results of 2026-11-11 (commit c3b850d): `results/2026-11-11_m4.txt`. Code
+  changed after that run (hostile-input hardening adds a branch to order
+  lookup and to adds), so later figures are measured again, not reused.

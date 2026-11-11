@@ -1,0 +1,94 @@
+# Summaries of the 2026-11-11 measurement run (statistics only; raw epoch
+# lines stay on the measurement machine, and no NASDAQ data is reproduced).
+#
+# Code:      commit c3b850d (tree b664c191f7b051aebe63b7b8986f3c3af8e4b689)
+# Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
+# Toolchain: rustc 1.92.0, release profile (opt-level 3, fat LTO, 1 codegen unit), target-cpu=native
+# Power:     battery, Low Power Mode off, Docker not running, no thermal or
+#            performance warning recorded before or after
+# QoS:       USER_INTERACTIVE; PMU via kperf (root); counts include kernel work
+# Epochs:    5 (t2t) or 3 (replay) inside one process. Epochs share thermal and
+#            memory state, so p-values overstate confidence. PRELIMINARY: the
+#            final protocol is at least 30 independent launches on wall power.
+# Data:      NASDAQ BX TotalView-ITCH 5.0 sample day 20190730 from
+#            emi.nasdaq.com: 391,242,214 bytes gz, equal to the listed size;
+#            the md5 link returned HTTP 404; gunzip checked the gzip CRC-32
+#            and length of all 837,472,908 decompressed bytes; 28,734,686
+#            messages.
+#
+== H18 to H20: single-core tick-to-trade, synthetic, 5M messages x 5 stages x 5 epochs  [12:53:21]
+epochs recorded: 25
+t2t_config feed=synthetic_default messages=5000000 bytes=160633906 instruments=501 peak_live_orders=982360 order_table_slots=2097152 epochs=5 batch=4096 spread=300 pmu=true feed_locked=true pmu_read_pair_cycles=2670 pmu_read_pair_instructions=12663
+## t2t: ns_per_msg, median over epochs [bootstrap 95% CI]
+stage=ring feed=synthetic_default                              n=5        1.67 [    1.63,     1.69] batch_p99_ns=1.77 intent_rate=1 allocations=0
+stage=decode feed=synthetic_default                            n=5        7.18 [    7.17,     7.21] batch_p99_ns=8.06 intent_rate=0 allocations=0
+stage=book feed=synthetic_default                              n=5       37.98 [   37.44,    38.33] batch_p99_ns=42.8 intent_rate=0 allocations=0
+stage=direct feed=synthetic_default                            n=5       40.85 [   39.64,    41.83] batch_p99_ns=46.2 intent_rate=0.00519 allocations=0
+stage=full feed=synthetic_default                              n=5       42.71 [   42.68,    42.91] batch_p99_ns=48.3 intent_rate=0.00519 allocations=0
+## contrasts: A vs B on the primary metric (lower is better)
+t2t full vs direct, ring cost (synthetic_default)            A=    42.71 B=    40.85 A/B= 1.045 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t book vs full, ablation (synthetic_default)               A=    37.98 B=    42.71 A/B= 0.889 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default)                       A=     7.18 B=    37.98 A/B= 0.189 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+## t2t: ns_per_msg, median over epochs [bootstrap 95% CI]
+stage=ring feed=synthetic_default                              n=5        1.62 [    1.62,     1.64] msg_cycles=7.17 msg_instructions=27 msg_l1d_miss=0.101 msg_br_mispred=0.0003 ipc=3.77 core_ghz=4.42 batch_p99_ns=1.63 intent_rate=1 allocations=0
+stage=decode feed=synthetic_default                            n=5        7.08 [    7.05,     7.12] msg_cycles=31.4 msg_instructions=52.6 msg_l1d_miss=0.66 msg_br_mispred=0.928 ipc=1.67 core_ghz=4.44 batch_p99_ns=8 intent_rate=0 allocations=0
+stage=book feed=synthetic_default                              n=5       38.37 [   37.50,    45.28] msg_cycles=169 msg_instructions=202 msg_l1d_miss=12.3 msg_br_mispred=1.4 ipc=1.19 core_ghz=4.41 batch_p99_ns=43.1 intent_rate=0 allocations=0
+stage=direct feed=synthetic_default                            n=5       40.88 [   40.16,    40.99] msg_cycles=176 msg_instructions=227 msg_l1d_miss=16 msg_br_mispred=1.41 ipc=1.29 core_ghz=4.31 batch_p99_ns=46.5 intent_rate=0.00519 allocations=0
+stage=full feed=synthetic_default                              n=5       42.86 [   42.40,    43.68] msg_cycles=189 msg_instructions=233 msg_l1d_miss=16.1 msg_br_mispred=1.41 ipc=1.23 core_ghz=4.42 batch_p99_ns=47.9 intent_rate=0.00519 allocations=0
+## contrasts: A vs B on the primary metric (lower is better)
+t2t full vs direct, ring cost (synthetic_default)            A=    42.86 B=    40.88 A/B= 1.048 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t full vs direct, ring cost (synthetic_default) [cycles]   A=   189.29 B=   175.65 A/B= 1.078 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t book vs full, ablation (synthetic_default)               A=    38.37 B=    42.86 A/B= 0.895 nA=5 nB=5 U=5.0 p=0.1508 (exact) cliffs_delta=-0.60
+t2t book vs full, ablation (synthetic_default) [cycles]      A=   169.13 B=   189.29 A/B= 0.893 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default)                       A=     7.08 B=    38.37 A/B= 0.185 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default) [cycles]              A=    31.45 B=   169.13 A/B= 0.186 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+== NASDAQ BX sample day (discovered from the live listing, resumable)  [12:53:34]
+listing https://emi.nasdaq.com/ITCH/Nasdaq%20BX%20ITCH/
+9 ITCH 5.0 files listed
+selected 20190730.BX_ITCH_50.gz (listed size 391242214 bytes)
+GET https://emi.nasdaq.com/ITCH/Nasdaq%20BX%20ITCH/20190730.BX_ITCH_50.gz.md5sum -> HTTP 404
+no md5 published; verifying by listed size
+verified 20190730.BX_ITCH_50.gz (391242214 bytes)
+data/20190730.BX_ITCH_50 ready (837472908 bytes)
+ITCH_FILE=data/20190730.BX_ITCH_50
+== H15/H16: real-data replay with full verification, 3 epochs  [13:11:58]
+rp_feed mix=20190730_BX_ITCH_50 source=file messages=28734686 bytes=837472908 instruments=8850 peak_live_orders=67283 order_table_slots=262144 types=A:10580123,C:2304,D:10164658,E:679389,F:49470,H:8867,L:5936,N:4636704,P:243778,R:8849,S:6,U:2046443,V:1,X:299199,Y:8959
+rp_verify mix=20190730_BX_ITCH_50 messages=28734686 top_of_book_mismatches=0 unknown_order_refs=0
+rp_verify mix=20190730_BX_ITCH_50 messages=28734686 top_of_book_mismatches=0 unknown_order_refs=0
+## rp: ns_per_msg, median over epochs [bootstrap 95% CI]
+impl=decode mix=20190730_BX_ITCH_50                            n=3        5.06 [    5.05,     5.17] allocations=0
+impl=l3 mix=20190730_BX_ITCH_50                                n=3       23.86 [   23.81,    23.96] allocations=0
+impl=ref mix=20190730_BX_ITCH_50                               n=3       79.65 [   79.21,    79.77] allocations=3.01e+05
+## contrasts: A vs B on the primary metric (lower is better)
+rp L3 book vs reference book (20190730_BX_ITCH_50)          A=    23.86 B=    79.65 A/B= 0.300 nA=3 nB=3 U=0.0 p=0.1000 (exact) cliffs_delta=-1.00
+rp decode only vs decode + L3 book (20190730_BX_ITCH_50)    A=     5.06 B=    23.86 A/B= 0.212 nA=3 nB=3 U=0.0 p=0.1000 (exact) cliffs_delta=-1.00
+impl=decode mix=20190730_BX_ITCH_50                            n=3        5.19 [    5.14,     5.30] msg_cycles=21.7 msg_instructions=59 msg_l1d_miss=0.511 msg_br_mispred=0.721 core_ghz=4.19 allocations=0
+impl=l3 mix=20190730_BX_ITCH_50                                n=3       24.18 [   23.96,    24.38] msg_cycles=98.3 msg_instructions=176 msg_l1d_miss=5.98 msg_br_mispred=1.98 core_ghz=4.06 allocations=0
+impl=ref mix=20190730_BX_ITCH_50                               n=3       80.32 [   79.70,    81.03] msg_cycles=326 msg_instructions=865 msg_l1d_miss=16.8 msg_br_mispred=2.86 core_ghz=4.06 allocations=3.01e+05
+== H18 to H20 on real data: tick-to-trade, first 20M messages, 5 epochs  [13:12:42]
+t2t_config feed=20190730_BX_ITCH_50 messages=20000000 bytes=580295637 instruments=8850 peak_live_orders=44776 order_table_slots=131072 epochs=5 batch=4096 spread=300 pmu=false feed_locked=true pmu_read_pair_cycles=0 pmu_read_pair_instructions=0
+## t2t: ns_per_msg, median over epochs [bootstrap 95% CI]
+stage=ring feed=20190730_BX_ITCH_50                            n=5        1.70 [    1.69,     1.73] batch_p99_ns=1.77 intent_rate=1 allocations=0
+stage=decode feed=20190730_BX_ITCH_50                          n=5        6.51 [    6.47,     6.63] batch_p99_ns=7.47 intent_rate=0 allocations=0
+stage=book feed=20190730_BX_ITCH_50                            n=5       27.85 [   27.52,    29.25] batch_p99_ns=33.8 intent_rate=0 allocations=0
+stage=direct feed=20190730_BX_ITCH_50                          n=5       30.96 [   30.82,    31.39] batch_p99_ns=36.9 intent_rate=0.0968 allocations=0
+stage=full feed=20190730_BX_ITCH_50                            n=5       31.83 [   31.81,    32.20] batch_p99_ns=38.5 intent_rate=0.0968 allocations=0
+## contrasts: A vs B on the primary metric (lower is better)
+t2t full vs direct, ring cost (20190730_BX_ITCH_50)          A=    31.83 B=    30.96 A/B= 1.028 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50)             A=    27.85 B=    31.83 A/B= 0.875 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50)                     A=     6.51 B=    27.85 A/B= 0.234 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+## t2t: ns_per_msg, median over epochs [bootstrap 95% CI]
+stage=ring feed=20190730_BX_ITCH_50                            n=5        1.65 [    1.62,     1.67] msg_cycles=7.2 msg_instructions=27 msg_l1d_miss=0.103 msg_br_mispred=0.0002 ipc=3.75 core_ghz=4.38 batch_p99_ns=1.77 intent_rate=1 allocations=0
+stage=decode feed=20190730_BX_ITCH_50                          n=5        6.31 [    6.30,     6.42] msg_cycles=28 msg_instructions=47.9 msg_l1d_miss=0.608 msg_br_mispred=0.74 ipc=1.71 core_ghz=4.44 batch_p99_ns=7.67 intent_rate=0 allocations=0
+stage=book feed=20190730_BX_ITCH_50                            n=5       28.02 [   27.96,    28.40] msg_cycles=119 msg_instructions=155 msg_l1d_miss=5.62 msg_br_mispred=2.47 ipc=1.3 core_ghz=4.23 batch_p99_ns=34.7 intent_rate=0 allocations=0
+stage=direct feed=20190730_BX_ITCH_50                          n=5       31.25 [   31.15,    31.69] msg_cycles=127 msg_instructions=178 msg_l1d_miss=7.38 msg_br_mispred=2.76 ipc=1.4 core_ghz=4.06 batch_p99_ns=37.2 intent_rate=0.0968 allocations=0
+stage=full feed=20190730_BX_ITCH_50                            n=5       32.34 [   32.03,    34.87] msg_cycles=135 msg_instructions=186 msg_l1d_miss=7.24 msg_br_mispred=2.74 ipc=1.38 core_ghz=4.19 batch_p99_ns=39.7 intent_rate=0.0968 allocations=0
+## contrasts: A vs B on the primary metric (lower is better)
+t2t full vs direct, ring cost (20190730_BX_ITCH_50)          A=    32.34 B=    31.25 A/B= 1.035 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t full vs direct, ring cost (20190730_BX_ITCH_50) [cycles] A=   135.45 B=   126.97 A/B= 1.067 nA=5 nB=5 U=25.0 p=0.0088 (normal) cliffs_delta=+1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50)             A=    28.02 B=    32.34 A/B= 0.866 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50) [cycles]    A=   119.05 B=   135.45 A/B= 0.879 nA=5 nB=5 U=0.0 p=0.0088 (normal) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50)                     A=     6.31 B=    28.02 A/B= 0.225 nA=5 nB=5 U=0.0 p=0.0079 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50) [cycles]            A=    28.03 B=   119.05 A/B= 0.235 nA=5 nB=5 U=0.0 p=0.0088 (normal) cliffs_delta=-1.00
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
