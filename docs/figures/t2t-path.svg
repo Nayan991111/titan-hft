@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="310" viewBox="0 0 980 310" role="img" aria-labelledby="title desc">
+<title id="title">titan-t2t trading path</title>
+<desc id="desc">Pipeline: feed, ingress ring, decode, L3 book, signal, egress ring, gateway. Full path 135 cycles per message on real data.</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; }
+  .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+  .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .frame { stroke: #383835; }
+    .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
+    .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; }
+    .box { fill: #242422; stroke: #46453f; }
+    .hot { fill: #1c2a3d; stroke: #3987e5; }
+    .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
+    .bracket { stroke: #3987e5; }
+  }
+</style>
+<rect class="bg" x="0.5" y="0.5" width="979" height="309" rx="10"/>
+<rect class="frame" x="0.5" y="0.5" width="979" height="309" rx="10"/>
+<text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">The measured trading path: one core, no allocation, no system call</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">A feed-handler step fills the ingress ring and a gateway step drains the egress ring, both outside the timed region (dashed).</text>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="tip" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="box" x="24.0" y="112" width="112" height="64" rx="8"/>
+<text x="80.0" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">ITCH 5.0 feed</text>
+<text x="80.0" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">pinned pages</text>
+<line class="wire" x1="138.0" y1="144.0" x2="157.7" y2="144.0" marker-end="url(#arrow)"/>
+<rect class="hot" x="160.7" y="112" width="112" height="64" rx="8"/>
+<text x="216.7" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">ingress ring</text>
+<text x="216.7" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">descriptors</text>
+<line class="wire" x1="274.7" y1="144.0" x2="294.3" y2="144.0" marker-end="url(#arrow)"/>
+<rect class="hot" x="297.3" y="112" width="112" height="64" rx="8"/>
+<text x="353.3" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">decode</text>
+<text x="353.3" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">in place</text>
+<line class="wire" x1="411.3" y1="144.0" x2="431.0" y2="144.0" marker-end="url(#arrow)"/>
+<rect class="hot" x="434.0" y="112" width="112" height="64" rx="8"/>
+<text x="490.0" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">L3 order book</text>
+<text x="490.0" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">orders + levels</text>
+<line class="wire" x1="548.0" y1="144.0" x2="567.7" y2="144.0" marker-end="url(#arrow)"/>
+<rect class="hot" x="570.7" y="112" width="112" height="64" rx="8"/>
+<text x="626.7" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">signal</text>
+<text x="626.7" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">best bid and ask</text>
+<line class="wire" x1="684.7" y1="144.0" x2="704.3" y2="144.0" marker-end="url(#arrow)"/>
+<rect class="hot" x="707.3" y="112" width="112" height="64" rx="8"/>
+<text x="763.3" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">egress ring</text>
+<text x="763.3" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">order intents</text>
+<line class="wire" x1="821.3" y1="144.0" x2="841.0" y2="144.0" marker-end="url(#arrow)"/>
+<rect class="box" x="844.0" y="112" width="112" height="64" rx="8"/>
+<text x="900.0" y="140.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">gateway</text>
+<text x="900.0" y="160.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">drains intents</text>
+<rect class="bracket" x="150.7" y="90" width="678.7" height="108" rx="12"/>
+<text x="160.7" y="82.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">timed region, PMU cycles per batch</text>
+<text x="28.0" y="234.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" text-anchor="start">Real NASDAQ BX day, mean per message: 135 cycles, 32.3 ns for the full path; 127 cycles without the rings.</text>
+<text x="28.0" y="255.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" text-anchor="start">This is software path cost on data already in memory. It excludes the NIC, the network stack and the kernel,</text>
+<text x="28.0" y="276.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="400" text-anchor="start">so it is not a wire-to-wire latency. A hand-off to another core costs about 40.5 ns one way on its own (ping-pong RTT/2).</text>
+</svg>

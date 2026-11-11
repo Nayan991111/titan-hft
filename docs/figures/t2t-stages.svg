@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="426" viewBox="0 0 820 426" role="img" aria-labelledby="title desc">
+<title id="title">titan-t2t stage costs</title>
+<desc id="desc">Grouped bar chart. Full trading path: 189 cycles synthetic, 135 cycles (32.3 ns) on real NASDAQ BX data.</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; }
+  .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+  .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .frame { stroke: #383835; }
+    .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
+    .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; }
+    .box { fill: #242422; stroke: #46453f; }
+    .hot { fill: #1c2a3d; stroke: #3987e5; }
+    .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
+    .bracket { stroke: #3987e5; }
+  }
+</style>
+<rect class="bg" x="0.5" y="0.5" width="819" height="425" rx="10"/>
+<rect class="frame" x="0.5" y="0.5" width="819" height="425" rx="10"/>
+<text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Single-core tick-to-trade: CPU cycles per message by stage</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">Apple M4 performance core, median of 5 epochs. Each stage adds work to the one above it;</text>
+<text x="28.0" y="78.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">values are means over batches of 4,096 messages (lower is better).</text>
+<rect class="s1" x="28" y="92" width="12" height="12" rx="2"/>
+<text x="46.0" y="102.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">Synthetic feed (5M messages, 500 instruments)</text>
+<rect class="s2" x="387.0" y="92" width="12" height="12" rx="2"/>
+<text x="405.0" y="102.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">NASDAQ BX, 2019-07-30 (first 20M messages)</text>
+<line class="grid" x1="238.0" y1="106" x2="238.0" y2="342"/>
+<text x="238.0" y="360.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">0</text>
+<line class="grid" x1="366.0" y1="106" x2="366.0" y2="342"/>
+<text x="366.0" y="360.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">50</text>
+<line class="grid" x1="494.0" y1="106" x2="494.0" y2="342"/>
+<text x="494.0" y="360.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">100</text>
+<line class="grid" x1="622.0" y1="106" x2="622.0" y2="342"/>
+<text x="622.0" y="360.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">150</text>
+<line class="grid" x1="750.0" y1="106" x2="750.0" y2="342"/>
+<text x="750.0" y="360.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle">200</text>
+<text x="494.0" y="382.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">CPU cycles per message</text>
+<text x="28.0" y="127.0" class="t1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="600" text-anchor="start">ring</text>
+<text x="28.0" y="144.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">pop + push only</text>
+<path class="s1" d="M238.0,116.0 H252.4 Q256.4,116.0 256.4,120.0 V126.0 Q256.4,130.0 252.4,130.0 H238.0 Z"/>
+<text x="262.4" y="127.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">7  (1.6 ns)</text>
+<path class="s2" d="M238.0,132.0 H252.4 Q256.4,132.0 256.4,136.0 V142.0 Q256.4,146.0 252.4,146.0 H238.0 Z"/>
+<text x="262.4" y="143.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">7  (1.6 ns)</text>
+<text x="28.0" y="173.0" class="t1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="600" text-anchor="start">decode</text>
+<text x="28.0" y="190.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">pop, ITCH decode</text>
+<path class="s1" d="M238.0,162.0 H314.4 Q318.4,162.0 318.4,166.0 V172.0 Q318.4,176.0 314.4,176.0 H238.0 Z"/>
+<text x="324.4" y="173.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">31  (7.1 ns)</text>
+<path class="s2" d="M238.0,178.0 H305.7 Q309.7,178.0 309.7,182.0 V188.0 Q309.7,192.0 305.7,192.0 H238.0 Z"/>
+<text x="315.7" y="189.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">28  (6.3 ns)</text>
+<text x="28.0" y="219.0" class="t1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="600" text-anchor="start">book</text>
+<text x="28.0" y="236.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">+ L3 book update</text>
+<path class="s1" d="M238.0,208.0 H666.6 Q670.6,208.0 670.6,212.0 V218.0 Q670.6,222.0 666.6,222.0 H238.0 Z"/>
+<text x="676.6" y="219.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">169  (38.4 ns)</text>
+<path class="s2" d="M238.0,224.0 H538.6 Q542.6,224.0 542.6,228.0 V234.0 Q542.6,238.0 538.6,238.0 H238.0 Z"/>
+<text x="548.6" y="235.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">119  (28.0 ns)</text>
+<text x="28.0" y="265.0" class="t1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="600" text-anchor="start">direct</text>
+<text x="28.0" y="282.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">+ signal, rings removed</text>
+<path class="s1" d="M238.0,254.0 H684.6 Q688.6,254.0 688.6,258.0 V264.0 Q688.6,268.0 684.6,268.0 H238.0 Z"/>
+<text x="694.6" y="265.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">176  (40.9 ns)</text>
+<path class="s2" d="M238.0,270.0 H559.1 Q563.1,270.0 563.1,274.0 V280.0 Q563.1,284.0 559.1,284.0 H238.0 Z"/>
+<text x="569.1" y="281.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">127  (31.2 ns)</text>
+<text x="28.0" y="311.0" class="t1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="600" text-anchor="start">full</text>
+<text x="28.0" y="328.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">+ rings: the trading path</text>
+<path class="s1" d="M238.0,300.0 H717.8 Q721.8,300.0 721.8,304.0 V310.0 Q721.8,314.0 717.8,314.0 H238.0 Z"/>
+<text x="727.8" y="311.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">189  (42.9 ns)</text>
+<path class="s2" d="M238.0,316.0 H579.6 Q583.6,316.0 583.6,320.0 V326.0 Q583.6,330.0 579.6,330.0 H238.0 Z"/>
+<text x="589.6" y="327.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">135  (32.3 ns)</text>
+<line class="axis" x1="238" y1="106" x2="238" y2="342"/>
+<text x="792.0" y="412.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-11_m4.txt (commit c3b850d, battery power, preliminary)</text>
+</svg>
