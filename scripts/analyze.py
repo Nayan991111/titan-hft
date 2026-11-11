@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarise titan-pingpong ("pp") and titan-stream ("st") output.
+"""Summarise titan-pingpong ("pp"), titan-stream ("st") and titan-replay ("rp") output.
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -22,11 +22,13 @@ import sys
 from collections import defaultdict
 from functools import lru_cache
 
-KEY_FIELDS = ("impl", "order", "pad", "cached", "wait", "qos")
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg"}
+RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
+KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
+    "rp": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
 
@@ -40,8 +42,9 @@ def load(paths):
                 if kind not in METRIC:
                     continue
                 rec = dict(PAIR.findall(line))
-                rec.setdefault("qos", "ui")
-                key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS)
+                if kind != "rp":
+                    rec.setdefault("qos", "ui")
+                key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS[kind])
                 groups[key].append(rec)
     return groups
 
@@ -111,7 +114,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st"):
+    for kind in ("pp", "st", "rp"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -130,7 +133,7 @@ def summary(groups):
                     extra.append(f"{f}={median(v):.3g}")
             rows.append((median(xs), k, len(xs), lo, hi, extra))
         for med, k, n, lo, hi, extra in sorted(rows):
-            label = " ".join(f"{f}={v}" for f, v in zip(KEY_FIELDS, k[1:]))
+            label = " ".join(f"{f}={v}" for f, v in zip(KEY_FIELDS[kind], k[1:]))
             print(f"{label:62s} n={n:<3d} {med:9.2f} [{lo:8.2f}, {hi:8.2f}] {' '.join(extra)}")
 
 
@@ -148,6 +151,10 @@ CONTRASTS = [
     ("st", "pad128 vs pad64 (acqrel, uncached)", ("ring", "acqrel", "128", "0", "isb", "ui"), ("ring", "acqrel", "64", "0", "isb", "ui")),
     ("st", "AcqRel vs Fenced (pad128, cached)", ("ring", "acqrel", "128", "1", "isb", "ui"), ("ring", "fenced", "128", "1", "isb", "ui")),
     ("st", "wfe vs isb (acqrel, pad128, cached)", ("ring", "acqrel", "128", "1", "wfe", "ui"), ("ring", "acqrel", "128", "1", "isb", "ui")),
+    ("rp", "L3 book vs reference book (default mix)", ("l3", "default"), ("ref", "default")),
+    ("rp", "L3 book vs reference book (add-heavy mix)", ("l3", "add_heavy"), ("ref", "add_heavy")),
+    ("rp", "L3 book vs reference book (replace-heavy mix)", ("l3", "replace_heavy"), ("ref", "replace_heavy")),
+    ("rp", "decode only vs decode + L3 book (default mix)", ("decode", "default"), ("l3", "default")),
 ]
 
 
