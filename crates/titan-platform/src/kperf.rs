@@ -97,13 +97,24 @@ fn open(path: &str) -> Result<*mut c_void, KperfError> {
     }
 }
 
+/// Reinterpret a non-null symbol address as the function pointer type `F` of
+/// the `Api` field it is stored in.
+///
+/// # Safety
+/// `F` must be an `extern "C"` function pointer type matching the symbol's
+/// real signature.
+unsafe fn fn_ptr<F: Copy>(p: *mut c_void) -> F {
+    assert_eq!(std::mem::size_of::<F>(), std::mem::size_of::<*mut c_void>());
+    unsafe { std::mem::transmute_copy::<*mut c_void, F>(&p) }
+}
+
 macro_rules! sym {
     ($h:expr, $name:literal) => {{
         let p = unsafe { libc::dlsym($h, concat!($name, "\0").as_ptr() as *const c_char) };
         if p.is_null() {
             return Err(KperfError::Symbol($name));
         }
-        unsafe { std::mem::transmute::<*mut c_void, _>(p) }
+        unsafe { fn_ptr(p) }
     }};
 }
 

@@ -49,7 +49,8 @@ pub struct L3Book {
     _region: PinnedRegion,
     /// `levels[locate][0]` bids, `[1]` asks.
     levels: Vec<[Vec<Level>; 2]>,
-    /// Messages referring to unknown orders (should be 0 on a complete feed).
+    /// Messages referring to unknown orders, adds with reference 0 and adds for
+    /// a locate beyond the instrument count (all 0 on a complete, valid feed).
     pub unknown: u64,
 }
 
@@ -110,6 +111,10 @@ impl L3Book {
 
     #[inline(always)]
     fn find(&self, order: u64) -> Option<usize> {
+        // Reference 0 is the empty-slot marker and never names a live order.
+        if order == 0 {
+            return None;
+        }
         let mut i = self.home(order);
         loop {
             let s = self.slot(i);
@@ -206,6 +211,13 @@ impl L3Book {
 
     #[inline(always)]
     fn add(&mut self, locate: u16, order: u64, buy: bool, shares: u32, price: u32) {
+        // Reference 0 marks an empty slot and a locate beyond the instrument
+        // count has no level vectors: neither occurs in a valid feed, and both
+        // are counted and dropped rather than corrupting the table.
+        if order == 0 || locate as usize >= self.levels.len() {
+            self.unknown += 1;
+            return;
+        }
         self.insert_order(Slot { order, price, shares, locate, buy });
         self.level_add(locate, buy, price, shares);
     }
