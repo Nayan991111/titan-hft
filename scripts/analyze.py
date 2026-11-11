@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Summarise titan-pingpong ("pp"), titan-stream ("st") and titan-replay ("rp") output.
+"""Summarise titan-pingpong ("pp"), titan-stream ("st"), titan-replay ("rp") and
+titan-t2t ("t2t") output.
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -23,12 +24,13 @@ from collections import defaultdict
 from functools import lru_cache
 
 RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
-KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg"}
+KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
     "rp": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz", "allocations"),
+    "t2t": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz", "batch_p99_ns", "intent_rate", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
 
@@ -42,7 +44,7 @@ def load(paths):
                 if kind not in METRIC:
                     continue
                 rec = dict(PAIR.findall(line))
-                if kind != "rp":
+                if kind in ("pp", "st"):
                     rec.setdefault("qos", "ui")
                 key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS[kind])
                 groups[key].append(rec)
@@ -114,7 +116,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp"):
+    for kind in ("pp", "st", "rp", "t2t"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -164,15 +166,22 @@ def contrasts(groups):
     for mix in sorted({k[2] for k in groups if k[0] == "rp"} - {"default", "add_heavy", "replace_heavy"}):
         extra.append(("rp", f"L3 book vs reference book ({mix})", ("l3", mix), ("ref", mix)))
         extra.append(("rp", f"decode only vs decode + L3 book ({mix})", ("decode", mix), ("l3", mix)))
+    for feed in sorted({k[2] for k in groups if k[0] == "t2t"}):
+        extra.append(("t2t", f"full vs direct, ring cost ({feed})", ("full", feed), ("direct", feed)))
+        extra.append(("t2t", f"book vs full, ablation ({feed})", ("book", feed), ("full", feed)))
+        extra.append(("t2t", f"decode vs book ({feed})", ("decode", feed), ("book", feed)))
     for kind, name, ka, kb in CONTRASTS + extra:
-        a = values(groups, (kind,) + ka, METRIC[kind])
-        b = values(groups, (kind,) + kb, METRIC[kind])
-        if not a or not b:
-            continue
-        ma, mb = median(a), median(b)
-        u, p, how = mann_whitney(a, b)
-        d = cliffs_delta(a, b)
-        print(f"{kind} {name:56s} A={ma:9.2f} B={mb:9.2f} A/B={ma / mb:6.3f} nA={len(a)} nB={len(b)} U={u:.1f} p={p:.4f} ({how}) cliffs_delta={d:+.2f}")
+        metrics = [METRIC[kind]] + (["msg_cycles"] if kind == "t2t" else [])
+        for metric in metrics:
+            a = values(groups, (kind,) + ka, metric)
+            b = values(groups, (kind,) + kb, metric)
+            if not a or not b:
+                continue
+            ma, mb = median(a), median(b)
+            u, p, how = mann_whitney(a, b)
+            d = cliffs_delta(a, b)
+            tag = name if metric == METRIC[kind] else f"{name} [cycles]"
+            print(f"{kind} {tag:56s} A={ma:9.2f} B={mb:9.2f} A/B={ma / mb:6.3f} nA={len(a)} nB={len(b)} U={u:.1f} p={p:.4f} ({how}) cliffs_delta={d:+.2f}")
 
 
 def main(argv):
@@ -181,7 +190,7 @@ def main(argv):
         return 1
     groups = load(argv[1:])
     if not groups:
-        print("no pp/st records found")
+        print("no pp/st/rp/t2t records found")
         return 1
     summary(groups)
     contrasts(groups)
