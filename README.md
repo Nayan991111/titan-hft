@@ -23,7 +23,9 @@ raw data that produced them.
 | `titan-pingpong`: cross-core round-trip harness (optional PMU counters, P-core or E-core QoS) | done |
 | `titan-stream`: streaming throughput harness with sum check | done |
 | `scripts/census.sh`, `scripts/analyze.py`: instruction census, per-epoch statistics (bootstrap CI, Mann-Whitney U, Cliff's delta) | done |
-| ITCH 5.0 decoder and zero-allocation L3 order book | planned |
+| `titan-itch`: ITCH 5.0 decoder, zero-allocation L3 order book (Fibonacci-hashed order table, sorted price levels, fixed-point prices), reference book, synthetic feed generator | done; differential-tested against the reference after every message, mutation-checked |
+| `titan-replay`: order-book replay benchmark | done |
+| Replay of a real NASDAQ ITCH 5.0 sample day | planned |
 | Shared-memory and UDP (MoldUDP64) transports | planned |
 | Reproduction script and analysis | planned |
 
@@ -36,6 +38,7 @@ baseline and is being replaced component by component.
 crates/
   titan-platform/   platform layer and the titan-probe self-test
   titan-spsc/       SPSC rings, wait strategies, titan-pingpong and titan-stream
+  titan-itch/       ITCH 5.0 decoder, L3 book, reference book, generator, titan-replay
 scripts/            instruction census and result analysis
   titan-core/       engine prototype (SPSC ring, order book, strategy, risk)
   titan-common/     shared wire types
@@ -66,6 +69,7 @@ sudo ./target/release/titan-probe pmu   # also programs and validates the PMU
 ./target/release/titan-pingpong 200000 3 bg          # efficiency-core QoS
 sudo ./target/release/titan-pingpong 200000 3 pmu    # with PMU counters
 ./target/release/titan-stream 10000000 3             # messages per case, epochs
+./target/release/titan-replay 5000000 500 3          # messages, instruments, epochs
 scripts/census.sh --list                             # ring instructions
 scripts/analyze.py results.txt                       # statistics over epochs
 ```
