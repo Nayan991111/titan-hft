@@ -19,7 +19,8 @@ raw data that produced them.
 | Component | State |
 |---|---|
 | `titan-platform`: pinned memory, counter timer, QoS, kperf PMU access, allocation accounting | done, self-test in `titan-probe` |
-| SPSC ring with selectable ordering, padding and wait strategy | in progress |
+| `titan-spsc`: SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64/128-byte index padding, cached indices, four wait strategies (`spin`, `isb`, `yield`, `wfe`), `Mutex<VecDeque>` baseline | done, stress-tested; measurement in progress |
+| `titan-pingpong`: cross-core round-trip harness | done |
 | ITCH 5.0 decoder and zero-allocation L3 order book | planned |
 | Shared-memory and UDP (MoldUDP64) transports | planned |
 | Reproduction script and analysis | planned |
@@ -32,6 +33,7 @@ baseline and is being replaced component by component.
 ```
 crates/
   titan-platform/   platform layer and the titan-probe self-test
+  titan-spsc/       SPSC rings, wait strategies, titan-pingpong harness
   titan-core/       engine prototype (SPSC ring, order book, strategy, risk)
   titan-common/     shared wire types
   titan-feed-sim/   UDP feed simulator
@@ -57,6 +59,7 @@ cargo build --release
 cargo test --release -- --test-threads=1
 ./target/release/titan-probe            # platform checks, no root
 sudo ./target/release/titan-probe pmu   # also programs and validates the PMU
+./target/release/titan-pingpong 200000 3 # round trips per case, epochs
 ```
 
 PMU access uses the private `kperf` and `kperfdata` frameworks and needs root.
