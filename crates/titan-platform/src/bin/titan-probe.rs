@@ -36,6 +36,17 @@ fn main() {
     println!("counter_zero_fraction={:.4}", r.zero_fraction);
     println!("counter_read_cost_ns_est={:.2}", ns(r.mean_delta));
     println!("counter_outliers_gt_8_steps={} per_million={:.2}", r.outliers, r.outliers as f64 * 1e6 / r.pairs as f64);
+    let counts = clock::nonzero_delta_counts(10_000_000);
+    let nz: u64 = counts.iter().map(|c| c.1).sum();
+    let top: Vec<String> = counts.iter().take(8).map(|(d, c)| format!("{d}:{c}")).collect();
+    println!("counter_nonzero_deltas={} top_values={}", nz, top.join(","));
+    let below_modal: u64 = counts.iter().filter(|(d, _)| *d < r.modal_step.saturating_sub(1)).map(|c| c.1).sum();
+    let small: Vec<String> = {
+        let mut v: Vec<&(u64, u64)> = counts.iter().filter(|(d, _)| *d < r.modal_step.saturating_sub(1)).collect();
+        v.sort_by_key(|x| x.0);
+        v.iter().take(10).map(|(d, c)| format!("{d}:{c}")).collect()
+    };
+    println!("counter_deltas_below_one_step={} values={}", below_modal, small.join(","));
 
     println!("== memory");
     let mut r = PinnedRegion::new(64 << 20).expect("mmap");
@@ -93,7 +104,8 @@ fn main() {
     }
     println!("pmu_permission={}", k.has_permission());
     drop(k);
-    for mode in [CountMode::All, CountMode::UserOnly] {
+    // Alternating order so run-order drift cannot masquerade as a mode effect.
+    for mode in [CountMode::All, CountMode::UserOnly, CountMode::All, CountMode::UserOnly] {
         run_pmu(mode);
     }
 }
@@ -121,6 +133,29 @@ fn run_pmu(mode: CountMode) {
     oh.sort_by_key(|row| row[1]);
     println!("read_overhead_instructions min={} p50={}", oh[0][1], oh[oh.len() / 2][1]);
     validate_chain(&s);
+    syscall_test(&s);
+}
+
+/// Instructions and cycles per `getppid` system call. With kernel counting
+/// each call costs hundreds of instructions or more; a filter that truly
+/// excludes kernel mode leaves only the user-side trap stub (a handful).
+fn syscall_test(s: &titan_platform::kperf::Session) {
+    const CALLS: u64 = 100_000;
+    for trial in 0..3 {
+        let c0 = s.read();
+        let mut acc = 0i64;
+        for _ in 0..CALLS {
+            acc = acc.wrapping_add(unsafe { libc::getppid() } as i64);
+        }
+        let c1 = s.read();
+        std::hint::black_box(acc);
+        let d = s.delta(&c0, &c1);
+        println!(
+            "syscall trial={trial} calls={CALLS} instructions_per_call={:.1} cycles_per_call={:.1}",
+            d[1] as f64 / CALLS as f64,
+            d[0] as f64 / CALLS as f64
+        );
+    }
 }
 
 /// Dependent chain of 100 adds per iteration plus `subs` and `b.ne`:

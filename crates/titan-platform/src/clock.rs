@@ -136,6 +136,29 @@ pub fn resolution(pairs: usize) -> Resolution {
     }
 }
 
+/// Counts of each distinct non-zero back-to-back delta, most frequent first.
+pub fn nonzero_delta_counts(pairs: usize) -> Vec<(u64, u64)> {
+    let mut deltas: Vec<u64> = Vec::with_capacity(pairs);
+    for _ in 0..pairs {
+        let a = counter();
+        let b = counter();
+        let d = b.wrapping_sub(a);
+        if d != 0 {
+            deltas.push(d);
+        }
+    }
+    deltas.sort_unstable();
+    let mut out: Vec<(u64, u64)> = Vec::new();
+    for d in deltas {
+        match out.last_mut() {
+            Some((v, c)) if *v == d => *c += 1,
+            _ => out.push((d, 1)),
+        }
+    }
+    out.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    out
+}
+
 /// Distribution of back-to-back counter deltas over `pairs` samples.
 /// Index k holds the count of deltas equal to k ticks; the last slot is "k or more".
 pub fn back_to_back_histogram(pairs: usize) -> [u64; 8] {
