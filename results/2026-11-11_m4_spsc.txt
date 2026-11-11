@@ -1,0 +1,44 @@
+# SPSC ring between two cores, 2026-11-11: ping-pong and streaming (statistics
+# only, transcribed from the run reports; the raw epoch lines stay on the
+# measurement machine).
+#
+# Code:      commit abc7890 (`titan-pingpong 200000 3`), PMU rows from 5eb9182
+#            (`titan-pingpong 200000 5` and `... 3 pmu`)
+# Machine:   MacBook Air (Mac16,13), Apple M4, macOS 27.2; battery, Low Power
+#            Mode off; both threads QoS USER_INTERACTIVE (P-cores)
+# Metric:    batch round trip (RTT) in ns, median over epochs; one-way is
+#            estimated as RTT / 2 and is not measured separately
+# Epochs:    3 inside one process (PRELIMINARY; final protocol is at least 30
+#            independent launches on wall power)
+# Case:      order / index padding (bytes) / index caching / wait strategy
+#
+# case                       rtt_ns  one_way_ns
+pp acqrel/128/cached/wfe       81.1     40.5
+pp acqrel/128/cached/spin      87.4     43.7
+pp acqrel/128/cached/yield     91.9     46.0
+pp acqrel/128/cached/isb       96.6     48.3
+pp seqcst/128/cached/isb       98.6     49.3
+pp fenced/128/cached/isb      127.2     63.6
+pp acqrel/128/uncached/isb    146.0     73.0
+# Mutex<VecDeque> baseline: median 2217.2 ns, epochs ranged 336 to 6808 ns.
+# Per-round-trip p99 of the cached ring cases: 125 to 167 ns (3 to 4 steps of
+# the 41.67 ns counter).
+#
+# PMU, 5eb9182, median of 3 epochs, per round trip (acqrel/128/cached):
+#   wait   cycles  instructions  l1d_load_misses
+#   wfe      272        48           11.1
+#   isb      347        84            3.7
+#   spin      -        814           35
+#   yield     -        908           34
+# Core frequency during ping-pong: 3.3 to 3.7 GHz (wfe lowest, 3.30).
+# Efficiency-core QoS (BACKGROUND) round trip: 204.9 vs 100.0 ns, 2.05x (p = 0.036, 5 epochs).
+#
+# Streaming, 5eb9182 (`titan-stream 10000000 5`, PMU `... 3 pmu`), 128-byte
+# index padding, producer and consumer on two performance cores, per message:
+#   case                 ns (timing run)   cycles (PMU run)
+#   acqrel, cached            2.42              8.35
+#   seqcst, cached            2.29              8.34
+#   fenced, cached            5.31             21.5
+#   acqrel, uncached         49.9             219
+# 64-byte padding results from this run are not reported: index placement was
+# not controlled in it (fixed in 67399de, re-tested as H14).
