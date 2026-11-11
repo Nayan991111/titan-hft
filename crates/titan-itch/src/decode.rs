@@ -73,7 +73,9 @@ pub enum DecodeError {
 /// Decode one message body (without the length prefix).
 #[inline(always)]
 pub fn decode(b: &[u8]) -> Result<Msg, u8> {
-    let kind = b[0];
+    let Some(&kind) = b.first() else {
+        return Err(0);
+    };
     if let Some(n) = book_len(kind) {
         if b.len() != n {
             return Err(kind);
