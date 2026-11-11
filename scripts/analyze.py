@@ -160,7 +160,11 @@ CONTRASTS = [
 
 def contrasts(groups):
     print("\n## contrasts: A vs B on the primary metric (lower is better)")
-    for kind, name, ka, kb in CONTRASTS:
+    extra = []
+    for mix in sorted({k[2] for k in groups if k[0] == "rp"} - {"default", "add_heavy", "replace_heavy"}):
+        extra.append(("rp", f"L3 book vs reference book ({mix})", ("l3", mix), ("ref", mix)))
+        extra.append(("rp", f"decode only vs decode + L3 book ({mix})", ("decode", mix), ("l3", mix)))
+    for kind, name, ka, kb in CONTRASTS + extra:
         a = values(groups, (kind,) + ka, METRIC[kind])
         b = values(groups, (kind,) + kb, METRIC[kind])
         if not a or not b:
