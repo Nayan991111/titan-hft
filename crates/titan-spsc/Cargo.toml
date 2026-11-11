@@ -1,0 +1,13 @@
+[package]
+name = "titan-spsc"
+version = "0.1.0"
+edition = "2021"
+description = "Single-producer single-consumer rings with selectable memory ordering, index padding, index caching and wait strategy"
+license = "MIT"
+
+[dependencies]
+titan-platform = { path = "../titan-platform" }
+
+[[bin]]
+name = "titan-pingpong"
+path = "src/bin/titan-pingpong.rs"
