@@ -550,6 +550,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "titan-itch"
+version = "0.1.0"
+dependencies = [
+ "titan-platform",
+]
+
+[[package]]
 name = "titan-platform"
 version = "0.1.0"
 dependencies = [

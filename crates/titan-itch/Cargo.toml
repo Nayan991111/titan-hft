@@ -1,0 +1,13 @@
+[package]
+name = "titan-itch"
+version = "0.1.0"
+edition = "2021"
+description = "NASDAQ TotalView-ITCH 5.0 decoder, zero-allocation L3 order book, reference book and synthetic feed generator"
+license = "MIT"
+
+[dependencies]
+titan-platform = { path = "../titan-platform" }
+
+[[bin]]
+name = "titan-replay"
+path = "src/bin/titan-replay.rs"
