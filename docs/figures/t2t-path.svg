@@ -11,6 +11,9 @@
   .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
   .tip { fill: #75746f; }
   .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .tile { fill: #f3f2ee; } .big { fill: #0b0b0b; } .accent { fill: #2a78d6; }
+  .good { fill: #0ca30c; } .bad { fill: #d03b3b; } .warn { fill: #fab219; } .none { fill: #b9b8b2; }
+  .chip { fill: #ffffff; stroke: #d9d8d3; stroke-width: 1; }
   @media (prefers-color-scheme: dark) {
     .bg { fill: #1a1a19; } .frame { stroke: #383835; }
     .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
@@ -20,6 +23,8 @@
     .hot { fill: #1c2a3d; stroke: #3987e5; }
     .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
     .bracket { stroke: #3987e5; }
+    .tile { fill: #242422; } .big { fill: #f0efec; } .accent { fill: #3987e5; }
+    .none { fill: #57564f; } .chip { fill: #1f1f1e; stroke: #46453f; }
   }
 </style>
 <rect class="bg" x="0.5" y="0.5" width="979" height="309" rx="10"/>
