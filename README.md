@@ -1,15 +1,25 @@
-# Titan
+<p align="center">
+  <img src="docs/figures/hero.svg" alt="Titan: what one Apple M4 core costs to read a market-data message, update a full order book and decide. 28.7 million real NASDAQ messages with 0 book mismatches; 135 cycles per message for the full trading path; 40.5 ns one-way hand-off between two cores." width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Nayan991111/titan-hft/actions/workflows/ci.yml"><img src="https://github.com/Nayan991111/titan-hft/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/platform-Apple%20M4%20%7C%20macOS%20arm64-555" alt="Platform: Apple M4, macOS arm64">
+  <img src="https://img.shields.io/badge/language-Rust-b7410e" alt="Language: Rust">
+  <a href="docs/experiments.md"><img src="https://img.shields.io/badge/hypotheses-pre--registered-2a78d6" alt="Hypotheses pre-registered"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0ca30c" alt="License: MIT"></a>
+</p>
 
 **What does it cost, in CPU cycles, to receive a market-data message, update
 a full order book and decide on an order, on one Apple M4 core? And what does
 handing that message to another core add?**
 
-Titan is a Rust measurement harness that answers both questions with
-hardware performance counters (PMU) rather than wall-clock timers. Every
-result is checked by construction: the order book is verified against an
-independent reference book after every message of a real NASDAQ trading day,
-hot paths are checked to allocate nothing, and each hypothesis is committed
-to [`docs/experiments.md`](docs/experiments.md) before the run that tests it.
+Titan answers both questions with hardware performance counters (PMU)
+rather than wall-clock timers. Every result is checked by construction: the
+order book is verified against an independent reference book after every
+message of a real NASDAQ trading day, hot paths are checked to allocate
+nothing, and each hypothesis is committed to
+[`docs/experiments.md`](docs/experiments.md) before the run that tests it.
 
 <p align="center">
   <img src="docs/figures/t2t-path.svg" alt="The measured trading path: ITCH feed, ingress ring, decode, L3 order book, signal, egress ring, gateway. Full path 135 cycles per message on a real NASDAQ BX day." width="100%">
@@ -47,8 +57,17 @@ run.
   <img src="docs/figures/pingpong.svg" alt="Bar chart of cross-core round trip times by ordering, index caching and wait strategy; wfe is fastest at 81.1 ns." width="100%">
 </p>
 
+<p align="center">
+  <img src="docs/figures/replay.svg" alt="Small multiples comparing Titan's L3 book with a BTreeMap reference book on real data: cycles, instructions and L1D load misses per message." width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/figures/itch-mix.svg" alt="Bar chart of ITCH 5.0 message types on NASDAQ BX, 2019-07-30: add order 36.8%, order delete 35.4%, retail price improvement 16.1%, order replace 7.1%." width="100%">
+</p>
+
 The figures are drawn by [`scripts/figures.py`](scripts/figures.py) from the
-committed result files; no number in them is typed by hand.
+committed result files; no number in them is typed by hand. They follow the
+reader's light or dark theme.
 
 ### What these numbers are not
 
@@ -78,6 +97,10 @@ committed result files; no number in them is typed by hand.
 | Bias control | Stage order rotates between epochs; hypotheses are committed before the runs; failed predictions stay in the log with their verdicts. |
 | Statistics | Per-epoch medians, bootstrap 95% CI, two-sided Mann-Whitney U (exact when there are no ties), Cliff's delta ([`scripts/analyze.py`](scripts/analyze.py), standard library only). |
 
+<p align="center">
+  <img src="docs/figures/hypotheses.svg" alt="Grid of 22 pre-registered hypotheses with their status: 12 supported, 8 refuted or not supported, 1 inconclusive, 1 pending." width="100%">
+</p>
+
 ## Components
 
 | Crate or binary | Purpose |
@@ -87,6 +110,20 @@ committed result files; no number in them is typed by hand.
 | `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator. `titan-replay` (book replay with full verification) and `titan-t2t` (trading path with stage ablation). |
 | `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. |
 | `scripts/` | Data download, instruction census, statistics, figures. |
+
+## Roadmap
+
+- [x] Platform layer: pinned memory, measured timer resolution, kperf PMU sessions, allocation accounting
+- [x] SPSC ring with ordering, padding, caching and wait-strategy ablations; cross-core ping-pong and streaming
+- [x] ITCH 5.0 decoder and L3 book, verified message by message on a real NASDAQ day
+- [x] Single-core trading path with stage ablation; hostile-input tests; dependency audit in CI
+- [ ] Code-placement control (H17): fixed function and loop alignment, then re-test `ldar` against `ldapr`
+- [ ] Open-loop cross-core pipeline driven by the real ITCH timestamps, with latency histograms corrected for coordinated omission: per-message tails, not batch means
+- [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
+- [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
+- [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs
+- [ ] Final protocol: 30 independent launches per configuration on wall power, one reproduction script, archived results
+- [ ] Paper
 
 ## Reproduce
 
@@ -115,19 +152,59 @@ scripts/census.sh --list                      # instructions emitted for each ri
 
 ## Related work
 
+**Memory ordering on Arm and Apple silicon**
+
 * Y. Khayet, A. Morrison. *Arm Weak Memory Consistency on Apple Silicon:
-  What Is It Good For?* ASPLOS 2026. (Apple M1 and M4, program run time;
-  Titan adds inter-core, SPSC and PMU-level measurements.)
+  What Is It Good For?* ASPLOS 2026. Apple M1 and M4, program run time;
+  Titan adds inter-core, SPSC and PMU-level measurements.
 * L. Wrenger, D. Töllner, D. Lohmann. *Analyzing the memory ordering models
   of the Apple M1.* Journal of Systems Architecture, 2024.
   doi:10.1016/j.sysarc.2024.103102
 * L. Wrenger, D. Töllner, D. Lohmann. *TOSTING: Investigating Total Store
   Ordering on ARM.* ARCS 2023. doi:10.1007/978-3-031-42785-5_10
+* C. Pulte, S. Flur, W. Deacon, J. French, S. Sarkar, P. Sewell.
+  *Simplifying ARM concurrency: multicopy-atomic axiomatic and operational
+  models for ARMv8.* POPL 2018. doi:10.1145/3158107
+* J. Alglave, L. Maranget, M. Tautschnig. *Herding cats: Modelling,
+  simulation, testing, and data mining for weak memory.* ACM TOPLAS 36(2),
+  2014. doi:10.1145/2627752
+
+**Inter-core communication and SPSC queues**
+
+* L. Lamport. *Specifying concurrent program modules.* ACM TOPLAS 5(2),
+  1983. doi:10.1145/69624.357207 (origin of the classic single-producer,
+  single-consumer ring)
 * J. Giacomoni, T. Moseley, M. Vachharajani. *FastForward for efficient
   pipeline parallelism: a cache-optimized concurrent lock-free queue.*
   PPoPP 2008. doi:10.1145/1345206.1345215
 * M. Torquati. *Single-Producer/Single-Consumer Queues on Shared Cache
   Multi-Core Systems.* arXiv:1012.1824
+* T. David, R. Guerraoui, V. Trigonakis. *Everything you always wanted to
+  know about synchronization but were afraid to ask.* SOSP 2013.
+  doi:10.1145/2517349.2522714 (cache-coherence latency methodology; Titan
+  applies the same questions to one Apple M4)
+* H. Schweizer, M. Besta, T. Hoefler. *Evaluating the Cost of Atomic
+  Operations on Modern Architectures.* PACT 2015. arXiv:2010.09852 (x86;
+  Titan measures ordering costs on Arm)
+
+**Measurement methodology**
+
+* T. Mytkowicz, A. Diwan, M. Hauswirth, P. F. Sweeney. *Producing wrong data
+  without doing anything obviously wrong!* ASPLOS 2009.
+  doi:10.1145/1508244.1508275 (code and environment layout bias; the
+  reason for H17)
+* C. Curtsinger, E. D. Berger. *STABILIZER: statistically sound performance
+  evaluation.* ASPLOS 2013. doi:10.1145/2451116.2451141
+* T. Hoefler, R. Belli. *Scientific benchmarking of parallel computing
+  systems: twelve ways to tell the masses when reporting performance
+  results.* SC 2015. doi:10.1145/2807591.2807644 (reporting rules Titan
+  follows: medians with confidence intervals, nonparametric tests)
+
+**Order books**
+
+* M. D. Gould, M. A. Porter, S. Williams, M. McDonald, D. J. Fenn,
+  S. D. Howison. *Limit order books.* Quantitative Finance 13(11), 2013.
+  doi:10.1080/14697688.2013.803148
 
 ## Data, trademarks and licence
 
