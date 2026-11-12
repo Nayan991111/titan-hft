@@ -21,8 +21,13 @@
 //! The trading thread waits for the next message with `spin` (reload only),
 //! `isb` (Rust's spin_loop) or `wfe` (exclusive monitor on the ring index).
 //!
-//!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk]
-//!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E]
+//!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk] [gaps]
+//!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E] [gaps]
+//!
+//! `gaps` also keeps one histogram per class of scheduled gap to the previous
+//! message (under 100 ns, 100 ns to 1 us, 1 to 10 us, over 100 us; 10 to
+//! 100 us and the first message go to the totals only) and prints a `pl_gap`
+//! line per class: are bursts or idle gaps behind the tail?
 //!
 //! `from` and `span` select a window of feed time (seconds since midnight);
 //! every message before the window is applied to the book first, untimed, so
@@ -52,6 +57,30 @@ use titan_spsc::wait::{Spin, SpinHint, Wait, Wfe};
 static A: CountingAlloc = CountingAlloc;
 
 const STOP: u64 = u64::MAX;
+const GAP_NAMES: [&str; 4] = ["lt100ns", "100ns_1us", "1us_10us", "gt100us"];
+const NO_CLASS: u8 = 4;
+
+/// Gap class of every message under `sched` (counter ticks).
+fn gap_classes(sched: &[u64], freq: u64) -> Vec<u8> {
+    let t = |ns: u64| ns * freq / 1_000_000_000;
+    let (a, b, c, d) = (t(100), t(1_000), t(10_000), t(100_000));
+    let mut out = vec![NO_CLASS; sched.len()];
+    for i in 1..sched.len() {
+        let g = sched[i] - sched[i - 1];
+        out[i] = if g < a {
+            0
+        } else if g < b {
+            1
+        } else if g < c {
+            2
+        } else if g > d {
+            3
+        } else {
+            NO_CLASS
+        };
+    }
+    out
+}
 
 fn kv<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
     args.iter().find_map(|a| a.strip_prefix(key).and_then(|r| r.strip_prefix('=')))
@@ -169,9 +198,19 @@ fn warm(c: &Ctx, book: &mut L3Book, risk: &mut Risk) {
 }
 
 /// One timed run of the window under `sched` (counter ticks after start).
-fn run<W: Wait>(c: &Ctx, sched: &[u64], book: &mut L3Book, risk: &mut Risk, hist: &mut Histogram) -> RunResult {
+#[allow(clippy::too_many_arguments)]
+fn run<W: Wait>(
+    c: &Ctx,
+    sched: &[u64],
+    cls: &[u8],
+    book: &mut L3Book,
+    risk: &mut Risk,
+    hist: &mut Histogram,
+    gh: &mut [Histogram],
+) -> RunResult {
     warm(c, book, risk);
     hist.reset();
+    gh.iter_mut().for_each(Histogram::reset);
     let freq = clock::counter_frequency();
     let (tx, rx): (WaitingProducer<AcqRel, Pad128, W, true>, WaitingConsumer<AcqRel, Pad128, W, true>) =
         channel(c.ring);
@@ -219,7 +258,13 @@ fn run<W: Wait>(c: &Ctx, sched: &[u64], book: &mut L3Book, risk: &mut Risk, hist
                 step::<false>(c.feed, d, book, risk, &mut state, c.max_spread)
             };
             let t = clock::counter();
-            hist.record(t.saturating_sub(start + sched[i]));
+            let v = t.saturating_sub(start + sched[i]);
+            hist.record(v);
+            if let Some(&k) = cls.get(i) {
+                if k != NO_CLASS {
+                    gh[k as usize].record(v);
+                }
+            }
             last = t;
             i += 1;
         }
@@ -242,6 +287,7 @@ fn main() {
     let max_spread: u32 = num(&args, "spread", 300);
     let ring: usize = num(&args, "ring", 4096);
     let with_risk = kv(&args, "path") == Some("risk");
+    let gaps = args.iter().any(|a| a == "gaps");
     let waits: Vec<String> = kv(&args, "waits").unwrap_or("spin,isb,wfe").split(',').map(str::to_string).collect();
     let _ = qos::set_current_thread(Qos::UserInteractive);
 
@@ -333,6 +379,8 @@ fn main() {
     let mut risk = Risk::new(instruments, Limits::default(), &kill);
     let mut book = L3Book::new(log2, instruments);
     let mut hist = Histogram::new();
+    let mut gh: Vec<Histogram> = (0..GAP_NAMES.len()).map(|_| Histogram::new()).collect();
+    let classes: Vec<Vec<u8>> = loads.iter().map(|(_, s)| if gaps { gap_classes(s, freq) } else { Vec::new() }).collect();
 
     // Warm-up: one untimed single-thread pass of the whole window grows the
     // level vectors to their working size.
@@ -347,10 +395,11 @@ fn main() {
         for (li, (load, sched)) in loads.iter().enumerate() {
             for j in 0..waits.len() {
                 let w = &waits[(j + epoch + li) % waits.len()];
+                let cls = &classes[li];
                 let r = match w.as_str() {
-                    "spin" => run::<Spin>(&c, sched, &mut book, &mut risk, &mut hist),
-                    "isb" => run::<SpinHint>(&c, sched, &mut book, &mut risk, &mut hist),
-                    "wfe" => run::<Wfe>(&c, sched, &mut book, &mut risk, &mut hist),
+                    "spin" => run::<Spin>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh),
+                    "isb" => run::<SpinHint>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh),
+                    "wfe" => run::<Wfe>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh),
                     other => panic!("unknown wait {other}"),
                 };
                 let offered_span = to_ns(*sched.last().unwrap()) / 1e9;
@@ -382,6 +431,23 @@ fn main() {
                     r.allocations,
                     r.invol,
                 );
+                if gaps {
+                    for (g, h) in GAP_NAMES.iter().zip(&gh) {
+                        println!(
+                            "pl_gap feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} gap={g} messages={} \
+                             p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} max_ns={:.1} mean_ns={:.1}",
+                            if c.with_risk { "risk" } else { "full" },
+                            saturated as u8,
+                            h.count(),
+                            to_ns(h.quantile(0.5)),
+                            to_ns(h.quantile(0.9)),
+                            to_ns(h.quantile(0.99)),
+                            to_ns(h.quantile(0.999)),
+                            to_ns(h.max()),
+                            h.mean() * 1e9 / freq as f64,
+                        );
+                    }
+                }
             }
         }
     }

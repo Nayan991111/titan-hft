@@ -25,13 +25,14 @@ from functools import lru_cache
 
 RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
 KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed"),
-              "pl": ("load", "wait", "path", "feed")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns"}
+              "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
     "rp": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz", "allocations"),
     "t2t": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz", "batch_p99_ns", "intent_rate", "allocations"),
+    "pl_gap": ("messages", "p90_ns", "p99_ns", "p999_ns", "max_ns", "saturated"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
@@ -46,6 +47,8 @@ def load(paths):
                 if kind not in METRIC:
                     continue
                 rec = dict(PAIR.findall(line))
+                if kind == "pl_gap" and rec.get("messages") == "0":
+                    continue
                 if kind in ("pp", "st"):
                     rec.setdefault("qos", "ui")
                 key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS[kind])
@@ -118,7 +121,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t", "pl"):
+    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -173,11 +176,17 @@ def contrasts(groups):
         extra.append(("t2t", f"book vs full, ablation ({feed})", ("book", feed), ("full", feed)))
         extra.append(("t2t", f"decode vs book ({feed})", ("decode", feed), ("book", feed)))
         extra.append(("t2t", f"risk vs full, pre-trade checks ({feed})", ("risk", feed), ("full", feed)))
+        extra.append(("t2t", f"checks vs replay, checks alone per order ({feed})", ("checks", feed), ("replay", feed)))
+    for load, w, path, feed in sorted({k[1:5] for k in groups if k[0] == "pl_gap"}):
+        for g in ("lt100ns", "gt100us"):
+            if ("pl_gap", load, w, path, feed, g) not in groups:
+                continue
+            extra.append(("pl_gap", f"{g} vs 1us_10us, {load} {w} ({feed})", (load, w, path, feed, g), (load, w, path, feed, "1us_10us")))
     for load, path, feed in sorted({(k[1], k[3], k[4]) for k in groups if k[0] == "pl"}):
         for w in ("isb", "wfe"):
             extra.append(("pl", f"{w} vs spin, {load} {path} ({feed})", (load, w, path, feed), (load, "spin", path, feed)))
     for kind, name, ka, kb in CONTRASTS + extra:
-        metrics = [METRIC[kind]] + {"t2t": ["msg_cycles"], "pl": ["p50_ns"]}.get(kind, [])
+        metrics = [METRIC[kind]] + {"t2t": ["msg_cycles"], "pl": ["p50_ns"], "pl_gap": ["p99_ns"]}.get(kind, [])
         if kind == "pl" and any(r.get("saturated") == "1" for k in (ka, kb) for r in groups.get((kind,) + k, [])):
             continue  # percentiles of a saturated run grow with run length
         for metric in metrics:
@@ -192,6 +201,23 @@ def contrasts(groups):
             print(f"{kind} {tag:56s} A={ma:9.2f} B={mb:9.2f} A/B={ma / mb:6.3f} nA={len(a)} nB={len(b)} U={u:.1f} p={p:.4f} ({how}) cliffs_delta={d:+.2f}")
 
 
+def gap_epochs(groups):
+    """H26 and H27 decision count: epochs in which a gap class has the higher median."""
+    keys = sorted({k[1:5] for k in groups if k[0] == "pl_gap"})
+    if not keys:
+        return
+    print("\n## gap classes: epochs where class A median > 1us_10us median")
+    for load, w, path, feed in keys:
+        def by_epoch(g):
+            return {r["epoch"]: float(r["p50_ns"]) for r in groups.get(("pl_gap", load, w, path, feed, g), []) if int(r["messages"]) > 0}
+        ref = by_epoch("1us_10us")
+        for g in ("lt100ns", "gt100us"):
+            a = by_epoch(g)
+            common = sorted(set(a) & set(ref))
+            wins = sum(a[e] > ref[e] for e in common)
+            print(f"pl_gap {load} {w} {path} ({feed}) {g}: {wins} of {len(common)} epochs")
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__)
@@ -202,6 +228,7 @@ def main(argv):
         return 1
     summary(groups)
     contrasts(groups)
+    gap_epochs(groups)
     return 0
 
 
