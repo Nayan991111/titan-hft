@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="470" viewBox="0 0 820 470" role="img" aria-labelledby="title desc">
+<title id="title">Pipeline latency percentiles</title>
+<desc id="desc">Percentile ladder for three schedules. p99: 333 ns at 1M msg/s, 485 ns at 10M msg/s, 2379 ns at the real BX open.</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; } .s3 { fill: #1baf7a; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
+  .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+  .bracket { stroke: #2a78d6; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .tile { fill: #f3f2ee; } .big { fill: #0b0b0b; } .accent { fill: #2a78d6; }
+  .good { fill: #0ca30c; } .bad { fill: #d03b3b; } .warn { fill: #fab219; } .none { fill: #b9b8b2; }
+  .chip { fill: #ffffff; stroke: #d9d8d3; stroke-width: 1; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .frame { stroke: #383835; }
+    .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
+    .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; } .s3 { fill: #199e70; }
+    .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+    .ring { stroke: #1a1a19; }
+    .box { fill: #242422; stroke: #46453f; }
+    .hot { fill: #1c2a3d; stroke: #3987e5; }
+    .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
+    .bracket { stroke: #3987e5; }
+    .tile { fill: #242422; } .big { fill: #f0efec; } .accent { fill: #3987e5; }
+    .none { fill: #57564f; } .chip { fill: #1f1f1e; stroke: #46453f; }
+  }
+</style>
+<rect class="bg" x="0.5" y="0.5" width="819" height="469" rx="10"/>
+<rect class="frame" x="0.5" y="0.5" width="819" height="469" rx="10"/>
+<text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Per-message latency, feed release to trading decision, two cores</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">Open-loop, measured from the schedule; wait = wfe; median over epochs of each percentile (log scale, lower is better).</text>
+<line class="grid" x1="92" y1="357.7" x2="584" y2="357.7"/>
+<text x="82.0" y="361.7" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end">100 ns</text>
+<line class="grid" x1="92" y1="270.5" x2="584" y2="270.5"/>
+<text x="82.0" y="274.5" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end">1 us</text>
+<line class="grid" x1="92" y1="183.2" x2="584" y2="183.2"/>
+<text x="82.0" y="187.2" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end">10 us</text>
+<line class="grid" x1="92" y1="96.0" x2="584" y2="96.0"/>
+<text x="82.0" y="100.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end">100 us</text>
+<text x="92.0" y="406.0" class="t2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="400" text-anchor="middle">p50</text>
+<text x="215.0" y="406.0" class="t2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="400" text-anchor="middle">p99</text>
+<text x="338.0" y="406.0" class="t2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="400" text-anchor="middle">p99.9</text>
+<text x="461.0" y="406.0" class="t2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="400" text-anchor="middle">p99.99</text>
+<text x="584.0" y="406.0" class="t2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="400" text-anchor="middle">max</text>
+<line class="axis" x1="92" y1="384" x2="584" y2="384"/>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="92.0,337.4 215.0,312.2 338.0,245.2 461.0,181.4 584.0,132.8"/>
+<circle class="s1 ring" cx="92.0" cy="337.4" r="5"/>
+<circle class="s1 ring" cx="215.0" cy="312.2" r="5"/>
+<circle class="s1 ring" cx="338.0" cy="245.2" r="5"/>
+<circle class="s1 ring" cx="461.0" cy="181.4" r="5"/>
+<circle class="s1 ring" cx="584.0" cy="132.8" r="5"/>
+<polyline class="l2" fill="none" stroke-width="2" stroke-linejoin="round" points="92.0,339.0 215.0,297.9 338.0,186.7 461.0,146.0 584.0,141.2"/>
+<circle class="s2 ring" cx="92.0" cy="339.0" r="5"/>
+<circle class="s2 ring" cx="215.0" cy="297.9" r="5"/>
+<circle class="s2 ring" cx="338.0" cy="186.7" r="5"/>
+<circle class="s2 ring" cx="461.0" cy="146.0" r="5"/>
+<circle class="s2 ring" cx="584.0" cy="141.2" r="5"/>
+<polyline class="l3" fill="none" stroke-width="2" stroke-linejoin="round" points="92.0,354.1 215.0,237.7 338.0,216.6 461.0,177.3 584.0,133.4"/>
+<circle class="s3 ring" cx="92.0" cy="354.1" r="5"/>
+<circle class="s3 ring" cx="215.0" cy="237.7" r="5"/>
+<circle class="s3 ring" cx="338.0" cy="216.6" r="5"/>
+<circle class="s3 ring" cx="461.0" cy="177.3" r="5"/>
+<circle class="s3 ring" cx="584.0" cy="133.4" r="5"/>
+<circle class="s3" cx="604.0" cy="233.7" r="5"/>
+<text x="616.0" y="237.7" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">NASDAQ BX open, real timestamps</text>
+<text x="616.0" y="252.7" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">p99 2,379 ns</text>
+<circle class="s2" cx="604.0" cy="293.9" r="5"/>
+<text x="616.0" y="297.9" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">synthetic, constant 10M msg/s</text>
+<text x="616.0" y="312.9" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">p99 485 ns</text>
+<circle class="s1" cx="604.0" cy="327.9" r="5"/>
+<text x="616.0" y="331.9" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">synthetic, constant 1M msg/s</text>
+<text x="616.0" y="346.9" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">p99 333 ns</text>
+<text x="28.0" y="430.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">At the real open the p99 is 7.1x the constant-rate p99, while the p99.99 is 1.1x: bursts hurt the p99 to p99.9 band.</text>
+<text x="792.0" y="456.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-12_m4.txt (commit b20bbf1, battery power, preliminary)</text>
+</svg>

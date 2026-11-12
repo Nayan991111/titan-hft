@@ -5,7 +5,9 @@
   .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
   .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
   .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
-  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; } .s3 { fill: #1baf7a; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
   .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
   .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
   .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
@@ -18,7 +20,9 @@
     .bg { fill: #1a1a19; } .frame { stroke: #383835; }
     .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
     .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
-    .s1 { fill: #3987e5; } .s2 { fill: #d95926; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; } .s3 { fill: #199e70; }
+    .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+    .ring { stroke: #1a1a19; }
     .box { fill: #242422; stroke: #46453f; }
     .hot { fill: #1c2a3d; stroke: #3987e5; }
     .wire { stroke: #9a998f; } .tip { fill: #9a998f; }

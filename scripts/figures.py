@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "figures"
 T2T = ROOT / "results" / "2026-11-11_m4.txt"
 PP = ROOT / "results" / "2026-11-11_m4_spsc.txt"
+PL = ROOT / "results" / "2026-11-12_m4.txt"
 
 FONT = "ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
@@ -25,7 +26,9 @@ STYLE = """
   .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
   .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
   .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
-  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; }
+  .s1 { fill: #2a78d6; } .s2 { fill: #eb6834; } .s3 { fill: #1baf7a; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
   .box { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
   .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
   .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
@@ -38,7 +41,9 @@ STYLE = """
     .bg { fill: #1a1a19; } .frame { stroke: #383835; }
     .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #9a998f; }
     .grid { stroke: #2e2e2c; } .axis { stroke: #57564f; }
-    .s1 { fill: #3987e5; } .s2 { fill: #d95926; }
+    .s1 { fill: #3987e5; } .s2 { fill: #d95926; } .s3 { fill: #199e70; }
+    .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+    .ring { stroke: #1a1a19; }
     .box { fill: #242422; stroke: #46453f; }
     .hot { fill: #1c2a3d; stroke: #3987e5; }
     .wire { stroke: #9a998f; } .tip { fill: #9a998f; }
@@ -417,11 +422,84 @@ def fig_hypotheses():
     return svg(W, H, b, "Pre-registered hypotheses", desc)
 
 
+def pipeline_rows():
+    """{(load, wait, feed): {quantile: ns}} from the pipeline summaries."""
+    out = {}
+    pat = re.compile(r"^load=(\S+) wait=(\w+) path=full feed=(\S+)\s+n=\d+\s+([\d.]+) \[")
+    for line in PL.read_text().splitlines():
+        m = pat.match(line)
+        if m:
+            f = dict(x.split("=", 1) for x in line.split() if "=" in x)
+            if f.get("saturated") != "0":
+                continue
+            out[(m.group(1), m.group(2), m.group(3))] = {
+                "p50": float(f["p50_ns"]), "p99": float(m.group(4)), "p99.9": float(f["p999_ns"]),
+                "p99.99": float(f["p9999_ns"]), "max": float(f["max_ns"])}
+    return out
+
+
+def fig_pipeline():
+    import math
+    rows = pipeline_rows()
+    wait = "wfe"
+    series = [(("rate_1000000", wait, "synthetic_default"), "synthetic, constant 1M msg/s", "1"),
+              (("rate_10000000", wait, "synthetic_default"), "synthetic, constant 10M msg/s", "2"),
+              (("speed_1", wait, "20190730_BX_ITCH_50"), "NASDAQ BX open, real timestamps", "3")]
+    missing = [k for k, _, _ in series if k not in rows]
+    if missing:
+        sys.exit(f"{PL}: no pipeline summary for {missing}")
+    qs = ["p50", "p99", "p99.9", "p99.99", "max"]
+    W, H = 820, 470
+    left, right, top, bottom = 92, 236, 96, 384
+    lo, hi = math.log10(50), math.log10(100_000)
+    xs = [left + i * (W - left - right) / (len(qs) - 1) for i in range(len(qs))]
+
+    def y(v):
+        return bottom - (math.log10(v) - lo) / (hi - lo) * (bottom - top)
+
+    b = [text(28, 38, "Per-message latency, feed release to trading decision, two cores", size=17, weight=600),
+         text(28, 60, f"Open-loop, measured from the schedule; wait = {wait}; median over epochs of each "
+              "percentile (log scale, lower is better).", "t2", 13)]
+    for v, lab in ((100, "100 ns"), (1_000, "1 us"), (10_000, "10 us"), (100_000, "100 us")):
+        b.append(f'<line class="grid" x1="{left}" y1="{y(v):.1f}" x2="{W - right}" y2="{y(v):.1f}"/>')
+        b.append(text(left - 10, y(v) + 4, lab, "t3", 12, "end"))
+    for x, q in zip(xs, qs):
+        b.append(text(x, bottom + 22, q, "t2", 12.5, "middle", family=MONO))
+    b.append(f'<line class="axis" x1="{left}" y1="{bottom}" x2="{W - right}" y2="{bottom}"/>')
+    ends = []
+    for key, label, k in series:
+        vals = [rows[key][q] for q in qs]
+        pts = " ".join(f"{x:.1f},{y(v):.1f}" for x, v in zip(xs, vals))
+        b.append(f'<polyline class="l{k}" fill="none" stroke-width="2" stroke-linejoin="round" points="{pts}"/>')
+        for x, v in zip(xs, vals):
+            b.append(f'<circle class="s{k} ring" cx="{x:.1f}" cy="{y(v):.1f}" r="5"/>')
+        ends.append([y(vals[1]), label, k, vals[1]])
+    # Direct labels at the p99 column, nudged apart.
+    ends.sort()
+    for i in range(1, len(ends)):
+        ends[i][0] = max(ends[i][0], ends[i - 1][0] + 34)
+    lx = W - right + 20
+    for yy, label, k, p99 in ends:
+        b.append(f'<circle class="s{k}" cx="{lx:.1f}" cy="{yy - 4:.1f}" r="5"/>')
+        b.append(text(lx + 12, yy, label, "t1", 12))
+        b.append(text(lx + 12, yy + 15, f"p99 {p99:,.0f} ns", "t2", 11.5))
+    real = rows[series[2][0]]
+    syn = rows[series[0][0]]
+    b.append(text(28, H - 40, f"At the real open the p99 is {real['p99'] / syn['p99']:.1f}x the constant-rate p99, "
+                  f"while the p99.99 is {real['p99.99'] / syn['p99.99']:.1f}x: bursts hurt the p99 to p99.9 band.",
+                  "t2", 12.5))
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-12_m4.txt (commit b20bbf1, battery power, preliminary)",
+                  "t3", 11, "end"))
+    desc = (f"Percentile ladder for three schedules. p99: {syn['p99']:.0f} ns at 1M msg/s, "
+            f"{rows[series[1][0]]['p99']:.0f} ns at 10M msg/s, {real['p99']:.0f} ns at the real BX open.")
+    return svg(W, H, b, "Pipeline latency percentiles", desc)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     figs = (("hero.svg", fig_hero), ("t2t-path.svg", fig_path), ("t2t-stages.svg", fig_stages),
             ("pingpong.svg", fig_pingpong), ("itch-mix.svg", fig_mix), ("replay.svg", fig_replay),
-            ("hypotheses.svg", fig_hypotheses))
+            ("hypotheses.svg", fig_hypotheses), ("pipeline.svg", fig_pipeline))
     for name, fn in figs:
         (OUT / name).write_text(fn())
         print(f"wrote {(OUT / name).relative_to(ROOT)}")
