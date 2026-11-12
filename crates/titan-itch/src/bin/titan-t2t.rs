@@ -33,6 +33,12 @@
 //!   risk    as full, every intent passes eight pre-trade checks of the kind
 //!           SEC Rule 15c3-5 requires (kill switch, size, price collar,
 //!           notional, position, credit, duplicate, rate) before the push
+//!   checks  the eight checks alone: an untimed pass records every intent
+//!           the trading path emits with its mid and feed time, and the
+//!           timed loop replays only those through the checks; reported
+//!           per order, not per message
+//!   replay  the same replay loop with the checks replaced by a fold of the
+//!           order fields (loop and load floor for `checks`)
 //!
 //! Timing: the generic counter around each batch, and with `pmu` the core
 //! cycle, instruction, L1D load miss and branch mispredict counters around
@@ -44,6 +50,9 @@
 //!
 //!   titan-t2t [messages=N] [instruments=M] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
 //!   titan-t2t file=PATH [limit=N] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
+//!
+//! In `checks` and `replay`, `messages=` and every per-message field of the
+//! report count recorded orders, not feed messages.
 //!
 //! `limits=open` sets risk limits that no order can breach, so every check
 //! runs to the end and every order is sent: `risk` minus `full` is then the
@@ -78,8 +87,102 @@ const BOOK: u8 = 2;
 const FULL: u8 = 3;
 const DIRECT: u8 = 4;
 const RISK: u8 = 5;
-const STAGES: [(u8, &str); 6] =
-    [(RING, "ring"), (DECODE, "decode"), (BOOK, "book"), (FULL, "full"), (DIRECT, "direct"), (RISK, "risk")];
+const CHECKS: u8 = 6;
+const REPLAY: u8 = 7;
+const STAGES: [(u8, &str); 8] = [
+    (RING, "ring"),
+    (DECODE, "decode"),
+    (BOOK, "book"),
+    (FULL, "full"),
+    (DIRECT, "direct"),
+    (RISK, "risk"),
+    (CHECKS, "checks"),
+    (REPLAY, "replay"),
+];
+
+/// One recorded order for the `checks` and `replay` stages.
+#[derive(Clone, Copy)]
+struct Order {
+    it: Intent,
+    mid: u64,
+    ts: u64,
+}
+
+/// Untimed: every intent the trading path emits, with its mid and feed time.
+fn record(feed: &[u8], descs: &[u64], book: &mut L3Book, max_spread: u32) -> Vec<Order> {
+    book.clear();
+    let mut state = 0x9E37_79B9_7F4A_7C15u64;
+    let mut orders = Vec::new();
+    for &d in descs {
+        let b = body(feed, d);
+        let Ok(m) = decode(b) else {
+            state = state.rotate_left(1);
+            continue;
+        };
+        book.apply(&m);
+        if matches!(m, Msg::Other { .. }) {
+            state = state.rotate_left(1);
+            continue;
+        }
+        let loc = locate_of(&m);
+        let bid = book.best(loc, Side::Buy);
+        let ask = book.best(loc, Side::Sell);
+        if let Some(it) = signal(&mut state, loc, bid, ask, max_spread) {
+            let mid = match (bid, ask) {
+                (Some((bp, _)), Some((ap, _))) => (bp as u64 + ap as u64) >> 1,
+                _ => 0,
+            };
+            orders.push(Order { it, mid, ts: timestamp(b) });
+        }
+    }
+    orders
+}
+
+/// Timed part of `checks` (S = CHECKS) and `replay` (S = REPLAY): returns
+/// orders accepted, and folds them into `sum`.
+#[inline(never)]
+fn replay<const S: u8>(orders: &[Order], risk: &mut Risk, sum: &mut u64) -> u64 {
+    let mut n = 0u64;
+    for o in orders {
+        let o = black_box(o);
+        if S == CHECKS && !risk.check(&o.it, o.mid, o.ts) {
+            continue;
+        }
+        *sum = sum.rotate_left(7) ^ o.it.price as u64 ^ ((o.it.shares as u64) << 32) ^ o.it.locate as u64 ^ o.it.buy as u64;
+        n += 1;
+    }
+    n
+}
+
+/// One pass of the recorded orders through stage `S` (CHECKS or REPLAY).
+fn pass_orders<const S: u8>(c: &Ctx, orders: &[Order], risk: &mut Risk, st: &mut Stats) {
+    risk.reset();
+    for chunk in orders.chunks(c.k) {
+        let a0 = thread_allocations();
+        let p0 = c.pmu.map(|s| s.read());
+        let t0 = clock::counter();
+        let n = replay::<S>(chunk, risk, &mut st.checksum);
+        let t1 = clock::counter();
+        let p1 = c.pmu.map(|s| s.read());
+        st.allocations += thread_allocations() - a0;
+        let m = chunk.len() as f64;
+        st.ticks += t1 - t0;
+        st.batch_ns.push((t1 - t0) as f64 * 1e9 / clock::counter_frequency() as f64 / m);
+        if let (Some(s), Some(a), Some(b)) = (c.pmu, p0, p1) {
+            let d = s.delta(&a, &b);
+            for ((acc, &x), &f) in st.pmu.iter_mut().zip(&d).zip(&c.pmu_floor) {
+                *acc += x.saturating_sub(f);
+            }
+            st.batch_cycles.push(d[0].saturating_sub(c.pmu_floor[0]) as f64 / m);
+        }
+        st.messages += chunk.len() as u64;
+        st.intents += n;
+    }
+    if S == CHECKS {
+        st.accepted = risk.accepted;
+        st.rejected = risk.rejected;
+    }
+}
 
 #[inline(always)]
 fn body(feed: &[u8], d: u64) -> &[u8] {
@@ -422,9 +525,13 @@ fn main() {
     let kill = AtomicBool::new(false);
     let limits = if open_limits { Limits::open() } else { Limits::default() };
     let mut risk = Risk::new(max_locate as usize + 1, limits, &kill);
+    let orders = record(feed_buf, &descs, &mut book, max_spread);
+    println!("t2t_orders feed={name} orders={} per_message={:.5}", orders.len(), orders.len() as f64 / descs.len() as f64);
     let mut run = |stage: u8, ing: &mut Ingress, eg: &mut Egress, out: &mut [Intent], book: &mut L3Book, st: &mut Stats| {
         let r = &mut risk;
         match stage {
+            CHECKS => pass_orders::<CHECKS>(&c, &orders, r, st),
+            REPLAY => pass_orders::<REPLAY>(&c, &orders, r, st),
             RING => pass::<RING>(&c, ing, eg, out, book, r, st),
             DECODE => pass::<DECODE>(&c, ing, eg, out, book, r, st),
             BOOK => pass::<BOOK>(&c, ing, eg, out, book, r, st),
@@ -453,6 +560,10 @@ fn main() {
             let (s, label) = chosen[(j + epoch) % chosen.len()];
             let mut st = fresh();
             run(s, &mut ing, &mut eg, &mut out, &mut book, &mut st);
+            if (s == CHECKS && open_limits) || s == REPLAY {
+                // Every recorded order passes open limits.
+                assert_eq!(st.intents as usize, orders.len(), "{label}: every recorded order must pass");
+            }
             if s == FULL || s == DIRECT || (s == RISK && open_limits) {
                 // full, direct, and risk with limits nobody breaches run the
                 // same trading path: their intents must agree.
@@ -462,7 +573,7 @@ fn main() {
                     Some(prev) => assert_eq!(prev, key, "full and direct disagree"),
                 }
             }
-            report(&name, label, epoch, s == RISK, &mut st);
+            report(&name, label, epoch, s == RISK || s == CHECKS, &mut st);
         }
     }
 }
