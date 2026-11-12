@@ -25,13 +25,15 @@ from functools import lru_cache
 
 RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
 KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed"),
-              "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns"}
+              "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap"),
+              "pl_split": ("load", "wait", "path", "feed", "part")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
     "rp": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz", "allocations"),
     "t2t": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz", "batch_p99_ns", "intent_rate", "allocations"),
+    "pl_split": ("p50_ns", "p90_ns", "p999_ns", "max_ns", "warm_units_per_msg", "saturated"),
     "pl_gap": ("messages", "p90_ns", "p99_ns", "p999_ns", "max_ns", "saturated"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
@@ -121,7 +123,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap"):
+    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue

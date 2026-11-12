@@ -21,8 +21,16 @@
 //! The trading thread waits for the next message with `spin` (reload only),
 //! `isb` (Rust's spin_loop) or `wfe` (exclusive monitor on the ring index).
 //!
-//!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk|none] [gaps] [pmu]
+//!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk|none] [gaps] [pmu] [split] [warm=book|mem]
 //!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E] [gaps]
+//!
+//! `split` adds a `pl_split` line per run with the delay to pop (schedule to
+//! pop) and the service time (pop to decision) separately; it costs one more
+//! counter read per message. `warm=book|mem` (with `waits=isb`) keeps state
+//! warm while the consumer waits: every `warm_us` (default 20) it runs up to
+//! 16 read-only units, polling the ring between units, either best-price
+//! lookups on recently touched instruments plus a decode of the last
+//! message (`book`), or loads spread over a 128 MiB scratch buffer (`mem`).
 //!
 //! `path=none` pops and records each message without running the trading
 //! path: the cost of waiting itself, as a control. `pmu` (run under sudo)
@@ -186,6 +194,7 @@ struct RunResult {
     /// Consumer thread counters over the whole run, waiting included:
     /// cycles, instructions, L1D load misses, branch mispredicts.
     pmu: [u64; 4],
+    warm_units: u64,
 }
 
 struct Ctx<'a> {
@@ -199,20 +208,64 @@ struct Ctx<'a> {
     /// what waiting itself costs).
     none: bool,
     pmu: Option<&'a Session>,
+    /// Also record the delay to pop (schedule to pop) and the service time
+    /// (pop to decision) in two more histograms.
+    split: bool,
+    /// Keep-warm while waiting: 0 off, 1 book (best bid and ask of recently
+    /// touched instruments, decode of the last message), 2 memory (loads
+    /// from a scratch buffer larger than the system cache).
+    warm: u8,
+    warm_ticks: u64,
+    scratch: &'a [u64],
     ring: usize,
 }
 
-fn path_name(with_risk: bool, none: bool) -> &'static str {
-    if none {
-        "none"
-    } else if with_risk {
-        "risk"
-    } else {
-        "full"
+fn path_name(with_risk: bool, none: bool, warm: u8) -> &'static str {
+    match (none, with_risk, warm) {
+        (true, _, _) => "none",
+        (_, true, 0) => "risk",
+        (_, false, 0) => "full",
+        (_, true, 1) => "risk_warmbook",
+        (_, false, 1) => "full_warmbook",
+        (_, true, _) => "risk_warmmem",
+        (_, false, _) => "full_warmmem",
     }
 }
 
-fn warm(c: &Ctx, book: &mut L3Book, risk: &mut Risk) {
+/// Recently touched instruments, for the book keep-warm.
+const RECENT: usize = 64;
+/// Keep-warm units per period; the ring is polled between units, so a
+/// message waits for at most one unit.
+const WARM_UNITS: usize = 16;
+
+/// One keep-warm unit: two best-price lookups (book) or one load from the
+/// scratch buffer (memory). Read-only: the book is not changed.
+#[inline(never)]
+fn warm_unit(c: &Ctx, book: &L3Book, recent: &[u16; RECENT], last_d: u64, unit: usize, pos: &mut usize) -> u64 {
+    if c.warm == 1 {
+        let loc = recent[unit % RECENT];
+        let mut x = 0u64;
+        if let Some((p, q)) = book.best(loc, Side::Buy) {
+            x ^= p as u64 ^ q;
+        }
+        if let Some((p, q)) = book.best(loc, Side::Sell) {
+            x ^= p as u64 ^ q;
+        }
+        if unit == 0 && last_d != 0 {
+            if let Ok(m) = decode(body(c.feed, last_d)) {
+                x ^= locate_of(&m) as u64;
+            }
+        }
+        x
+    } else {
+        // Large odd stride through the buffer: defeats the prefetchers, so
+        // each unit is one access well beyond the system cache.
+        *pos = (*pos + 1_048_573) % c.scratch.len();
+        c.scratch[*pos]
+    }
+}
+
+fn prime(c: &Ctx, book: &mut L3Book, risk: &mut Risk) {
     book.clear();
     risk.reset();
     let mut state = 0u64;
@@ -231,10 +284,12 @@ fn run<W: Wait>(
     risk: &mut Risk,
     hist: &mut Histogram,
     gh: &mut [Histogram],
+    sh: &mut [Histogram],
 ) -> RunResult {
-    warm(c, book, risk);
+    prime(c, book, risk);
     hist.reset();
     gh.iter_mut().for_each(Histogram::reset);
+    sh.iter_mut().for_each(Histogram::reset);
     let freq = clock::counter_frequency();
     let (tx, rx): (WaitingProducer<AcqRel, Pad128, W, true>, WaitingConsumer<AcqRel, Pad128, W, true>) =
         channel(c.ring);
@@ -242,7 +297,7 @@ fn run<W: Wait>(
     let u0 = Usage::now();
     // Start 5 ms ahead so both threads are running and waiting.
     let start = clock::counter() + freq / 200;
-    let mut result = RunResult { messages: 0, span_ticks: 0, late_max: 0, late_over_1us: 0, orders: 0, allocations: 0, invol: 0, pmu: [0; 4] };
+    let mut result = RunResult { messages: 0, span_ticks: 0, late_max: 0, late_over_1us: 0, orders: 0, allocations: 0, invol: 0, pmu: [0; 4], warm_units: 0 };
     let one_us = freq / 1_000_000;
     thread::scope(|s| {
         let producer = s.spawn(move || {
@@ -272,10 +327,40 @@ fn run<W: Wait>(
         let a0 = thread_allocations();
         let p0 = c.pmu.map(|s| s.read());
         let (mut i, mut orders, mut last) = (0usize, 0u64, start);
+        let mut recent = [0u16; RECENT];
+        let (mut last_d, mut pos, mut wsum, mut units) = (0u64, 0usize, 0u64, 0u64);
+        let mut next_warm = start;
         loop {
-            let d = rx.recv();
+            let d = if c.warm == 0 {
+                rx.recv()
+            } else {
+                let mut unit = WARM_UNITS;
+                loop {
+                    if let Some(v) = rx.inner.pop() {
+                        break v;
+                    }
+                    if unit < WARM_UNITS {
+                        wsum ^= warm_unit(c, book, &recent, last_d, unit, &mut pos);
+                        unit += 1;
+                        units += 1;
+                    } else if clock::counter() >= next_warm {
+                        unit = 0;
+                        next_warm = clock::counter() + c.warm_ticks;
+                    } else {
+                        std::hint::spin_loop();
+                    }
+                }
+            };
             if d == STOP {
                 break;
+            }
+            let tp = if c.split { clock::counter() } else { 0 };
+            if c.warm == 1 && !c.none {
+                let b = body(c.feed, d);
+                if b.len() >= 3 {
+                    recent[i % RECENT] = u16::from_be_bytes([b[1], b[2]]);
+                }
+                last_d = d;
             }
             orders += if c.none {
                 std::hint::black_box(d);
@@ -288,6 +373,10 @@ fn run<W: Wait>(
             let t = clock::counter();
             let v = t.saturating_sub(start + sched[i]);
             hist.record(v);
+            if c.split {
+                sh[0].record(tp.saturating_sub(start + sched[i]));
+                sh[1].record(t.saturating_sub(tp));
+            }
             if let Some(&k) = cls.get(i) {
                 if k != NO_CLASS {
                     gh[k as usize].record(v);
@@ -302,6 +391,8 @@ fn run<W: Wait>(
             result.pmu = [d[0], d[1], d[2], d[3]];
         }
         result.allocations = thread_allocations() - a0;
+        std::hint::black_box(wsum);
+        result.warm_units = units;
         result.messages = i as u64;
         result.span_ticks = last - start;
         std::hint::black_box(state);
@@ -321,6 +412,16 @@ fn main() {
     let ring: usize = num(&args, "ring", 4096);
     let with_risk = kv(&args, "path") == Some("risk");
     let none = kv(&args, "path") == Some("none");
+    let split = args.iter().any(|a| a == "split");
+    let warm: u8 = match kv(&args, "warm") {
+        None | Some("off") => 0,
+        Some("book") => 1,
+        Some("mem") => 2,
+        Some(o) => panic!("unknown warm {o}"),
+    };
+    let warm_us: u64 = num(&args, "warm_us", 20);
+    // 128 MiB of scratch, written once so every page is resident.
+    let scratch: Vec<u64> = if warm == 2 { (0..(128usize << 20) / 8).map(|i| i as u64).collect() } else { Vec::new() };
     let pmu = if args.iter().any(|a| a == "pmu") {
         match Kperf::open().and_then(|kp| {
             kp.session(&[events::CYCLES, events::INSTRUCTIONS, events::L1D_LOAD_MISS, events::BRANCH_MISPREDICT])
@@ -417,21 +518,26 @@ fn main() {
         window.end,
         f.peak,
         1usize << log2,
-        path_name(with_risk, none),
+        path_name(with_risk, none, warm),
         (f.ts[window.clone()].iter().max().copied().unwrap_or(0).saturating_sub(f.ts[window.start])) as f64 / 1e9,
     );
 
-    let c = Ctx { feed: feed_buf, descs: &f.descs, prefix, window, max_spread, with_risk, none, pmu: pmu.as_ref(), ring };
+    let c = Ctx { feed: feed_buf, descs: &f.descs, prefix, window, max_spread, with_risk, none, pmu: pmu.as_ref(), split, warm,
+        warm_ticks: warm_us * clock::counter_frequency() / 1_000_000, scratch: &scratch, ring };
     let kill = AtomicBool::new(false);
     let mut risk = Risk::new(instruments, Limits::default(), &kill);
     let mut book = L3Book::new(log2, instruments);
     let mut hist = Histogram::new();
     let mut gh: Vec<Histogram> = (0..GAP_NAMES.len()).map(|_| Histogram::new()).collect();
+    let mut sh: Vec<Histogram> = (0..2).map(|_| Histogram::new()).collect();
+    // With keep-warm the consumer polls the ring itself (pop, keep-warm
+    // unit or isb), whatever the wait type, so only isb is meaningful.
+    assert!(c.warm == 0 || waits.iter().all(|w| w == "isb"), "warm= needs waits=isb");
     let classes: Vec<Vec<u8>> = loads.iter().map(|(_, s)| if gaps { gap_classes(s, freq) } else { Vec::new() }).collect();
 
     // Warm-up: one untimed single-thread pass of the whole window grows the
     // level vectors to their working size.
-    warm(&c, &mut book, &mut risk);
+    prime(&c, &mut book, &mut risk);
     let mut state = 0u64;
     for &d in &c.descs[c.window.clone()] {
         step::<true>(c.feed, d, &mut book, &mut risk, &mut state, c.max_spread);
@@ -444,9 +550,9 @@ fn main() {
                 let w = &waits[(j + epoch + li) % waits.len()];
                 let cls = &classes[li];
                 let r = match w.as_str() {
-                    "spin" => run::<Spin>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh),
-                    "isb" => run::<SpinHint>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh),
-                    "wfe" => run::<Wfe>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh),
+                    "spin" => run::<Spin>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh, &mut sh),
+                    "isb" => run::<SpinHint>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh, &mut sh),
+                    "wfe" => run::<Wfe>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh, &mut sh),
                     other => panic!("unknown wait {other}"),
                 };
                 let offered_span = to_ns(*sched.last().unwrap()) / 1e9;
@@ -459,7 +565,7 @@ fn main() {
                     "pl feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} messages={} offered_mps={:.3} achieved_mps={:.3} \
                      p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} p9999_ns={:.1} p99999_ns={:.1} max_ns={:.1} mean_ns={:.1} \
                      feed_late_max_ns={:.1} feed_late_over_1us={} orders={} allocations={} invol_switches={}{}",
-                    path_name(c.with_risk, c.none),
+                    path_name(c.with_risk, c.none, c.warm),
                     saturated as u8,
                     r.messages,
                     offered / 1e6,
@@ -490,12 +596,30 @@ fn main() {
                         String::new()
                     },
                 );
+                if c.split {
+                    for (part, h) in ["pop", "service"].iter().zip(&sh) {
+                        println!(
+                            "pl_split feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} part={part} messages={} \
+                             p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} max_ns={:.1} mean_ns={:.1} warm_units_per_msg={:.2}",
+                            path_name(c.with_risk, c.none, c.warm),
+                            saturated as u8,
+                            h.count(),
+                            to_ns(h.quantile(0.5)),
+                            to_ns(h.quantile(0.9)),
+                            to_ns(h.quantile(0.99)),
+                            to_ns(h.quantile(0.999)),
+                            to_ns(h.max()),
+                            h.mean() * 1e9 / freq as f64,
+                            r.warm_units as f64 / r.messages.max(1) as f64,
+                        );
+                    }
+                }
                 if gaps {
                     for (g, h) in GAP_NAMES.iter().zip(&gh) {
                         println!(
                             "pl_gap feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} gap={g} messages={} \
                              p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} max_ns={:.1} mean_ns={:.1}",
-                            path_name(c.with_risk, c.none),
+                            path_name(c.with_risk, c.none, c.warm),
                             saturated as u8,
                             h.count(),
                             to_ns(h.quantile(0.5)),
