@@ -1,0 +1,61 @@
+# Summaries of the fifth 2026-11-12 measurement run (statistics only; raw
+# epoch lines stay on the measurement machine; no NASDAQ data is reproduced).
+#
+# Code:      commit 9a30613, pushed at 12:03:08 IST, before the first run
+# Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
+# Toolchain: rustc 1.92.0, release profile, target-cpu=native
+# Power:     wall power (85%, not charging), Low Power Mode off, Docker not
+#            running, sleep prevented for the whole script (caffeinate), no
+#            thermal or performance warning recorded; only VS Code and one
+#            browser window open.
+# Epochs:    5 inside one process. PRELIMINARY.
+# Pipeline:  wait isb; `split` adds one counter read per message (pop and
+#            service histograms), so end-to-end values here are not directly
+#            comparable with runs without `split`. Keep-warm: up to 16
+#            read-only units every 20 us while idle; `book` = best levels of
+#            recent instruments plus a decode, `mem` = strided loads over a
+#            128 MiB scratch buffer. Paths: full, full_warmbook, full_warmmem.
+# Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, from 09:30:00, first
+#            100,000 messages; synthetic default mix, first 100,000.
+== H34 to H36: delay to pop vs service time, keep-warm off, book, mem; isb; 1M and 6,627 msg/s  [12:03:08]
+-- end to end (pl) and split (pl_split), median over epochs of the p99
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_1000000 wait=isb path=full_warmmem feed=synthetic_default n=5      329.00 [  319.00,   331.00] p50_ns=171 p999_ns=2e+03 p9999_ns=5.14e+03 max_ns=9.6e+03 achieved_mps=1 saturated=0 feed_late_over_1us=42 invol_switches=2 a
+load=rate_1000000 wait=isb path=full feed=synthetic_default    n=5      542.00 [  317.00,   615.00] p50_ns=170 p999_ns=7.08e+03 p9999_ns=2.15e+04 max_ns=2.98e+04 achieved_mps=1 saturated=0 feed_late_over_1us=251 invol_switches=6 a
+load=rate_1000000 wait=isb path=full_warmbook feed=synthetic_default n=5      562.00 [  318.00,   605.00] p50_ns=151 p999_ns=2.53e+03 p9999_ns=7.93e+03 max_ns=1.2e+04 achieved_mps=1 saturated=0 feed_late_over_1us=63 invol_switches
+load=rate_6627 wait=isb path=full_warmmem feed=synthetic_default n=5      618.00 [  612.00,   632.00] p50_ns=312 p999_ns=2.93e+03 p9999_ns=9.76e+03 max_ns=1.57e+04 achieved_mps=0.007 saturated=0 feed_late_over_1us=63 invol_switche
+load=rate_6627 wait=isb path=full_warmbook feed=synthetic_default n=5     3050.00 [ 3019.00,  3066.00] p50_ns=763 p999_ns=5.35e+03 p9999_ns=1.37e+04 max_ns=4.71e+05 achieved_mps=0.007 saturated=0 feed_late_over_1us=98 invol_switch
+load=rate_6627 wait=isb path=full feed=synthetic_default       n=5     3102.00 [ 2947.00, 1338368.00] p50_ns=527 p999_ns=1.37e+04 p9999_ns=9.13e+05 max_ns=2.37e+06 achieved_mps=0.007 saturated=0 feed_late_over_1us=234 invol_switch
+## pl_split: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_6627 wait=isb path=full_warmbook feed=synthetic_default part=pop n=5       83.00 [   83.00,    86.00] p50_ns=62 p90_ns=79 p999_ns=4.09e+03 max_ns=4.7e+05 warm_units_per_msg=121 saturated=0
+load=rate_1000000 wait=isb path=full_warmbook feed=synthetic_default part=pop n=5      123.00 [  121.00,   124.00] p50_ns=67 p90_ns=102 p999_ns=2.31e+03 max_ns=1.15e+04 warm_units_per_msg=0.77 saturated=0
+load=rate_1000000 wait=isb path=full feed=synthetic_default part=pop n=5      124.00 [  124.00,   159.00] p50_ns=68 p90_ns=108 p999_ns=6.82e+03 max_ns=2.97e+04 warm_units_per_msg=0 saturated=0
+load=rate_6627 wait=isb path=full feed=synthetic_default part=pop n=5      125.00 [  112.00, 1337856.00] p50_ns=62 p90_ns=80 p999_ns=1.22e+04 max_ns=2.37e+06 warm_units_per_msg=0 saturated=0
+load=rate_1000000 wait=isb path=full_warmmem feed=synthetic_default part=pop n=5      151.00 [  143.00,   170.00] p50_ns=67 p90_ns=104 p999_ns=1.85e+03 max_ns=9.52e+03 warm_units_per_msg=0.77 saturated=0
+load=rate_1000000 wait=isb path=full feed=synthetic_default part=service n=5      250.00 [  209.00,   459.00] p50_ns=84 p90_ns=208 p999_ns=667 max_ns=1.21e+04 warm_units_per_msg=0 saturated=0
+load=rate_1000000 wait=isb path=full_warmmem feed=synthetic_default part=service n=5      250.00 [  227.00,   250.00] p50_ns=84 p90_ns=208 p999_ns=292 max_ns=4.83e+03 warm_units_per_msg=0.77 saturated=0
+load=rate_6627 wait=isb path=full_warmmem feed=synthetic_default part=pop n=5      284.00 [  281.00,   291.00] p50_ns=63 p90_ns=80 p999_ns=2.55e+03 max_ns=1.55e+04 warm_units_per_msg=121 saturated=0
+load=rate_1000000 wait=isb path=full_warmbook feed=synthetic_default part=service n=5      458.00 [  250.00,   500.00] p50_ns=83 p90_ns=208 p999_ns=875 max_ns=9.96e+03 warm_units_per_msg=0.77 saturated=0
+load=rate_6627 wait=isb path=full_warmmem feed=synthetic_default part=service n=5      541.00 [  517.00,   542.00] p50_ns=250 p90_ns=458 p999_ns=667 max_ns=6.67e+03 warm_units_per_msg=121 saturated=0
+load=rate_6627 wait=isb path=full_warmbook feed=synthetic_default part=service n=5     2959.00 [ 2916.00,  3000.00] p50_ns=708 p90_ns=1.79e+03 p999_ns=3.08e+03 max_ns=1.59e+04 warm_units_per_msg=121 saturated=0
+load=rate_6627 wait=isb path=full feed=synthetic_default part=service n=5     3000.00 [ 2041.00,  3041.00] p50_ns=458 p90_ns=1.79e+03 p999_ns=3.17e+03 max_ns=1.78e+04 warm_units_per_msg=0 saturated=0
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_1000000 wait=isb path=full_warmbook feed=20190730_BX_ITCH_50 n=5      195.00 [  166.00,   201.00] p50_ns=107 p999_ns=2.05e+03 p9999_ns=7.7e+03 max_ns=1.28e+04 achieved_mps=1 saturated=0 feed_late_over_1us=61 invol_switch
+load=rate_1000000 wait=isb path=full feed=20190730_BX_ITCH_50  n=5      286.00 [  242.00,  1693.00] p50_ns=109 p999_ns=4.13e+03 p9999_ns=8.25e+03 max_ns=1.16e+04 achieved_mps=1 saturated=0 feed_late_over_1us=96 invol_switches=2 al
+load=rate_1000000 wait=isb path=full_warmmem feed=20190730_BX_ITCH_50 n=5      322.00 [  318.00,   324.00] p50_ns=108 p999_ns=2.11e+03 p9999_ns=6.75e+03 max_ns=1.32e+04 achieved_mps=1 saturated=0 feed_late_over_1us=73 invol_switch
+load=rate_6627 wait=isb path=full_warmmem feed=20190730_BX_ITCH_50 n=5      626.00 [  622.00,   630.00] p50_ns=289 p999_ns=2.78e+03 p9999_ns=8.75e+03 max_ns=1.79e+04 achieved_mps=0.007 saturated=0 feed_late_over_1us=58 invol_switc
+load=rate_6627 wait=isb path=full_warmbook feed=20190730_BX_ITCH_50 n=5     2491.00 [ 2009.00,  3057.00] p50_ns=117 p999_ns=4.13e+03 p9999_ns=1.22e+04 max_ns=3.17e+04 achieved_mps=0.007 saturated=0 feed_late_over_1us=85 invol_swit
+load=rate_6627 wait=isb path=full feed=20190730_BX_ITCH_50     n=5     3073.00 [ 2479.00,  3115.00] p50_ns=173 p999_ns=8.53e+03 p9999_ns=2.83e+04 max_ns=1.3e+06 achieved_mps=0.007 saturated=0 feed_late_over_1us=273 invol_switches=
+## pl_split: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_6627 wait=isb path=full_warmbook feed=20190730_BX_ITCH_50 part=pop n=5       83.00 [   83.00,    86.00] p50_ns=62 p90_ns=79 p999_ns=3.36e+03 max_ns=3.17e+04 warm_units_per_msg=121 saturated=0
+load=rate_1000000 wait=isb path=full_warmbook feed=20190730_BX_ITCH_50 part=service n=5      100.00 [   84.00,   125.00] p50_ns=42 p90_ns=42 p999_ns=250 max_ns=583 warm_units_per_msg=0.77 saturated=0
+load=rate_6627 wait=isb path=full feed=20190730_BX_ITCH_50 part=pop n=5      115.00 [   83.00,   306.00] p50_ns=62 p90_ns=79 p999_ns=7.93e+03 max_ns=1.3e+06 warm_units_per_msg=0 saturated=0
+load=rate_1000000 wait=isb path=full feed=20190730_BX_ITCH_50 part=pop n=5      123.00 [  121.00,  1654.00] p50_ns=70 p90_ns=111 p999_ns=4.09e+03 max_ns=1.16e+04 warm_units_per_msg=0 saturated=0
+load=rate_1000000 wait=isb path=full_warmbook feed=20190730_BX_ITCH_50 part=pop n=5      123.00 [  121.00,   123.00] p50_ns=67 p90_ns=106 p999_ns=2.01e+03 max_ns=1.27e+04 warm_units_per_msg=0.77 saturated=0
+load=rate_1000000 wait=isb path=full feed=20190730_BX_ITCH_50 part=service n=5      125.00 [  125.00,   208.00] p50_ns=42 p90_ns=83 p999_ns=250 max_ns=3.79e+03 warm_units_per_msg=0 saturated=0
+load=rate_1000000 wait=isb path=full_warmmem feed=20190730_BX_ITCH_50 part=pop n=5      170.00 [  165.00,   176.00] p50_ns=67 p90_ns=103 p999_ns=2.03e+03 max_ns=1.31e+04 warm_units_per_msg=0.77 saturated=0
+load=rate_1000000 wait=isb path=full_warmmem feed=20190730_BX_ITCH_50 part=service n=5      250.00 [  250.00,   250.00] p50_ns=42 p90_ns=83 p999_ns=291 max_ns=1.12e+03 warm_units_per_msg=0.77 saturated=0
+load=rate_6627 wait=isb path=full_warmmem feed=20190730_BX_ITCH_50 part=pop n=5      285.00 [  284.00,   288.00] p50_ns=63 p90_ns=80 p999_ns=2.58e+03 max_ns=1.75e+04 warm_units_per_msg=121 saturated=0
+load=rate_6627 wait=isb path=full_warmmem feed=20190730_BX_ITCH_50 part=service n=5      542.00 [  542.00,   542.00] p50_ns=209 p90_ns=458 p999_ns=667 max_ns=5.17e+03 warm_units_per_msg=121 saturated=0
+load=rate_6627 wait=isb path=full_warmbook feed=20190730_BX_ITCH_50 part=service n=5     2208.00 [ 1875.00,  3000.00] p50_ns=42 p90_ns=1.79e+03 p999_ns=3.04e+03 max_ns=1.16e+04 warm_units_per_msg=121 saturated=0
+load=rate_6627 wait=isb path=full feed=20190730_BX_ITCH_50 part=service n=5     2958.00 [ 2167.00,  3000.00] p50_ns=125 p90_ns=1.79e+03 p999_ns=3.12e+03 max_ns=1.47e+04 warm_units_per_msg=0 saturated=0
