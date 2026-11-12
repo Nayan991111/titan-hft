@@ -50,7 +50,7 @@ fn main() {
 
     println!("== memory");
     let mut r = PinnedRegion::new(64 << 20).expect("mmap");
-    println!("region_bytes={} pages={} aligned={}", r.len(), r.pages(), r.as_ptr() as usize % r.page_size() == 0);
+    println!("region_bytes={} pages={} aligned={}", r.len(), r.pages(), (r.as_ptr() as usize).is_multiple_of(r.page_size()));
     println!("mlock_ok={} mlock_errno={:?}", r.is_locked(), r.lock_error());
     println!("resident_pages={:?}", r.resident_pages());
     let page = r.page_size();

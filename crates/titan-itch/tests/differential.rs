@@ -67,7 +67,7 @@ fn replace_and_execute_heavy() {
 fn clear_then_replay_matches() {
     let buf = feed(17, 20, 100_000, Mix::default());
     let mut book = L3Book::new(18, 21);
-    let mut snapshot = |b: &mut L3Book| {
+    let snapshot = |b: &mut L3Book| {
         let mut r = Reader::new(&buf);
         while let Some(m) = r.next_msg() {
             b.apply(&m.unwrap());
