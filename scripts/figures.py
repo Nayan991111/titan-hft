@@ -287,6 +287,8 @@ def status_class(st):
         return "bad", "refuted"
     if s.startswith("inconclusive"):
         return "warn", "inconclusive"
+    if s.startswith("partly"):
+        return "warn", "partly supported"
     return "none", "pending"
 
 
@@ -401,10 +403,10 @@ def fig_hypotheses():
     H = y0 + nrows * (ch + gy) + 34
     b = [text(28, 38, "Every prediction is committed before the run that tests it", size=17, weight=600),
          text(28, 60, f"{len(rows)} hypotheses so far: {counts.get('good', 0)} supported, "
-              f"{counts.get('bad', 0)} refuted or not supported, {counts.get('warn', 0)} inconclusive, "
-              f"{counts.get('none', 0)} pending. Failed predictions stay in the log.", "t2", 13)]
+              f"{counts.get('bad', 0)} refuted or not supported, {counts.get('warn', 0)} mixed, "
+              f"{counts.get('none', 0)} pending; failures stay in the log.", "t2", 13)]
     lx = 28
-    for cls, label in (("good", "supported"), ("bad", "refuted or not supported"), ("warn", "inconclusive"),
+    for cls, label in (("good", "supported"), ("bad", "refuted or not supported"), ("warn", "inconclusive or partly"),
                        ("none", "pending")):
         b.append(f'<rect class="{cls}" x="{lx}" y="76" width="12" height="12" rx="2"/>')
         b.append(text(lx + 18, 86.5, label, "t2", 12.5))

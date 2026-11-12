@@ -47,12 +47,15 @@ run.
 | Fastest cross-core round trip (SPSC ring, `wfe` wait) | 81.1 ns; about 40.5 ns one way | [`results/2026-11-11_m4_spsc.txt`](results/2026-11-11_m4_spsc.txt) |
 | Rust's default `spin_loop` (`isb`) vs a `wfe` wait | slowest of four waits: 96.6 vs 81.1 ns round trip; 347 vs 272 cycles | same |
 | `ldapr` (Acquire, RCpc) vs `ldar` (SeqCst, RCsc) in an SPSC ring | no measurable difference: 8.35 vs 8.34 cycles per streamed message | same |
+| Apparent `ldar` advantage when the consumer misses cache | a code-placement artefact: absent in the default layout (+0.8%, p = 0.33), 12% and 20% with 64 and 128-byte alignment of the same code (10 epochs each) | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
 | Index caching in the ring (each side keeps a private copy of the other's index) | 26x fewer cycles per streamed message (8.35 vs 219) | same |
 | Two-core pipeline, feed release to trading decision, constant 1M msg/s (synthetic), open loop | median 171 to 179 ns, p99 333 to 360 ns, p99.99 10.2 to 10.6 us | [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
 | Same pipeline, offered load swept 1M to 25M msg/s | flat up to 10M msg/s (median 158 to 164 ns), then saturation at about 12.7M msg/s; no gradual knee | same |
 | `wfe` or `isb` wait vs a plain spin on the consumer | lower median and p99 at 1M and 5M msg/s (5 of 5 epochs, p about 0.01); no difference at 10M | same |
 | Same pipeline paced by the real ITCH timestamps of the BX open (09:30:00 plus 30 s) | median 104 to 114 ns, but p99 2.4 to 2.7 us: about 7x the constant-rate p99 (exploratory, 3 epochs) | same |
-| Eight pre-trade checks with limits nobody breaches, whole-path cost | +2.0% cycles per message on real data, +3.3% synthetic (5 of 5 epochs); isolated cost per order pending (H21b) | same |
+| Eight pre-trade checks of the kind SEC Rule 15c3-5 requires (kill switch, size, collar, notional, position, credit, duplicate, rate), measured alone | **21 cycles, 5.2 ns per order** on 1.94 million real orders (17 cycles synthetic); 115 instructions at an IPC of 5.5 | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
+| Same checks inside the trading path, per feed message | +0.5% (real, wall power) to +3.3% (synthetic) cycles per message | same, and [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
+| Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every gap class, so neither bursts nor idle wake-ups explain it (cause under test: H28 to H30) | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
 
 <p align="center">
   <img src="docs/figures/t2t-stages.svg" alt="Grouped bar chart of CPU cycles per message for the stages ring, decode, book, direct and full, on a synthetic feed and on real NASDAQ BX data." width="100%">
@@ -130,8 +133,10 @@ reader's light or dark theme.
 - [x] Pre-trade risk checks (kill switch, size, collar, notional, position, credit, duplicate, rate) as a measured stage
 - [x] Open-loop two-core pipeline driven by a constant rate or by the real ITCH timestamps; per-message latency taken from the schedule, so no coordinated omission
 - [x] Pipeline and pre-trade check results on the M4 (preliminary, battery power)
-- [ ] Code-placement control (H17): first pass with three alignments was inconclusive (too few PMU epochs for the decision rule); retest with 10
-- [ ] Isolated per-order cost of the checks (H21b), and burst versus idle-gap decomposition of the real-pacing tail (H26, H27)
+- [x] Code-placement control (H17): the `ldar` versus `ldapr` gap changes sign with code alignment, so it is placement, not ordering
+- [x] Isolated per-order cost of the checks (H21b); burst and idle-gap decomposition of the real-pacing tail (H26, H27)
+- [ ] Cause of the real-pacing tail: real data versus offered rate versus arrival structure (H28 to H30)
+- [ ] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
 - [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs
@@ -145,7 +150,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 34 tests, including hostile input
+cargo test --release -- --test-threads=1      # 36 tests, including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 
@@ -159,6 +164,7 @@ scripts/fetch_itch_sample.sh 20190730         # public NASDAQ BX sample day into
 ./target/release/titan-t2t file=data/20190730.BX_ITCH_50 limit=20000000 epochs=5
 sudo ./target/release/titan-t2t stages=full,risk limits=open epochs=5 pmu   # whole-path cost of the checks
 sudo ./target/release/titan-t2t stages=checks,replay limits=open epochs=5 pmu   # the checks alone, per order
+sudo ./target/release/titan-t2t stages=replay,ouch,fix epochs=5 pmu             # FIX vs OUCH encoding, per order
 
 ./target/release/titan-pipeline rates=1000000,10000000 waits=spin,isb,wfe epochs=5
 ./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1 gaps   # latency by arrival gap

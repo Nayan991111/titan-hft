@@ -1,0 +1,106 @@
+# Summaries of the second 2026-11-12 measurement run (statistics only; raw
+# epoch lines stay on the measurement machine; no NASDAQ data is reproduced).
+#
+# Code:      commit d4e2272, pushed at 10:38:31 IST, before the first run
+# Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
+# Toolchain: rustc 1.92.0, release profile, target-cpu=native
+# Power:     wall power (70 W adapter, battery charging at 76%), Low Power
+#            Mode off, Docker not running, no thermal or performance warning
+#            recorded at any check. Operator report: only VS Code and one
+#            browser window open; background audio playback was stopped
+#            during the session (its timing relative to the run is not
+#            recorded).
+# Epochs:    5 (t2t, pipeline), 10 (H17 PMU) inside one process.
+#            PRELIMINARY: the final protocol is at least 30 independent
+#            launches on wall power.
+# Pipeline:  latency = completion minus scheduled arrival, counter step
+#            41.67 ns. Gap classes: scheduled gap to the previous message;
+#            the 10 to 100 us class was not recorded in this run.
+# Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30 (see 2026-11-11_m4.txt).
+== H21b: the eight checks alone, per order (replay = loop floor), and the whole path again, wall power, PMU  [10:38:37]
+t2t_orders feed=synthetic_default orders=25965 per_message=0.00519
+t2t_orders feed=20190730_BX_ITCH_50 orders=1936537 per_message=0.09683
+stage=replay feed=synthetic_default                            n=5        0.94 [    0.92,     1.01] msg_cycles=4.31 msg_instructions=13 msg_l1d_miss=0.197 msg_br_mispred=0.0009 ipc=3.02 core_ghz=4.68 batch_p99_ns=0.956 intent_rate=1 allocations=0
+stage=replay feed=20190730_BX_ITCH_50                          n=5        1.05 [    1.05,     1.06] msg_cycles=4.47 msg_instructions=13 msg_l1d_miss=0.196 msg_br_mispred=0.0003 ipc=2.91 core_ghz=4.26 batch_p99_ns=1.11 intent_rate=1 allocations=0
+stage=checks feed=synthetic_default                            n=5        3.80 [    3.46,     4.26] msg_cycles=17 msg_instructions=117 msg_l1d_miss=0.588 msg_br_mispred=0.0493 ipc=6.85 core_ghz=4.48 batch_p99_ns=4.17 intent_rate=1 allocations=0
+stage=checks feed=20190730_BX_ITCH_50                          n=5        5.15 [    5.02,     5.23] msg_cycles=21.1 msg_instructions=115 msg_l1d_miss=0.955 msg_br_mispred=0.183 ipc=5.48 core_ghz=4.09 batch_p99_ns=5.45 intent_rate=1 allocations=0
+stage=full feed=20190730_BX_ITCH_50                            n=5       31.69 [   31.29,    31.79] msg_cycles=135 msg_instructions=188 msg_l1d_miss=7.22 msg_br_mispred=2.74 ipc=1.39 core_ghz=4.26 batch_p99_ns=37.8 intent_rate=0.0968 allocations=0
+stage=risk feed=20190730_BX_ITCH_50                            n=5       31.95 [   31.71,    32.17] msg_cycles=136 msg_instructions=199 msg_l1d_miss=7.79 msg_br_mispred=2.76 ipc=1.47 core_ghz=4.23 batch_p99_ns=38.2 intent_rate=0.0968 allocations=0
+stage=full feed=synthetic_default                              n=5       43.95 [   43.06,    44.52] msg_cycles=193 msg_instructions=236 msg_l1d_miss=16.2 msg_br_mispred=1.42 ipc=1.22 core_ghz=4.41 batch_p99_ns=50.1 intent_rate=0.00519 allocations=0
+stage=risk feed=synthetic_default                              n=5       45.35 [   44.26,    46.39] msg_cycles=200 msg_instructions=241 msg_l1d_miss=16.5 msg_br_mispred=1.42 ipc=1.21 core_ghz=4.42 batch_p99_ns=54 intent_rate=0.00519 allocations=0
+t2t risk vs full, pre-trade checks (20190730_BX_ITCH_50)     A=    31.95 B=    31.69 A/B= 1.008 nA=5 nB=5 U=24.0 p=0.0159 (exact) cliffs_delta=+0.92
+t2t risk vs full, pre-trade checks (20190730_BX_ITCH_50) [msg_cycles] A=   135.71 B=   135.05 A/B= 1.005 nA=5 nB=5 U=21.0 p=0.0952 (exact) cliffs_delta=+0.68
+t2t checks vs replay, checks alone per order (20190730_BX_ITCH_50) A=     5.15 B=     1.05 A/B= 4.897 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t checks vs replay, checks alone per order (20190730_BX_ITCH_50) [msg_cycles] A=    21.07 B=     4.47 A/B= 4.714 nA=5 nB=5 U=25.0 p=0.0088 (normal) cliffs_delta=+1.00
+t2t risk vs full, pre-trade checks (synthetic_default)       A=    45.35 B=    43.95 A/B= 1.032 nA=5 nB=5 U=24.0 p=0.0159 (exact) cliffs_delta=+0.92
+t2t risk vs full, pre-trade checks (synthetic_default) [msg_cycles] A=   199.50 B=   193.29 A/B= 1.032 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t checks vs replay, checks alone per order (synthetic_default) A=     3.80 B=     0.94 A/B= 4.067 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t checks vs replay, checks alone per order (synthetic_default) [msg_cycles] A=    17.03 B=     4.31 A/B= 3.951 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+
+== H17 retest: three layouts, 10 PMU epochs  [10:38:56]
+-- layout 0 census
+titan_census_pop_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapr=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_pop_seqcst: add=2 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_push_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapur=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+titan_census_push_seqcst: add=3 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+-- layout 6 census
+titan_census_pop_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapr=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_pop_seqcst: add=2 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_push_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapur=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+titan_census_push_seqcst: add=3 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+-- layout 7 census
+titan_census_pop_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapr=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_pop_seqcst: add=2 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_push_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapur=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+titan_census_push_seqcst: add=3 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+layout cached  seqcst_med  acqrel_med  ratio   p        (test)  cliffs  seqcst CI          acqrel CI           epochs seqcst | acqrel
+0      1            8.29        8.18  1.013   0.6775 (normal) -0.11  [7.81, 8.57]  [7.93, 8.51]  7.8 7.8 8.4 8.5 8.2 8.6 8.6 7.8 7.8 8.7 | 8.8 8.6 8.2 8.3 8.1 7.9 8.5 8.2 7.9 7.9
+0      0          221.66      219.87  1.008   0.3256 (normal) +0.26  [214.67, 222.62]  [218.88, 221.62]  214.7 214.0 223.5 223.7 221.7 221.7 221.6 213.7 221.7 221.6 | 218.9 219.4 218.5 219.9 223.5 212.5 223.4 219.9 219.8 220.3
+6      1            8.32        8.52  0.977   0.6497 (normal) -0.12  [8.29, 8.70]  [8.35, 8.53]  8.7 8.3 8.3 8.3 8.3 8.7 8.5 8.3 8.7 8.3 | 8.5 8.6 8.2 8.5 8.5 8.5 8.5 8.5 8.2 8.5
+6      0          196.89      223.37  0.881   0.0001 (exact) -0.94  [172.01, 207.19]  [220.45, 223.52]  169.2 212.2 202.2 191.6 204.6 172.5 174.9 221.6 165.4 203.7 | 217.6 223.6 219.1 223.3 223.5 221.3 221.8 223.6 223.5 223.5
+7      1            8.18        8.21  0.997   0.9118 (exact) +0.04  [8.04, 8.56]  [7.99, 8.45]  8.8 8.1 8.1 8.0 8.2 8.3 7.9 8.6 8.9 8.2 | 10.7 8.3 8.2 8.3 8.0 8.0 8.0 8.6 8.0 8.4
+7      0          173.85      218.19  0.797   0.0005 (exact) -0.86  [165.78, 205.60]  [215.57, 223.57]  165.8 162.3 174.5 165.8 213.8 176.2 222.3 165.6 173.2 205.6 | 215.5 223.6 215.6 214.7 215.6 219.7 216.7 219.9 223.7 223.6
+
+== H26, H27: real BX open by arrival gap, 3 waits x 5 epochs  [10:40:57]
+pl_config feed=20190730_BX_ITCH_50 messages=28734686 window=351469..550276 window_messages=198807 instruments=8850 peak_live_orders=67283 order_table_slots=262144 ring=4096 path=full epochs=5 feed_locked=true counter_hz=1000000000 window_feed_seconds=30.000 ts_backwards=0
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50       n=5     2162.00 [ 2119.00,  2544.00] p50_ns=100 p999_ns=4.42e+03 p9999_ns=1.1e+04 max_ns=1.98e+04 achieved_mps=0.007 saturated=0 feed_late_over_1us=221 invol_switches=157 allocations=0
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50      n=5     2165.00 [ 2104.00,  2504.00] p50_ns=110 p999_ns=4.29e+03 p9999_ns=1.27e+04 max_ns=2.55e+04 achieved_mps=0.007 saturated=0 feed_late_over_1us=200 invol_switches=162 allocations=0
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50       n=5     2189.00 [ 2093.00,  2607.00] p50_ns=101 p999_ns=4.6e+03 p9999_ns=1.32e+04 max_ns=6.55e+04 achieved_mps=0.007 saturated=0 feed_late_over_1us=187 invol_switches=681 allocations=0
+## pl_gap: p50_ns, median over epochs [bootstrap 95% CI]
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50 gap=gt100us n=5       98.00 [   98.00,   108.00] messages=6.48e+04 p90_ns=1.82e+03 p99_ns=2.6e+03 p999_ns=4.39e+03 max_ns=1.64e+04 saturated=0
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50 gap=gt100us n=5      100.00 [   98.00,   105.00] messages=6.48e+04 p90_ns=1.83e+03 p99_ns=2.62e+03 p999_ns=4.69e+03 max_ns=2.78e+04 saturated=0
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50 gap=1us_10us n=5      107.00 [  106.00,   113.00] messages=4.22e+04 p90_ns=1.27e+03 p99_ns=1.98e+03 p999_ns=4.5e+03 max_ns=1.89e+04 saturated=0
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50 gap=1us_10us n=5      107.00 [  106.00,   113.00] messages=4.22e+04 p90_ns=1.21e+03 p99_ns=1.93e+03 p999_ns=4.88e+03 max_ns=1.49e+04 saturated=0
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50 gap=100ns_1us n=5      110.00 [  108.00,   117.00] messages=3.22e+03 p90_ns=1.57e+03 p99_ns=2.84e+03 p999_ns=6.01e+03 max_ns=1.1e+04 saturated=0
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50 gap=100ns_1us n=5      110.00 [  109.00,   117.00] messages=3.22e+03 p90_ns=1.51e+03 p99_ns=2.83e+03 p999_ns=5.02e+03 max_ns=1.31e+04 saturated=0
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50 gap=gt100us n=5      112.00 [  110.00,   115.00] messages=6.48e+04 p90_ns=1.85e+03 p99_ns=2.57e+03 p999_ns=4.63e+03 max_ns=2.55e+04 saturated=0
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50 gap=100ns_1us n=5      115.00 [  113.00,   118.00] messages=3.22e+03 p90_ns=1.6e+03 p99_ns=2.86e+03 p999_ns=5.07e+03 max_ns=1.02e+04 saturated=0
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50 gap=1us_10us n=5      115.00 [  112.00,   116.00] messages=4.22e+04 p90_ns=1.29e+03 p99_ns=1.98e+03 p999_ns=4.04e+03 max_ns=1.59e+04 saturated=0
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50 gap=lt100ns n=5      165.00 [  155.00,   169.00] messages=193 p90_ns=1.61e+03 p99_ns=3.53e+03 p999_ns=3.61e+03 max_ns=3.61e+03 saturated=0
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50 gap=lt100ns n=5      167.00 [  160.00,   173.00] messages=193 p90_ns=1.5e+03 p99_ns=3.57e+03 p999_ns=4.56e+03 max_ns=4.56e+03 saturated=0
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50 gap=lt100ns n=5      177.00 [  173.00,   186.00] messages=193 p90_ns=1.46e+03 p99_ns=3.28e+03 p999_ns=3.97e+03 max_ns=3.97e+03 saturated=0
+## contrasts: A vs B on the primary metric (lower is better)
+pl_gap lt100ns vs 1us_10us, speed_1 isb (20190730_BX_ITCH_50)   A=   167.00 B=   107.00 A/B= 1.561 nA=5 nB=5 U=25.0 p=0.0086 (normal) cliffs_delta=+1.00
+pl_gap lt100ns vs 1us_10us, speed_1 isb (20190730_BX_ITCH_50) [p99_ns] A=  3572.00 B=  1980.00 A/B= 1.804 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl_gap gt100us vs 1us_10us, speed_1 isb (20190730_BX_ITCH_50)   A=   100.00 B=   107.00 A/B= 0.935 nA=5 nB=5 U=0.0 p=0.0088 (normal) cliffs_delta=-1.00
+pl_gap gt100us vs 1us_10us, speed_1 isb (20190730_BX_ITCH_50) [p99_ns] A=  2617.00 B=  1980.00 A/B= 1.322 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl_gap lt100ns vs 1us_10us, speed_1 spin (20190730_BX_ITCH_50)  A=   177.00 B=   115.00 A/B= 1.539 nA=5 nB=5 U=25.0 p=0.0084 (normal) cliffs_delta=+1.00
+pl_gap lt100ns vs 1us_10us, speed_1 spin (20190730_BX_ITCH_50) [p99_ns] A=  3279.00 B=  1976.00 A/B= 1.659 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl_gap gt100us vs 1us_10us, speed_1 spin (20190730_BX_ITCH_50)  A=   112.00 B=   115.00 A/B= 0.974 nA=5 nB=5 U=6.0 p=0.1626 (normal) cliffs_delta=-0.52
+pl_gap gt100us vs 1us_10us, speed_1 spin (20190730_BX_ITCH_50) [p99_ns] A=  2569.00 B=  1976.00 A/B= 1.300 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl_gap lt100ns vs 1us_10us, speed_1 wfe (20190730_BX_ITCH_50)   A=   165.00 B=   107.00 A/B= 1.542 nA=5 nB=5 U=25.0 p=0.0086 (normal) cliffs_delta=+1.00
+pl_gap lt100ns vs 1us_10us, speed_1 wfe (20190730_BX_ITCH_50) [p99_ns] A=  3529.00 B=  1932.00 A/B= 1.827 nA=5 nB=5 U=25.0 p=0.0088 (normal) cliffs_delta=+1.00
+pl_gap gt100us vs 1us_10us, speed_1 wfe (20190730_BX_ITCH_50)   A=    98.00 B=   107.00 A/B= 0.916 nA=5 nB=5 U=3.0 p=0.0439 (normal) cliffs_delta=-0.76
+pl_gap gt100us vs 1us_10us, speed_1 wfe (20190730_BX_ITCH_50) [p99_ns] A=  2601.00 B=  1932.00 A/B= 1.346 nA=5 nB=5 U=25.0 p=0.0088 (normal) cliffs_delta=+1.00
+pl isb vs spin, speed_1 full (20190730_BX_ITCH_50)          A=  2189.00 B=  2165.00 A/B= 1.011 nA=5 nB=5 U=15.0 p=0.6905 (exact) cliffs_delta=+0.20
+pl isb vs spin, speed_1 full (20190730_BX_ITCH_50) [p50_ns] A=   101.00 B=   110.00 A/B= 0.918 nA=5 nB=5 U=0.0 p=0.0084 (normal) cliffs_delta=-1.00
+pl wfe vs spin, speed_1 full (20190730_BX_ITCH_50)          A=  2162.00 B=  2165.00 A/B= 0.999 nA=5 nB=5 U=15.0 p=0.6905 (exact) cliffs_delta=+0.20
+pl wfe vs spin, speed_1 full (20190730_BX_ITCH_50) [p50_ns] A=   100.00 B=   110.00 A/B= 0.909 nA=5 nB=5 U=0.0 p=0.0078 (normal) cliffs_delta=-1.00
+## gap classes: epochs where class A median > 1us_10us median
+pl_gap speed_1 isb full (20190730_BX_ITCH_50) lt100ns: 5 of 5 epochs
+pl_gap speed_1 isb full (20190730_BX_ITCH_50) gt100us: 0 of 5 epochs
+pl_gap speed_1 spin full (20190730_BX_ITCH_50) lt100ns: 5 of 5 epochs
+pl_gap speed_1 spin full (20190730_BX_ITCH_50) gt100us: 0 of 5 epochs
+pl_gap speed_1 wfe full (20190730_BX_ITCH_50) lt100ns: 5 of 5 epochs
+pl_gap speed_1 wfe full (20190730_BX_ITCH_50) gt100us: 0 of 5 epochs
