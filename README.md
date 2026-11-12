@@ -55,7 +55,9 @@ run.
 | Same pipeline paced by the real ITCH timestamps of the BX open (09:30:00 plus 30 s) | median 104 to 114 ns, but p99 2.4 to 2.7 us: about 7x the constant-rate p99 (exploratory, 3 epochs) | same |
 | Eight pre-trade checks of the kind SEC Rule 15c3-5 requires (kill switch, size, collar, notional, position, credit, duplicate, rate), measured alone | **21 cycles, 5.2 ns per order** on 1.94 million real orders (17 cycles synthetic); 115 instructions at an IPC of 5.5 | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
 | Same checks inside the trading path, per feed message | +0.5% (real, wall power) to +3.3% (synthetic) cycles per message | same, and [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
-| Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every gap class, so neither bursts nor idle wake-ups explain it (cause under test: H28 to H30) | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
+| Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every gap class, so neither bursts nor idle wake-ups explain it | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
+| What does set it: the offered rate, not the data and not the arrival pattern | the same 100,000 real messages: p99 183 to 258 ns at a constant 1M msg/s, 2.2 to 3.0 us at a constant 6,627 msg/s (their mean rate), 1.9 us at their real timestamps; synthetic data at 6,627 msg/s: 1.9 to 2.2 us. A two-core pipeline is about 10x slower at the p99 when it is mostly idle | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
+| Order encoding at the gateway, per order | OUCH 4.2 Enter Order 28.7 cycles (7.1 ns); FIX 4.2 NewOrderSingle 125 cycles (30.8 ns), 4.3x, on 1.94 million real orders | same |
 
 <p align="center">
   <img src="docs/figures/t2t-stages.svg" alt="Grouped bar chart of CPU cycles per message for the stages ring, decode, book, direct and full, on a synthetic feed and on real NASDAQ BX data." width="100%">
@@ -135,8 +137,9 @@ reader's light or dark theme.
 - [x] Pipeline and pre-trade check results on the M4 (preliminary, battery power)
 - [x] Code-placement control (H17): the `ldar` versus `ldapr` gap changes sign with code alignment, so it is placement, not ordering
 - [x] Isolated per-order cost of the checks (H21b); burst and idle-gap decomposition of the real-pacing tail (H26, H27)
-- [ ] Cause of the real-pacing tail: real data versus offered rate versus arrival structure (H28 to H30)
-- [ ] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
+- [x] Cause of the real-pacing tail: real data versus offered rate versus arrival structure (H28 to H30): the rate
+- [x] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
+- [ ] Mechanism of the low-rate tail: cache decay versus hand-off and wake-up (H32, H33)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
 - [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs
@@ -168,6 +171,7 @@ sudo ./target/release/titan-t2t stages=replay,ouch,fix epochs=5 pmu             
 
 ./target/release/titan-pipeline rates=1000000,10000000 waits=spin,isb,wfe epochs=5
 ./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1 gaps   # latency by arrival gap
+sudo ./target/release/titan-pipeline rates=1000000,6627 limit=100000 waits=wfe,spin path=none pmu   # waiting alone, with counters
 
 python3 scripts/analyze.py output.txt         # statistics over epochs
 python3 scripts/figures.py                    # redraw docs/figures from results/
