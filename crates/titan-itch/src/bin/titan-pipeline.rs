@@ -25,8 +25,8 @@
 //!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E] [gaps]
 //!
 //! `gaps` also keeps one histogram per class of scheduled gap to the previous
-//! message (under 100 ns, 100 ns to 1 us, 1 to 10 us, over 100 us; 10 to
-//! 100 us and the first message go to the totals only) and prints a `pl_gap`
+//! message (under 100 ns, 100 ns to 1 us, 1 to 10 us, 10 to 100 us, over
+//! 100 us; the first message goes to the totals only) and prints a `pl_gap`
 //! line per class: are bursts or idle gaps behind the tail?
 //!
 //! `from` and `span` select a window of feed time (seconds since midnight);
@@ -57,8 +57,8 @@ use titan_spsc::wait::{Spin, SpinHint, Wait, Wfe};
 static A: CountingAlloc = CountingAlloc;
 
 const STOP: u64 = u64::MAX;
-const GAP_NAMES: [&str; 4] = ["lt100ns", "100ns_1us", "1us_10us", "gt100us"];
-const NO_CLASS: u8 = 4;
+const GAP_NAMES: [&str; 5] = ["lt100ns", "100ns_1us", "1us_10us", "gt100us", "10us_100us"];
+const NO_CLASS: u8 = 5;
 
 /// Gap class of every message under `sched` (counter ticks).
 fn gap_classes(sched: &[u64], freq: u64) -> Vec<u8> {
@@ -76,7 +76,7 @@ fn gap_classes(sched: &[u64], freq: u64) -> Vec<u8> {
         } else if g > d {
             3
         } else {
-            NO_CLASS
+            4
         };
     }
     out
