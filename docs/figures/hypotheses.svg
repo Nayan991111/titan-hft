@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="820" height="386" viewBox="0 0 820 386" role="img" aria-labelledby="title desc">
 <title id="title">Pre-registered hypotheses</title>
-<desc id="desc">H1 supported; H1b refuted; H2 supported; H3 not supported; H3b refuted; H4 refuted; H5 supported; H6 refuted; H7 refuted; H8 refuted; H9 refuted; H10 supported; H11 supported; H12 supported; H13 supported; H14 inconclusive; H15 supported; H16 supported; H17 supported; H18 supported; H19 supported; H20 supported; H21 not supported; H22 supported; H23 supported; H24 supported; H25 refuted; H21b supported; H26 partly supported; H27 refuted; H28 supported; H29 supported; H30 not supported; H31 supported; H32 refuted; H33 refuted; H34 supported; H35 refuted; H36 supported</desc>
+<desc id="desc">H1 supported; H1b refuted; H2 supported; H3 not supported; H3b refuted; H4 refuted; H5 supported; H6 refuted; H7 refuted; H8 refuted; H9 refuted; H10 supported; H11 supported; H12 supported; H13 supported; H14 inconclusive; H15 supported; H16 supported; H17 partly supported; H18 supported; H19 supported; H20 supported; H21 not supported; H22 supported; H23 supported; H24 supported; H25 refuted; H21b supported; H26 partly supported; H27 refuted; H28 supported; H29 supported; H30 invalid, rerun; H31 supported; H32 refuted; H33 refuted; H34 supported; H35 refuted; H36 supported</desc>
 <style>
   .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
   .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
@@ -34,15 +34,15 @@
 <rect class="bg" x="0.5" y="0.5" width="819" height="385" rx="10"/>
 <rect class="frame" x="0.5" y="0.5" width="819" height="385" rx="10"/>
 <text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Every prediction is committed before the run that tests it</text>
-<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">39 hypotheses so far: 22 supported, 15 refuted or not supported, 2 mixed, 0 pending; failures stay in the log.</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">39 hypotheses so far: 21 supported, 14 refuted or not supported, 4 mixed or invalid, 0 pending; failures stay in the log.</text>
 <rect class="good" x="28" y="76" width="12" height="12" rx="2"/>
 <text x="46.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">supported</text>
 <rect class="bad" x="133.0" y="76" width="12" height="12" rx="2"/>
 <text x="151.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">refuted or not supported</text>
 <rect class="warn" x="343.0" y="76" width="12" height="12" rx="2"/>
-<text x="361.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">inconclusive or partly</text>
-<rect class="none" x="539.0" y="76" width="12" height="12" rx="2"/>
-<text x="557.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">pending</text>
+<text x="361.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">partly, inconclusive, invalid</text>
+<rect class="none" x="588.0" y="76" width="12" height="12" rx="2"/>
+<text x="606.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">pending</text>
 <rect class="chip" x="28" y="104" width="64" height="54" rx="7"/>
 <rect class="good" x="28" y="104" width="64" height="5" rx="2"/>
 <text x="60.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H1</text>
@@ -116,9 +116,9 @@
 <text x="480.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H16</text>
 <text x="480.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
 <rect class="chip" x="518" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="518" y="166" width="64" height="5" rx="2"/>
+<rect class="warn" x="518" y="166" width="64" height="5" rx="2"/>
 <text x="550.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H17</text>
-<text x="550.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<text x="550.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="400" text-anchor="middle">partly supported</text>
 <rect class="chip" x="588" y="166" width="64" height="54" rx="7"/>
 <rect class="good" x="588" y="166" width="64" height="5" rx="2"/>
 <text x="620.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H18</text>
@@ -172,9 +172,9 @@
 <text x="690.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H29</text>
 <text x="690.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
 <rect class="chip" x="728" y="228" width="64" height="54" rx="7"/>
-<rect class="bad" x="728" y="228" width="64" height="5" rx="2"/>
+<rect class="warn" x="728" y="228" width="64" height="5" rx="2"/>
 <text x="760.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30</text>
-<text x="760.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="400" text-anchor="middle">not supported</text>
+<text x="760.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="400" text-anchor="middle">invalid, rerun</text>
 <rect class="chip" x="28" y="290" width="64" height="54" rx="7"/>
 <rect class="good" x="28" y="290" width="64" height="5" rx="2"/>
 <text x="60.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H31</text>

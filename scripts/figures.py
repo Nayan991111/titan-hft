@@ -289,6 +289,8 @@ def status_class(st):
         return "warn", "inconclusive"
     if s.startswith("partly"):
         return "warn", "partly supported"
+    if s.startswith("invalid"):
+        return "warn", "invalid, rerun"
     return "none", "pending"
 
 
@@ -403,10 +405,10 @@ def fig_hypotheses():
     H = y0 + nrows * (ch + gy) + 34
     b = [text(28, 38, "Every prediction is committed before the run that tests it", size=17, weight=600),
          text(28, 60, f"{len(rows)} hypotheses so far: {counts.get('good', 0)} supported, "
-              f"{counts.get('bad', 0)} refuted or not supported, {counts.get('warn', 0)} mixed, "
+              f"{counts.get('bad', 0)} refuted or not supported, {counts.get('warn', 0)} mixed or invalid, "
               f"{counts.get('none', 0)} pending; failures stay in the log.", "t2", 13)]
     lx = 28
-    for cls, label in (("good", "supported"), ("bad", "refuted or not supported"), ("warn", "inconclusive or partly"),
+    for cls, label in (("good", "supported"), ("bad", "refuted or not supported"), ("warn", "partly, inconclusive, invalid"),
                        ("none", "pending")):
         b.append(f'<rect class="{cls}" x="{lx}" y="76" width="12" height="12" rx="2"/>')
         b.append(text(lx + 18, 86.5, label, "t2", 12.5))
@@ -488,7 +490,7 @@ def fig_pipeline():
     real = rows[series[2][0]]
     syn = rows[series[0][0]]
     b.append(text(28, H - 40, f"At the real open the p99 is {real['p99'] / syn['p99']:.1f}x the constant-rate p99, "
-                  f"while the p99.99 is {real['p99.99'] / syn['p99.99']:.1f}x: bursts hurt the p99 to p99.9 band.",
+                  f"while the p99.99 is {real['p99.99'] / syn['p99.99']:.1f}x; the penalty sits in the p99 to p99.9 band.",
                   "t2", 12.5))
     b.append(text(W - 28, H - 14, "Source: results/2026-11-12_m4.txt (commit b20bbf1, battery power, preliminary)",
                   "t3", 11, "end"))
