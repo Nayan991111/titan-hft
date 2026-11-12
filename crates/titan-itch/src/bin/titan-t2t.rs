@@ -30,6 +30,9 @@
 //!   full    pop, decode, book, signal, push     (the trading path)
 //!   direct  as full, descriptors read from an array and intents written to
 //!           an array instead of the rings       (full minus ring operations)
+//!   risk    as full, every intent passes eight pre-trade checks of the kind
+//!           SEC Rule 15c3-5 requires (kill switch, size, price collar,
+//!           notional, position, credit, duplicate, rate) before the push
 //!
 //! Timing: the generic counter around each batch, and with `pmu` the core
 //! cycle, instruction, L1D load miss and branch mispredict counters around
@@ -39,15 +42,21 @@
 //! Batch percentiles describe the spread of batch means, not per-message tail
 //! latency.
 //!
-//!   titan-t2t [messages=N] [instruments=M] [epochs=E] [batch=K] [spread=S] [stages=a,b] [pmu]
-//!   titan-t2t file=PATH [limit=N] [epochs=E] [batch=K] [spread=S] [stages=a,b] [pmu]
+//!   titan-t2t [messages=N] [instruments=M] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
+//!   titan-t2t file=PATH [limit=N] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
+//!
+//! `limits=open` sets risk limits that no order can breach, so every check
+//! runs to the end and every order is sent: `risk` minus `full` is then the
+//! cost of the checks alone.
 
 use std::hint::black_box;
 use titan_itch::book::L3Book;
 use titan_itch::decode::{decode, Msg, Reader};
 use titan_itch::gen::{feed, Mix};
 use titan_itch::reference::RefBook;
-use titan_itch::{Book, Side, Top};
+use std::sync::atomic::AtomicBool;
+use titan_itch::path::{locate_of, signal, timestamp, Intent, Limits, Risk, REJECT_NAMES};
+use titan_itch::{Book, Side};
 use titan_platform::alloc_count::{thread_allocations, CountingAlloc};
 use titan_platform::clock;
 use titan_platform::kperf::{events, Kperf, Session};
@@ -60,16 +69,6 @@ use titan_spsc::ring::{ring, Consumer, Producer};
 #[global_allocator]
 static A: CountingAlloc = CountingAlloc;
 
-/// Order intent sent to the gateway.
-#[derive(Clone, Copy, Debug, Default)]
-#[repr(C)]
-struct Intent {
-    price: u32,
-    shares: u32,
-    locate: u16,
-    buy: bool,
-}
-
 type Ingress = (Producer<u64, AcqRel, Pad128, true>, Consumer<u64, AcqRel, Pad128, true>);
 type Egress = (Producer<Intent, AcqRel, Pad128, true>, Consumer<Intent, AcqRel, Pad128, true>);
 
@@ -78,36 +77,9 @@ const DECODE: u8 = 1;
 const BOOK: u8 = 2;
 const FULL: u8 = 3;
 const DIRECT: u8 = 4;
-const STAGES: [(u8, &str); 5] = [(RING, "ring"), (DECODE, "decode"), (BOOK, "book"), (FULL, "full"), (DIRECT, "direct")];
-
-#[inline(always)]
-fn locate_of(m: &Msg) -> u16 {
-    match *m {
-        Msg::Add { locate, .. }
-        | Msg::Executed { locate, .. }
-        | Msg::ExecutedWithPrice { locate, .. }
-        | Msg::Cancel { locate, .. }
-        | Msg::Delete { locate, .. }
-        | Msg::Replace { locate, .. } => locate,
-        Msg::Other { .. } => 0,
-    }
-}
-
-/// Update the chained state from the book; return an intent if the signal fires.
-#[inline(always)]
-fn signal(state: &mut u64, locate: u16, bid: Top, ask: Top, max_spread: u32) -> Option<Intent> {
-    let (Some((bp, bs)), Some((ap, asz))) = (bid, ask) else {
-        *state = state.rotate_left(3) ^ locate as u64;
-        return None;
-    };
-    *state = state.rotate_left(5) ^ bp as u64 ^ ((ap as u64) << 20) ^ bs ^ (asz << 7);
-    if ap > bp && ap - bp <= max_spread && (bs > 2 * asz || asz > 2 * bs) {
-        let buy = bs > asz;
-        Some(Intent { price: if buy { ap } else { bp }, shares: 100 + (*state & 0xff) as u32, locate, buy })
-    } else {
-        None
-    }
-}
+const RISK: u8 = 5;
+const STAGES: [(u8, &str); 6] =
+    [(RING, "ring"), (DECODE, "decode"), (BOOK, "book"), (FULL, "full"), (DIRECT, "direct"), (RISK, "risk")];
 
 #[inline(always)]
 fn body(feed: &[u8], d: u64) -> &[u8] {
@@ -125,6 +97,7 @@ fn batch<const S: u8>(
     eg: &mut Producer<Intent, AcqRel, Pad128, true>,
     out: &mut [Intent],
     book: &mut L3Book,
+    risk: &mut Risk,
     state: &mut u64,
     max_spread: u32,
 ) -> u64 {
@@ -137,7 +110,8 @@ fn batch<const S: u8>(
             emitted += 1;
             continue;
         }
-        let Ok(m) = decode(body(feed, d)) else {
+        let b = body(feed, d);
+        let Ok(m) = decode(b) else {
             *state = state.rotate_left(1);
             continue;
         };
@@ -155,7 +129,19 @@ fn batch<const S: u8>(
             *state = state.rotate_left(1);
             continue;
         }
-        if let Some(it) = signal(state, loc, book.best(loc, Side::Buy), book.best(loc, Side::Sell), max_spread) {
+        let bid = book.best(loc, Side::Buy);
+        let ask = book.best(loc, Side::Sell);
+        if let Some(it) = signal(state, loc, bid, ask, max_spread) {
+            if S == RISK {
+                // The signal only fires with both sides present.
+                let mid = match (bid, ask) {
+                    (Some((bp, _)), Some((ap, _))) => (bp as u64 + ap as u64) >> 1,
+                    _ => 0,
+                };
+                if !risk.check(&it, mid, timestamp(b)) {
+                    continue;
+                }
+            }
             if S == DIRECT {
                 out[i] = it;
             } else {
@@ -177,6 +163,8 @@ struct Stats {
     batch_ns: Vec<f64>,
     batch_cycles: Vec<f64>,
     checksum: u64,
+    accepted: u64,
+    rejected: [u64; 8],
 }
 
 struct Ctx<'a> {
@@ -190,8 +178,18 @@ struct Ctx<'a> {
 }
 
 /// One full pass of the feed through stage `S`.
-fn pass<const S: u8>(c: &Ctx, ing: &mut Ingress, eg: &mut Egress, out: &mut [Intent], book: &mut L3Book, st: &mut Stats) {
+#[allow(clippy::too_many_arguments)]
+fn pass<const S: u8>(
+    c: &Ctx,
+    ing: &mut Ingress,
+    eg: &mut Egress,
+    out: &mut [Intent],
+    book: &mut L3Book,
+    risk: &mut Risk,
+    st: &mut Stats,
+) {
     book.clear();
+    risk.reset();
     let mut state = 0x9E37_79B9_7F4A_7C15u64;
     for chunk in c.descs.chunks(c.k) {
         if S != DIRECT {
@@ -202,7 +200,7 @@ fn pass<const S: u8>(c: &Ctx, ing: &mut Ingress, eg: &mut Egress, out: &mut [Int
         let a0 = thread_allocations();
         let p0 = c.pmu.map(|s| s.read());
         let t0 = clock::counter();
-        let n = batch::<S>(c.feed, chunk, &mut ing.1, &mut eg.0, out, book, &mut state, c.max_spread);
+        let n = batch::<S>(c.feed, chunk, &mut ing.1, &mut eg.0, out, book, risk, &mut state, c.max_spread);
         let t1 = clock::counter();
         let p1 = c.pmu.map(|s| s.read());
         st.allocations += thread_allocations() - a0;
@@ -237,6 +235,10 @@ fn pass<const S: u8>(c: &Ctx, ing: &mut Ingress, eg: &mut Egress, out: &mut [Int
         }
     }
     st.checksum ^= black_box(state);
+    if S == RISK {
+        st.accepted = risk.accepted;
+        st.rejected = risk.rejected;
+    }
 }
 
 fn pct(v: &mut [f64], q: f64) -> f64 {
@@ -248,7 +250,7 @@ fn pct(v: &mut [f64], q: f64) -> f64 {
     v[i]
 }
 
-fn report(feed_name: &str, stage: &str, epoch: usize, st: &mut Stats) {
+fn report(feed_name: &str, stage: &str, epoch: usize, with_risk: bool, st: &mut Stats) {
     let n = st.messages as f64;
     let secs = st.ticks as f64 / clock::counter_frequency() as f64;
     let ns = secs * 1e9 / n;
@@ -266,6 +268,12 @@ fn report(feed_name: &str, stage: &str, epoch: usize, st: &mut Stats) {
         st.allocations,
         st.checksum,
     );
+    if with_risk {
+        line += &format!(" accepted={}", st.accepted);
+        for (name, r) in REJECT_NAMES.iter().zip(st.rejected) {
+            line += &format!(" reject_{name}={r}");
+        }
+    }
     if !st.batch_cycles.is_empty() {
         let per = |x: u64| x as f64 / n;
         line += &format!(
@@ -369,6 +377,7 @@ fn main() {
         log2 += 1;
     }
 
+    let open_limits = kv(&args, "limits") == Some("open");
     let mut floor = [0u64; 4];
     if let Some(s) = pmu.as_ref() {
         let rows = s.read_overhead(201);
@@ -380,10 +389,11 @@ fn main() {
     }
     println!(
         "t2t_config feed={name} messages={} bytes={len} instruments={} peak_live_orders={peak} order_table_slots={} \
-         epochs={epochs} batch={k} spread={max_spread} pmu={} feed_locked={} pmu_read_pair_cycles={} pmu_read_pair_instructions={}",
+         epochs={epochs} batch={k} spread={max_spread} limits={} pmu={} feed_locked={} pmu_read_pair_cycles={} pmu_read_pair_instructions={}",
         descs.len(),
         max_locate as usize + 1,
         1usize << log2,
+        if open_limits { "open" } else { "default" },
         pmu.is_some(),
         locked,
         floor[0],
@@ -405,14 +415,23 @@ fn main() {
         batch_ns: Vec::with_capacity(batches),
         batch_cycles: Vec::with_capacity(batches),
         checksum: 0,
+        accepted: 0,
+        rejected: [0; 8],
     };
 
-    let run = |stage: u8, ing: &mut Ingress, eg: &mut Egress, out: &mut [Intent], book: &mut L3Book, st: &mut Stats| match stage {
-        RING => pass::<RING>(&c, ing, eg, out, book, st),
-        DECODE => pass::<DECODE>(&c, ing, eg, out, book, st),
-        BOOK => pass::<BOOK>(&c, ing, eg, out, book, st),
-        FULL => pass::<FULL>(&c, ing, eg, out, book, st),
-        _ => pass::<DIRECT>(&c, ing, eg, out, book, st),
+    let kill = AtomicBool::new(false);
+    let limits = if open_limits { Limits::open() } else { Limits::default() };
+    let mut risk = Risk::new(max_locate as usize + 1, limits, &kill);
+    let mut run = |stage: u8, ing: &mut Ingress, eg: &mut Egress, out: &mut [Intent], book: &mut L3Book, st: &mut Stats| {
+        let r = &mut risk;
+        match stage {
+            RING => pass::<RING>(&c, ing, eg, out, book, r, st),
+            DECODE => pass::<DECODE>(&c, ing, eg, out, book, r, st),
+            BOOK => pass::<BOOK>(&c, ing, eg, out, book, r, st),
+            FULL => pass::<FULL>(&c, ing, eg, out, book, r, st),
+            DIRECT => pass::<DIRECT>(&c, ing, eg, out, book, r, st),
+            _ => pass::<RISK>(&c, ing, eg, out, book, r, st),
+        }
     };
 
     let chosen: Vec<(u8, &str)> = match kv(&args, "stages") {
@@ -434,15 +453,16 @@ fn main() {
             let (s, label) = chosen[(j + epoch) % chosen.len()];
             let mut st = fresh();
             run(s, &mut ing, &mut eg, &mut out, &mut book, &mut st);
-            if s == FULL || s == DIRECT {
-                // full and direct run the same trading path: their intents must agree.
+            if s == FULL || s == DIRECT || (s == RISK && open_limits) {
+                // full, direct, and risk with limits nobody breaches run the
+                // same trading path: their intents must agree.
                 let key = (st.intents, st.checksum);
                 match full_sum {
                     None => full_sum = Some(key),
                     Some(prev) => assert_eq!(prev, key, "full and direct disagree"),
                 }
             }
-            report(&name, label, epoch, &mut st);
+            report(&name, label, epoch, s == RISK, &mut st);
         }
     }
 }
