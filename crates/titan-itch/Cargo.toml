@@ -16,3 +16,7 @@ path = "src/bin/titan-replay.rs"
 [[bin]]
 name = "titan-t2t"
 path = "src/bin/titan-t2t.rs"
+
+[[bin]]
+name = "titan-pipeline"
+path = "src/bin/titan-pipeline.rs"
