@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Summarise titan-pingpong ("pp"), titan-stream ("st"), titan-replay ("rp") and
-titan-t2t ("t2t") output.
+titan-t2t ("t2t") and titan-pipeline ("pl") output.
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -24,13 +24,15 @@ from collections import defaultdict
 from functools import lru_cache
 
 RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
-KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg"}
+KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed"),
+              "pl": ("load", "wait", "path", "feed")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
     "rp": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz", "allocations"),
     "t2t": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz", "batch_p99_ns", "intent_rate", "allocations"),
+    "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
 
@@ -116,7 +118,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t"):
+    for kind in ("pp", "st", "rp", "t2t", "pl"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -170,8 +172,14 @@ def contrasts(groups):
         extra.append(("t2t", f"full vs direct, ring cost ({feed})", ("full", feed), ("direct", feed)))
         extra.append(("t2t", f"book vs full, ablation ({feed})", ("book", feed), ("full", feed)))
         extra.append(("t2t", f"decode vs book ({feed})", ("decode", feed), ("book", feed)))
+        extra.append(("t2t", f"risk vs full, pre-trade checks ({feed})", ("risk", feed), ("full", feed)))
+    for load, path, feed in sorted({(k[1], k[3], k[4]) for k in groups if k[0] == "pl"}):
+        for w in ("isb", "wfe"):
+            extra.append(("pl", f"{w} vs spin, {load} {path} ({feed})", (load, w, path, feed), (load, "spin", path, feed)))
     for kind, name, ka, kb in CONTRASTS + extra:
-        metrics = [METRIC[kind]] + (["msg_cycles"] if kind == "t2t" else [])
+        metrics = [METRIC[kind]] + {"t2t": ["msg_cycles"], "pl": ["p50_ns"]}.get(kind, [])
+        if kind == "pl" and any(r.get("saturated") == "1" for k in (ka, kb) for r in groups.get((kind,) + k, [])):
+            continue  # percentiles of a saturated run grow with run length
         for metric in metrics:
             a = values(groups, (kind,) + ka, metric)
             b = values(groups, (kind,) + kb, metric)
@@ -180,7 +188,7 @@ def contrasts(groups):
             ma, mb = median(a), median(b)
             u, p, how = mann_whitney(a, b)
             d = cliffs_delta(a, b)
-            tag = name if metric == METRIC[kind] else f"{name} [cycles]"
+            tag = name if metric == METRIC[kind] else f"{name} [{metric}]"
             print(f"{kind} {tag:56s} A={ma:9.2f} B={mb:9.2f} A/B={ma / mb:6.3f} nA={len(a)} nB={len(b)} U={u:.1f} p={p:.4f} ({how}) cliffs_delta={d:+.2f}")
 
 
@@ -190,7 +198,7 @@ def main(argv):
         return 1
     groups = load(argv[1:])
     if not groups:
-        print("no pp/st/rp/t2t records found")
+        print("no pp/st/rp/t2t/pl records found")
         return 1
     summary(groups)
     contrasts(groups)
