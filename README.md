@@ -57,6 +57,7 @@ run.
 | Same checks inside the trading path, per feed message | +0.5% (real, wall power) to +3.3% (synthetic) cycles per message | same, and [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
 | Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every gap class, so neither bursts nor idle wake-ups explain it | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
 | What does set it: the offered rate, not the data and not the arrival pattern | the same 100,000 real messages: p99 183 to 258 ns at a constant 1M msg/s, 2.2 to 3.0 us at a constant 6,627 msg/s (their mean rate), 1.9 us at their real timestamps; synthetic data at 6,627 msg/s: 1.9 to 2.2 us. A two-core pipeline is about 10x slower at the p99 when it is mostly idle | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
+| Why idle hurts: waiting alone and the data path alone are both fast | with no trading work the p99 at 6,627 msg/s is 83 to 123 ns; the trading path adds only 1 to 3 L1D misses and no branch mispredicts per message at the low rate, yet its p99 is 10x higher. The cost sits below L1D (mechanism under test: H34 to H36) | [`results/2026-11-12_m4_ac3.txt`](results/2026-11-12_m4_ac3.txt) |
 | Order encoding at the gateway, per order | OUCH 4.2 Enter Order 28.7 cycles (7.1 ns); FIX 4.2 NewOrderSingle 125 cycles (30.8 ns), 4.3x, on 1.94 million real orders | same |
 
 <p align="center">
@@ -139,7 +140,8 @@ reader's light or dark theme.
 - [x] Isolated per-order cost of the checks (H21b); burst and idle-gap decomposition of the real-pacing tail (H26, H27)
 - [x] Cause of the real-pacing tail: real data versus offered rate versus arrival structure (H28 to H30): the rate
 - [x] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
-- [ ] Mechanism of the low-rate tail: cache decay versus hand-off and wake-up (H32, H33)
+- [x] Mechanism of the low-rate tail, first cut: not the hand-off or wake-up (H33), not branch prediction, little L1D (H32)
+- [ ] Service time versus delay to pop, and keep-warm interventions on the book and on memory (H34 to H36)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
 - [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs
@@ -172,6 +174,7 @@ sudo ./target/release/titan-t2t stages=replay,ouch,fix epochs=5 pmu             
 ./target/release/titan-pipeline rates=1000000,10000000 waits=spin,isb,wfe epochs=5
 ./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1 gaps   # latency by arrival gap
 sudo ./target/release/titan-pipeline rates=1000000,6627 limit=100000 waits=wfe,spin path=none pmu   # waiting alone, with counters
+./target/release/titan-pipeline rates=1000000,6627 limit=100000 waits=isb split warm=book          # keep the book warm while idle
 
 python3 scripts/analyze.py output.txt         # statistics over epochs
 python3 scripts/figures.py                    # redraw docs/figures from results/
