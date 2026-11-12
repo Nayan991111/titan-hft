@@ -6,6 +6,7 @@
 
 pub mod alloc_count;
 pub mod clock;
+pub mod hist;
 pub mod kperf;
 pub mod mem;
 pub mod qos;
