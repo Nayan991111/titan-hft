@@ -1,0 +1,118 @@
+# Summaries of the fourth 2026-11-12 measurement run (statistics only; raw
+# epoch lines stay on the measurement machine; no NASDAQ data is reproduced).
+#
+# Code:      commit 373d684, pushed at 11:33:30 IST, before the first run
+# Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
+# Toolchain: rustc 1.92.0, release profile, target-cpu=native
+# Power:     wall power (85%, not charging), Low Power Mode off, Docker not
+#            running, no thermal or performance warning recorded at any
+#            check; only VS Code and one browser window open.
+# Epochs:    5 inside one process. PRELIMINARY.
+# Counters:  consumer thread, whole run, waiting and kernel work included;
+#            compare `full` with `none` at the same wait and rate.
+# Anomaly:   real feed, path=none, epoch 1 (wfe and spin): one stall of about
+#            164 s (p99 163,879,845,888 ns for wfe); the section took about
+#            2.5 min longer than planned, consistent with the machine
+#            sleeping. Kept as recorded; verdicts use medians over epochs.
+# Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30 (see 2026-11-11_m4.txt).
+== H32, H33: synthetic feed, 1M and 6,627 msg/s, trading path vs waiting alone, consumer PMU  [11:33:46]
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_6627 wait=wfe path=none feed=synthetic_default       n=5       94.00 [   83.00,   107.00] p50_ns=62 p999_ns=5.77e+03 p9999_ns=1.54e+04 max_ns=3.89e+04 achieved_mps=0.007 saturated=0 feed_lat
+load=rate_1000000 wait=wfe path=none feed=synthetic_default    n=5      123.00 [  122.00,   123.00] p50_ns=69 p999_ns=2.73e+03 p9999_ns=9.51e+03 max_ns=1.26e+04 achieved_mps=1 saturated=0 feed_late_ov
+load=rate_6627 wait=spin path=none feed=synthetic_default      n=5      123.00 [  123.00,   123.00] p50_ns=66 p999_ns=4.44e+03 p9999_ns=1.24e+04 max_ns=3e+04 achieved_mps=0.007 saturated=0 feed_late_o
+load=rate_1000000 wait=spin path=none feed=synthetic_default   n=5      124.00 [  123.00,   124.00] p50_ns=79 p999_ns=5.94e+03 p9999_ns=9.92e+03 max_ns=1.42e+04 achieved_mps=1 saturated=0 feed_late_ov
+load=rate_1000000 wait=wfe path=full feed=synthetic_default    n=5      316.00 [  308.00,   588.00] p50_ns=139 p999_ns=2.72e+03 p9999_ns=7.02e+03 max_ns=1.22e+04 achieved_mps=1 saturated=0 feed_late_o
+load=rate_1000000 wait=spin path=full feed=synthetic_default   n=5      325.00 [  316.00,   457.00] p50_ns=137 p999_ns=2.66e+03 p9999_ns=1.09e+04 max_ns=1.36e+04 achieved_mps=1 saturated=0 feed_late_o
+load=rate_6627 wait=wfe path=full feed=synthetic_default       n=5     1909.00 [ 1881.00,  1924.00] p50_ns=518 p999_ns=8.34e+03 p9999_ns=1.29e+05 max_ns=7.03e+05 achieved_mps=0.007 saturated=0 feed_la
+load=rate_6627 wait=spin path=full feed=synthetic_default      n=5     2179.00 [ 2147.00,  2438.00] p50_ns=534 p999_ns=9.1e+03 p9999_ns=3.33e+04 max_ns=4.88e+05 achieved_mps=0.007 saturated=0 feed_lat
+rate_1000000 wfe full epoch=0 p99=316.0 l1d=21.3385 mispred=3.6448 inst=310.75 invol=10
+rate_1000000 spin full epoch=0 p99=325.0 l1d=47.9434 mispred=3.5489 inst=25795.45 invol=4
+rate_6627 spin full epoch=0 p99=2169.0 l1d=51.1494 mispred=3.7071 inst=3740385.44 invol=1526
+rate_6627 wfe full epoch=0 p99=1909.0 l1d=28.5879 mispred=3.6416 inst=2317.76 invol=544
+rate_1000000 spin full epoch=1 p99=457.0 l1d=47.7769 mispred=3.5711 inst=23685.63 invol=2
+rate_1000000 wfe full epoch=1 p99=315.0 l1d=20.8030 mispred=3.6222 inst=309.81 invol=2
+rate_6627 wfe full epoch=1 p99=1924.0 l1d=29.8955 mispred=3.7820 inst=2554.56 invol=4665
+rate_6627 spin full epoch=1 p99=2438.0 l1d=51.0206 mispred=3.6810 inst=3675560.68 invol=1087
+rate_1000000 wfe full epoch=2 p99=508.0 l1d=22.7536 mispred=3.7025 inst=309.80 invol=2
+rate_1000000 spin full epoch=2 p99=316.0 l1d=47.9776 mispred=3.5548 inst=24149.69 invol=2
+rate_6627 spin full epoch=2 p99=2147.0 l1d=50.0647 mispred=3.5857 inst=3644904.98 invol=223
+rate_6627 wfe full epoch=2 p99=1881.0 l1d=28.3276 mispred=3.6048 inst=2228.20 invol=197
+rate_1000000 spin full epoch=3 p99=456.0 l1d=47.7546 mispred=3.5542 inst=23179.50 invol=5
+rate_1000000 wfe full epoch=3 p99=308.0 l1d=20.9465 mispred=3.6254 inst=311.54 invol=2
+rate_6627 wfe full epoch=3 p99=1911.0 l1d=28.3152 mispred=3.6029 inst=2266.73 invol=203
+rate_6627 spin full epoch=3 p99=2295.0 l1d=50.3305 mispred=3.6378 inst=3655754.65 invol=297
+rate_1000000 wfe full epoch=4 p99=588.0 l1d=20.9758 mispred=3.6391 inst=309.14 invol=2
+rate_1000000 spin full epoch=4 p99=324.0 l1d=47.4675 mispred=3.5690 inst=23023.85 invol=2
+rate_6627 spin full epoch=4 p99=2179.0 l1d=50.0425 mispred=3.5805 inst=3640049.00 invol=311
+rate_6627 wfe full epoch=4 p99=1881.0 l1d=28.5004 mispred=3.6195 inst=2247.74 invol=304
+rate_1000000 wfe none epoch=0 p99=123.0 l1d=11.3574 mispred=1.0001 inst=82.09 invol=3
+rate_1000000 spin none epoch=0 p99=124.0 l1d=38.4606 mispred=1.0009 inst=24915.69 invol=2
+rate_6627 spin none epoch=0 p99=123.0 l1d=38.0758 mispred=1.0079 inst=3661468.69 invol=798
+rate_6627 wfe none epoch=0 p99=95.0 l1d=17.3894 mispred=1.0043 inst=2094.23 invol=1286
+rate_1000000 spin none epoch=1 p99=124.0 l1d=38.2636 mispred=1.0013 inst=26182.08 invol=2
+rate_1000000 wfe none epoch=1 p99=123.0 l1d=11.1498 mispred=1.0004 inst=83.63 invol=2
+rate_6627 wfe none epoch=1 p99=94.0 l1d=17.3350 mispred=1.0046 inst=2084.74 invol=948
+rate_6627 spin none epoch=1 p99=123.0 l1d=37.9536 mispred=1.0061 inst=3662708.29 invol=270
+rate_1000000 wfe none epoch=2 p99=123.0 l1d=11.1469 mispred=1.0002 inst=82.78 invol=2
+rate_1000000 spin none epoch=2 p99=123.0 l1d=37.7559 mispred=1.0004 inst=24693.09 invol=2
+rate_6627 spin none epoch=2 p99=123.0 l1d=37.9192 mispred=1.0021 inst=3637793.95 invol=79
+rate_6627 wfe none epoch=2 p99=83.0 l1d=17.2839 mispred=1.0038 inst=2044.57 invol=526
+rate_1000000 spin none epoch=3 p99=124.0 l1d=38.6665 mispred=0.9987 inst=24925.18 invol=2
+rate_1000000 wfe none epoch=3 p99=122.0 l1d=13.1325 mispred=1.0001 inst=84.56 invol=2
+rate_6627 wfe none epoch=3 p99=83.0 l1d=17.2386 mispred=1.0013 inst=1999.71 invol=101
+rate_6627 spin none epoch=3 p99=123.0 l1d=38.0876 mispred=1.0023 inst=3700227.45 invol=80
+rate_1000000 wfe none epoch=4 p99=123.0 l1d=11.1534 mispred=1.0006 inst=82.93 invol=2
+rate_1000000 spin none epoch=4 p99=124.0 l1d=37.6889 mispred=1.0016 inst=24420.25 invol=2
+rate_6627 spin none epoch=4 p99=123.0 l1d=38.0536 mispred=1.0023 inst=3713852.56 invol=87
+rate_6627 wfe none epoch=4 p99=107.0 l1d=17.5220 mispred=1.0096 inst=2150.81 invol=2682
+
+== H32, H33: real BX open, first 100,000 messages, same design  [11:38:51]
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_6627 wait=wfe path=none feed=20190730_BX_ITCH_50     n=5       83.00 [   83.00, 163879845888.00] p50_ns=62 p999_ns=238 p9999_ns=1.06e+04 max_ns=1.6e+04 achieved_mps=0.007 saturated=0 feed_la
+load=rate_6627 wait=spin path=none feed=20190730_BX_ITCH_50    n=5      122.00 [  122.00, 64064.00] p50_ns=66 p999_ns=153 p9999_ns=5.79e+03 max_ns=1.6e+04 achieved_mps=0.007 saturated=0 feed_late_over
+load=rate_1000000 wait=wfe path=none feed=20190730_BX_ITCH_50  n=5      123.00 [  121.00,   123.00] p50_ns=70 p999_ns=124 p9999_ns=1.3e+03 max_ns=5.12e+03 achieved_mps=1 saturated=0 feed_late_over_1us
+load=rate_1000000 wait=spin path=none feed=20190730_BX_ITCH_50 n=5      124.00 [  123.00,   124.00] p50_ns=80 p999_ns=130 p9999_ns=1.6e+03 max_ns=8.57e+03 achieved_mps=1 saturated=0 feed_late_over_1us
+load=rate_1000000 wait=wfe path=full feed=20190730_BX_ITCH_50  n=5      166.00 [  165.00,   201.00] p50_ns=101 p999_ns=1.16e+03 p9999_ns=6.76e+03 max_ns=1.26e+04 achieved_mps=1 saturated=0 feed_late_o
+load=rate_1000000 wait=spin path=full feed=20190730_BX_ITCH_50 n=5      210.00 [  182.00,   282.00] p50_ns=108 p999_ns=2.22e+03 p9999_ns=7.71e+03 max_ns=9.68e+03 achieved_mps=1 saturated=0 feed_late_o
+load=rate_6627 wait=wfe path=full feed=20190730_BX_ITCH_50     n=5     2149.00 [ 1939.00,  2324.00] p50_ns=108 p999_ns=3.99e+03 p9999_ns=1.07e+04 max_ns=1.63e+04 achieved_mps=0.007 saturated=0 feed_la
+load=rate_6627 wait=spin path=full feed=20190730_BX_ITCH_50    n=5     2228.00 [ 1993.00,  3077.00] p50_ns=119 p999_ns=4.25e+03 p9999_ns=1.06e+04 max_ns=2.9e+04 achieved_mps=0.007 saturated=0 feed_lat
+rate_1000000 wfe full epoch=0 p99=166.0 l1d=16.8311 mispred=2.8936 inst=251.94 invol=2
+rate_1000000 spin full epoch=0 p99=203.0 l1d=43.5179 mispred=2.9113 inst=23493.35 invol=2
+rate_6627 spin full epoch=0 p99=2509.0 l1d=44.9975 mispred=2.9453 inst=3638634.10 invol=125
+rate_6627 wfe full epoch=0 p99=2065.0 l1d=23.5532 mispred=2.9574 inst=2183.30 invol=116
+rate_1000000 spin full epoch=1 p99=280.0 l1d=44.2802 mispred=2.9167 inst=24472.41 invol=2
+rate_1000000 wfe full epoch=1 p99=165.0 l1d=16.8553 mispred=2.8939 inst=253.81 invol=2
+rate_6627 wfe full epoch=1 p99=2255.0 l1d=23.6004 mispred=2.9477 inst=2169.07 invol=91
+rate_6627 spin full epoch=1 p99=3077.0 l1d=44.8890 mispred=2.9723 inst=3623223.52 invol=188
+rate_1000000 wfe full epoch=2 p99=201.0 l1d=18.6892 mispred=2.8832 inst=256.26 invol=2
+rate_1000000 spin full epoch=2 p99=282.0 l1d=44.1952 mispred=2.9189 inst=24284.27 invol=5
+rate_6627 spin full epoch=2 p99=2053.0 l1d=44.8845 mispred=2.9266 inst=3632008.85 invol=74
+rate_6627 wfe full epoch=2 p99=1939.0 l1d=23.4677 mispred=2.9510 inst=2163.52 invol=80
+rate_1000000 spin full epoch=3 p99=210.0 l1d=43.9919 mispred=2.9201 inst=23878.92 invol=2
+rate_1000000 wfe full epoch=3 p99=165.0 l1d=16.8355 mispred=2.8980 inst=254.08 invol=2
+rate_6627 wfe full epoch=3 p99=2324.0 l1d=23.7307 mispred=2.9592 inst=2174.97 invol=271
+rate_6627 spin full epoch=3 p99=1993.0 l1d=44.8869 mispred=2.9463 inst=3634673.05 invol=70
+rate_1000000 wfe full epoch=4 p99=192.0 l1d=18.1225 mispred=2.8930 inst=256.75 invol=3
+rate_1000000 spin full epoch=4 p99=182.0 l1d=49.3151 mispred=2.9171 inst=23806.86 invol=2
+rate_6627 spin full epoch=4 p99=2228.0 l1d=45.0085 mispred=2.9549 inst=3620498.15 invol=215
+rate_6627 wfe full epoch=4 p99=2149.0 l1d=23.5453 mispred=2.9530 inst=2171.92 invol=67
+rate_1000000 wfe none epoch=0 p99=123.0 l1d=11.2364 mispred=1.0005 inst=84.29 invol=2
+rate_1000000 spin none epoch=0 p99=124.0 l1d=37.6658 mispred=1.0010 inst=24578.79 invol=3
+rate_6627 spin none epoch=0 p99=123.0 l1d=38.2048 mispred=1.0019 inst=3642202.39 invol=68
+rate_6627 wfe none epoch=0 p99=83.0 l1d=17.2468 mispred=1.0017 inst=2004.18 invol=75
+rate_1000000 spin none epoch=1 p99=124.0 l1d=38.5354 mispred=0.9993 inst=24608.82 invol=2
+rate_1000000 wfe none epoch=1 p99=123.0 l1d=22.0133 mispred=1.0001 inst=93.32 invol=2
+rate_6627 wfe none epoch=1 p99=163879845888.0 l1d=15.5991 mispred=0.9681 inst=1211.48 invol=1917
+rate_6627 spin none epoch=1 p99=64064.0 l1d=38.9993 mispred=1.0667 inst=3663562.02 invol=7931
+rate_1000000 wfe none epoch=2 p99=121.0 l1d=13.1865 mispred=1.0002 inst=84.34 invol=2
+rate_1000000 spin none epoch=2 p99=123.0 l1d=38.3985 mispred=1.0002 inst=24648.48 invol=2
+rate_6627 spin none epoch=2 p99=122.0 l1d=37.9740 mispred=1.0024 inst=3675422.48 invol=269
+rate_6627 wfe none epoch=2 p99=83.0 l1d=17.2419 mispred=1.0014 inst=1975.30 invol=84
+rate_1000000 spin none epoch=3 p99=124.0 l1d=38.2013 mispred=1.0005 inst=24740.77 invol=3
+rate_1000000 wfe none epoch=3 p99=123.0 l1d=13.1653 mispred=1.0002 inst=84.45 invol=2
+rate_6627 wfe none epoch=3 p99=83.0 l1d=17.2704 mispred=1.0020 inst=1989.38 invol=269
+rate_6627 spin none epoch=3 p99=122.0 l1d=38.0187 mispred=1.0018 inst=3666387.80 invol=82
+rate_1000000 wfe none epoch=4 p99=123.0 l1d=13.1592 mispred=1.0002 inst=80.44 invol=2
+rate_1000000 spin none epoch=4 p99=123.0 l1d=38.0579 mispred=1.0003 inst=25120.32 invol=2
+rate_6627 spin none epoch=4 p99=122.0 l1d=37.7885 mispred=1.0006 inst=3628521.19 invol=74
+rate_6627 wfe none epoch=4 p99=83.0 l1d=17.2498 mispred=1.0014 inst=1980.54 invol=101
