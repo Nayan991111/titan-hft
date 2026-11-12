@@ -257,7 +257,7 @@ fn write_mode(args: &[String], path: &str) {
         out.extend_from_slice(&(b.len() as u16).to_be_bytes());
         out.extend_from_slice(b);
         i += 1;
-        if i % 20 == 0 {
+        if i.is_multiple_of(20) {
             out.extend_from_slice(&44u16.to_be_bytes());
             out.extend_from_slice(&trade);
         }

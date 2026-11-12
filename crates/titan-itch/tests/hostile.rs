@@ -11,7 +11,7 @@ const INSTRUMENTS: usize = 64;
 
 struct Rng(u64);
 impl Rng {
-    fn next(&mut self) -> u64 {
+    fn next_u64(&mut self) -> u64 {
         self.0 ^= self.0 << 13;
         self.0 ^= self.0 >> 7;
         self.0 ^= self.0 << 17;
@@ -148,30 +148,30 @@ fn random_well_framed_messages() {
     let mut rng = Rng(0x2545_F491_4F6C_DD1D);
     let mut book = L3Book::new(16, INSTRUMENTS);
     for round in 0..200_000u32 {
-        let kind = kinds[(rng.next() % kinds.len() as u64) as usize];
+        let kind = kinds[(rng.next_u64() % kinds.len() as u64) as usize];
         // Mostly the right length for the type, sometimes not.
-        let len = match (titan_itch::decode::book_len(kind), rng.next() % 8) {
-            (Some(n), 0) => (n + (rng.next() % 5) as usize).saturating_sub(2).max(1),
+        let len = match (titan_itch::decode::book_len(kind), rng.next_u64() % 8) {
+            (Some(n), 0) => (n + (rng.next_u64() % 5) as usize).saturating_sub(2).max(1),
             (Some(n), _) => n,
-            (None, _) => 1 + (rng.next() % 50) as usize,
+            (None, _) => 1 + (rng.next_u64() % 50) as usize,
         };
         let mut b = vec![0u8; len];
         for x in b.iter_mut() {
-            *x = rng.next() as u8;
+            *x = rng.next_u64() as u8;
         }
         b[0] = kind;
         if len > 2 {
             // Keep most locates and order references in a small range so
             // messages hit live orders.
-            let loc = (rng.next() % (INSTRUMENTS as u64 + 4)) as u16;
+            let loc = (rng.next_u64() % (INSTRUMENTS as u64 + 4)) as u16;
             b[1..3].copy_from_slice(&loc.to_be_bytes());
         }
         if len >= 19 {
-            let order = rng.next() % 4096;
+            let order = rng.next_u64() % 4096;
             b[11..19].copy_from_slice(&order.to_be_bytes());
         }
         if len >= 27 && kind == b'U' {
-            let new = rng.next() % 4096;
+            let new = rng.next_u64() % 4096;
             b[19..27].copy_from_slice(&new.to_be_bytes());
         }
         if let Ok(m) = decode(&b) {
@@ -191,8 +191,8 @@ fn random_bytes_through_the_reader() {
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
     let mut book = L3Book::new(14, INSTRUMENTS);
     for _ in 0..200 {
-        let n = (rng.next() % 4096) as usize;
-        let buf: Vec<u8> = (0..n).map(|_| rng.next() as u8).collect();
+        let n = (rng.next_u64() % 4096) as usize;
+        let buf: Vec<u8> = (0..n).map(|_| rng.next_u64() as u8).collect();
         let mut r = Reader::new(&buf);
         while let Some(x) = r.next_msg() {
             match x {
