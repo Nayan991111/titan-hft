@@ -10,10 +10,13 @@
 //!   floating point.
 //! * [`reference`]: straightforward `BTreeMap`/`HashMap` book used only as a
 //!   correctness oracle.
+//! * [`gateway`]: order-entry encoders (OUCH 4.2 Enter Order, FIX 4.2
+//!   NewOrderSingle) into caller-owned buffers.
 //! * [`gen`]: deterministic synthetic ITCH generator for tests and benchmarks.
 
 pub mod book;
 pub mod decode;
+pub mod gateway;
 pub mod gen;
 pub mod path;
 pub mod reference;
