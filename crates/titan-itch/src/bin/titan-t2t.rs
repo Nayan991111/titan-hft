@@ -39,6 +39,10 @@
 //!           per order, not per message
 //!   replay  the same replay loop with the checks replaced by a fold of the
 //!           order fields (loop and load floor for `checks`)
+//!   ouch    each recorded order encoded as an OUCH 4.2 Enter Order (binary,
+//!           49 bytes)
+//!   fix     each recorded order encoded as a FIX 4.2 NewOrderSingle
+//!           (tag=value, BodyLength and CheckSum computed)
 //!
 //! Timing: the generic counter around each batch, and with `pmu` the core
 //! cycle, instruction, L1D load miss and branch mispredict counters around
@@ -51,7 +55,7 @@
 //!   titan-t2t [messages=N] [instruments=M] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
 //!   titan-t2t file=PATH [limit=N] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
 //!
-//! In `checks` and `replay`, `messages=` and every per-message field of the
+//! In `checks`, `replay`, `ouch` and `fix`, `messages=` and every per-message field of the
 //! report count recorded orders, not feed messages.
 //!
 //! `limits=open` sets risk limits that no order can breach, so every check
@@ -64,6 +68,7 @@ use titan_itch::decode::{decode, Msg, Reader};
 use titan_itch::gen::{feed, Mix};
 use titan_itch::reference::RefBook;
 use std::sync::atomic::AtomicBool;
+use titan_itch::gateway::{fix42_new_order, ouch42_enter, Session as OrderSession, FIX_MAX, OUCH42_ENTER_LEN};
 use titan_itch::path::{locate_of, signal, timestamp, Intent, Limits, Risk, REJECT_NAMES};
 use titan_itch::{Book, Side};
 use titan_platform::alloc_count::{thread_allocations, CountingAlloc};
@@ -89,7 +94,9 @@ const DIRECT: u8 = 4;
 const RISK: u8 = 5;
 const CHECKS: u8 = 6;
 const REPLAY: u8 = 7;
-const STAGES: [(u8, &str); 8] = [
+const OUCH: u8 = 8;
+const FIX: u8 = 9;
+const STAGES: [(u8, &str); 10] = [
     (RING, "ring"),
     (DECODE, "decode"),
     (BOOK, "book"),
@@ -98,7 +105,83 @@ const STAGES: [(u8, &str); 8] = [
     (RISK, "risk"),
     (CHECKS, "checks"),
     (REPLAY, "replay"),
+    (OUCH, "ouch"),
+    (FIX, "fix"),
 ];
+
+/// Stock symbol of every locate, from the feed's stock directory messages
+/// (`R`); locates without one get `L` and the locate number.
+fn symbols(feed: &[u8], descs: &[u64], instruments: usize) -> Vec<[u8; 8]> {
+    let mut out: Vec<[u8; 8]> = (0..instruments)
+        .map(|i| {
+            let mut s = [b' '; 8];
+            let t = format!("L{i}");
+            s[..t.len().min(8)].copy_from_slice(&t.as_bytes()[..t.len().min(8)]);
+            s
+        })
+        .collect();
+    for &d in descs {
+        let b = body(feed, d);
+        if b.len() >= 19 && b[0] == b'R' {
+            let loc = u16::from_be_bytes([b[1], b[2]]) as usize;
+            if let Some(slot) = out.get_mut(loc) {
+                slot.copy_from_slice(&b[11..19]);
+            }
+        }
+    }
+    out
+}
+
+/// Timed part of `ouch` and `fix`: encode every order, fold the bytes
+/// written. Returns orders encoded.
+#[inline(never)]
+fn encode<const S: u8>(orders: &[Order], syms: &[[u8; 8]], seq: &mut u64, sum: &mut u64, s: &OrderSession) -> u64 {
+    let mut ob = [0u8; OUCH42_ENTER_LEN];
+    let mut fb = [0u8; FIX_MAX];
+    for o in orders {
+        let o = black_box(o);
+        let sym = &syms[o.it.locate as usize];
+        *seq += 1;
+        let (last, n) = if S == OUCH {
+            ouch42_enter(&mut ob, &o.it, sym, *seq, s);
+            black_box(&ob);
+            (ob[OUCH42_ENTER_LEN - 1], OUCH42_ENTER_LEN)
+        } else {
+            let n = fix42_new_order(&mut fb, &o.it, sym, *seq, o.ts, s);
+            black_box(&fb);
+            (fb[n - 4], n)
+        };
+        *sum = sum.rotate_left(7) ^ last as u64 ^ ((n as u64) << 8);
+    }
+    orders.len() as u64
+}
+
+/// One pass of the recorded orders through an encoder stage.
+fn pass_encode<const S: u8>(c: &Ctx, orders: &[Order], syms: &[[u8; 8]], st: &mut Stats) {
+    let session = OrderSession::default();
+    let mut seq = 0u64;
+    for chunk in orders.chunks(c.k) {
+        let a0 = thread_allocations();
+        let p0 = c.pmu.map(|s| s.read());
+        let t0 = clock::counter();
+        let n = encode::<S>(chunk, syms, &mut seq, &mut st.checksum, &session);
+        let t1 = clock::counter();
+        let p1 = c.pmu.map(|s| s.read());
+        st.allocations += thread_allocations() - a0;
+        let m = chunk.len() as f64;
+        st.ticks += t1 - t0;
+        st.batch_ns.push((t1 - t0) as f64 * 1e9 / clock::counter_frequency() as f64 / m);
+        if let (Some(s), Some(a), Some(b)) = (c.pmu, p0, p1) {
+            let d = s.delta(&a, &b);
+            for ((acc, &x), &f) in st.pmu.iter_mut().zip(&d).zip(&c.pmu_floor) {
+                *acc += x.saturating_sub(f);
+            }
+            st.batch_cycles.push(d[0].saturating_sub(c.pmu_floor[0]) as f64 / m);
+        }
+        st.messages += chunk.len() as u64;
+        st.intents += n;
+    }
+}
 
 /// One recorded order for the `checks` and `replay` stages.
 #[derive(Clone, Copy)]
@@ -526,12 +609,15 @@ fn main() {
     let limits = if open_limits { Limits::open() } else { Limits::default() };
     let mut risk = Risk::new(max_locate as usize + 1, limits, &kill);
     let orders = record(feed_buf, &descs, &mut book, max_spread);
+    let syms = symbols(feed_buf, &descs, max_locate as usize + 1);
     println!("t2t_orders feed={name} orders={} per_message={:.5}", orders.len(), orders.len() as f64 / descs.len() as f64);
     let mut run = |stage: u8, ing: &mut Ingress, eg: &mut Egress, out: &mut [Intent], book: &mut L3Book, st: &mut Stats| {
         let r = &mut risk;
         match stage {
             CHECKS => pass_orders::<CHECKS>(&c, &orders, r, st),
             REPLAY => pass_orders::<REPLAY>(&c, &orders, r, st),
+            OUCH => pass_encode::<OUCH>(&c, &orders, &syms, st),
+            FIX => pass_encode::<FIX>(&c, &orders, &syms, st),
             RING => pass::<RING>(&c, ing, eg, out, book, r, st),
             DECODE => pass::<DECODE>(&c, ing, eg, out, book, r, st),
             BOOK => pass::<BOOK>(&c, ing, eg, out, book, r, st),

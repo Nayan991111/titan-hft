@@ -177,6 +177,8 @@ def contrasts(groups):
         extra.append(("t2t", f"decode vs book ({feed})", ("decode", feed), ("book", feed)))
         extra.append(("t2t", f"risk vs full, pre-trade checks ({feed})", ("risk", feed), ("full", feed)))
         extra.append(("t2t", f"checks vs replay, checks alone per order ({feed})", ("checks", feed), ("replay", feed)))
+        extra.append(("t2t", f"fix vs ouch, order encoding ({feed})", ("fix", feed), ("ouch", feed)))
+        extra.append(("t2t", f"ouch vs replay, binary encoding per order ({feed})", ("ouch", feed), ("replay", feed)))
     for load, w, path, feed in sorted({k[1:5] for k in groups if k[0] == "pl_gap"}):
         for g in ("lt100ns", "gt100us"):
             if ("pl_gap", load, w, path, feed, g) not in groups:
