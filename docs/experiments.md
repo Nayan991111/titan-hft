@@ -61,9 +61,9 @@ are added afterwards and are never edited away when a prediction fails.
 | H31 | Encoding an order as a FIX 4.2 NewOrderSingle costs at least 3x the cycles of an OUCH 4.2 Enter Order, on both feeds; predicted 4 to 7x | supported | FIX 4.2 vs OUCH 4.2 per order: 124.7 vs 28.7 cycles (4.34x) real, 114.6 vs 22.2 (5.17x) synthetic, 5 of 5 epochs; FIX 832 instructions and 0.87 branch mispredicts per order, OUCH 209 and 0.0003; replay floor 4.5 cycles |
 | H32 | At 6,627 msg/s the trading path's own L1D load misses per message (`full` minus `none`, same wait and rate, consumer PMU) are at least 1.5x those at 1M msg/s, for wfe and spin, on the synthetic feed: cache contents decay between sparse messages | refuted | Synthetic, path L1D load misses per message (full minus none): wfe 9.8 at 1M vs 11.2 at 6,627 msg/s (1.14x), spin 9.5 vs 12.3 (1.29x). Real (not pre-registered): wfe 3.7 vs 6.3 (1.71x), spin 6.0 vs 6.9 (1.15x). Branch mispredicts per message identical at both rates (synthetic 3.6, real 2.9). The few extra L1D misses cannot by themselves add about 2 us; the cost may sit deeper (L2, system cache, memory, TLB), which these counters do not see |
 | H33 | With no trading work at all (`path=none`), the p99 at 6,627 msg/s is above 1 us for wfe and spin on both feeds: the hand-off and wake-up, not the data path, set the low-rate tail | refuted | path=none at 6,627 msg/s: p99 94 (wfe) and 123 (spin) ns synthetic, 83 and 122 ns real, below the same at 1M (122 to 124 ns). The hand-off and wake-up alone are fast. One real epoch (wfe and spin, path=none) shows a stall of about 164 s and a 64 us p99; the section ran about 2.5 min longer than planned, consistent with the machine sleeping; medians over epochs are unaffected, and later scripts keep the machine awake |
-| H34 | At 6,627 msg/s the tail is in the service time: pop-to-decision p99 above 1 us while schedule-to-pop p99 stays below 300 ns, isb wait, both feeds | pending | |
-| H35 | Keeping the book warm while waiting (`warm=book`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | pending | |
-| H36 | Keeping memory active while waiting without touching the book (`warm=mem`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | pending | |
+| H34 | At 6,627 msg/s the tail is in the service time: pop-to-decision p99 above 1 us while schedule-to-pop p99 stays below 300 ns, isb wait, both feeds | supported | At 6,627 msg/s, keep-warm off: service p99 3,000 ns (synthetic) and 2,958 ns (real); delay-to-pop p99 125 and 115 ns. At 1M msg/s the service p99 is 250 and 125 ns |
+| H35 | Keeping the book warm while waiting (`warm=book`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | refuted | warm=book, end-to-end p99 at 6,627 msg/s: 3,050 vs 3,102 ns synthetic (1.02x lower), 2,491 vs 3,073 ns real (1.23x); service p99 2,959 and 2,208 ns |
+| H36 | Keeping memory active while waiting without touching the book (`warm=mem`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | supported | warm=mem, end-to-end p99 at 6,627 msg/s: 618 vs 3,102 ns synthetic (5.0x lower), 626 vs 3,073 ns real (4.9x); service p99 541 and 542 ns. Costs: the delay-to-pop p99 rises to 284 and 285 ns (a message can wait for one unit), and the real-feed median rises from 173 to 289 ns (synthetic falls from 527 to 312). The outcome, memory helps and the book does not, was not one of the three pre-registered readings: the tail follows the activity of the memory system, not the cache contents of the book; which memory-system state (DRAM, controller or fabric power management) is not identified by these counters |
 
 ## Notes on `titan-t2t`
 
@@ -197,3 +197,12 @@ Design: waits=isb, rates 1M and 6,627 msg/s, first 100,000 messages of
 each feed (synthetic; BX from 09:30:00), 5 epochs, arms off, book and mem.
 Verdicts on medians over epochs of the p99. The machine is kept awake for
 the whole script (`caffeinate`).
+
+### Note on the fifth run
+
+`split` adds a counter read per message, so its end-to-end values are
+compared only within the run. With keep-warm off, the synthetic p99 at
+6,627 msg/s is 3,102 ns here and 2,153 ns in the third run (isb, no
+`split`); the real one is 3,073 and 2,961 ns. The cause of the synthetic
+difference (the extra read or run-to-run variation) is not separated; the
+H34 to H36 verdicts compare arms of the same run only.
