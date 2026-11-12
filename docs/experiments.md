@@ -59,8 +59,11 @@ are added afterwards and are never edited away when a prediction fails.
 | H29 | The synthetic feed at a constant 6,627 msg/s (the mean rate of the real 30 s window) has a p99 above 1 us for all three waits: low utilisation alone produces the tail | supported | Synthetic feed at 6,627 msg/s: p99 1,888 (wfe), 2,064 (spin), 2,153 (isb) ns, against 333 to 360 ns at 1M msg/s; the median also rises, to 574 to 926 ns from 171 to 179 |
 | H30 | The same 100,000 real messages at a constant 6,627 msg/s have a p99 within 1.5x of their p99 under the real timestamps: the arrival structure adds little beyond the rate | not supported | Real messages at a constant 6,627 msg/s vs their real timestamps: p99 ratio 1.16 (wfe), 1.21 (spin), 1.57 (isb); isb exceeds 1.5x. In all three waits the constant schedule is the slower one: the real arrival structure does not add to the tail, the low rate does |
 | H31 | Encoding an order as a FIX 4.2 NewOrderSingle costs at least 3x the cycles of an OUCH 4.2 Enter Order, on both feeds; predicted 4 to 7x | supported | FIX 4.2 vs OUCH 4.2 per order: 124.7 vs 28.7 cycles (4.34x) real, 114.6 vs 22.2 (5.17x) synthetic, 5 of 5 epochs; FIX 832 instructions and 0.87 branch mispredicts per order, OUCH 209 and 0.0003; replay floor 4.5 cycles |
-| H32 | At 6,627 msg/s the trading path's own L1D load misses per message (`full` minus `none`, same wait and rate, consumer PMU) are at least 1.5x those at 1M msg/s, for wfe and spin, on the synthetic feed: cache contents decay between sparse messages | pending | |
-| H33 | With no trading work at all (`path=none`), the p99 at 6,627 msg/s is above 1 us for wfe and spin on both feeds: the hand-off and wake-up, not the data path, set the low-rate tail | pending | |
+| H32 | At 6,627 msg/s the trading path's own L1D load misses per message (`full` minus `none`, same wait and rate, consumer PMU) are at least 1.5x those at 1M msg/s, for wfe and spin, on the synthetic feed: cache contents decay between sparse messages | refuted | Synthetic, path L1D load misses per message (full minus none): wfe 9.8 at 1M vs 11.2 at 6,627 msg/s (1.14x), spin 9.5 vs 12.3 (1.29x). Real (not pre-registered): wfe 3.7 vs 6.3 (1.71x), spin 6.0 vs 6.9 (1.15x). Branch mispredicts per message identical at both rates (synthetic 3.6, real 2.9). The few extra L1D misses cannot by themselves add about 2 us; the cost may sit deeper (L2, system cache, memory, TLB), which these counters do not see |
+| H33 | With no trading work at all (`path=none`), the p99 at 6,627 msg/s is above 1 us for wfe and spin on both feeds: the hand-off and wake-up, not the data path, set the low-rate tail | refuted | path=none at 6,627 msg/s: p99 94 (wfe) and 123 (spin) ns synthetic, 83 and 122 ns real, below the same at 1M (122 to 124 ns). The hand-off and wake-up alone are fast. One real epoch (wfe and spin, path=none) shows a stall of about 164 s and a 64 us p99; the section ran about 2.5 min longer than planned, consistent with the machine sleeping; medians over epochs are unaffected, and later scripts keep the machine awake |
+| H34 | At 6,627 msg/s the tail is in the service time: pop-to-decision p99 above 1 us while schedule-to-pop p99 stays below 300 ns, isb wait, both feeds | pending | |
+| H35 | Keeping the book warm while waiting (`warm=book`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | pending | |
+| H36 | Keeping memory active while waiting without touching the book (`warm=mem`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -175,3 +178,22 @@ the trading path (`path=full`) and one that only pops and records
 subtracting `none` from `full` at the same wait and rate removes both.
 H32 is judged on medians over epochs of L1D load misses per message; H33 on
 medians over epochs of the p99.
+
+## Pre-registered 2026-11-12, fifth run
+
+**H34 to H36 (where the low-rate tail lives).** H32 and H33 rule out the
+hand-off, the wake-up, branch prediction and most of the L1D story. H34
+splits each message's latency into the delay to pop and the service time
+(`split`, one more counter read per message). H35 and H36 are the
+intervention test: while waiting, the consumer runs read-only keep-warm
+units every 20 us, polling the ring between units so a message waits for
+at most one unit. `book` touches the best levels of the 64 most recently
+touched instruments and decodes the last message; `mem` loads from a
+128 MiB scratch buffer with a stride that defeats prefetching and never
+touches the book. Reading of the outcomes: book helps and mem does not,
+book state going cold (caches or TLB); both help, the memory system's power
+state; neither helps, something else (for example core or fabric clocks).
+Design: waits=isb, rates 1M and 6,627 msg/s, first 100,000 messages of
+each feed (synthetic; BX from 09:30:00), 5 epochs, arms off, book and mem.
+Verdicts on medians over epochs of the p99. The machine is kept awake for
+the whole script (`caffeinate`).
