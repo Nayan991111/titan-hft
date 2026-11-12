@@ -2,13 +2,16 @@
 # Instruction census of the titan-spsc ring operations.
 # Emits the library assembly and counts mnemonics per census symbol, then
 # lists each function. Usage: scripts/census.sh [--list]
+# Honours RUSTFLAGS and CARGO_TARGET_DIR, so a build with different code
+# layout flags can be censused without disturbing the default target.
 set -eu
 cd "$(dirname "$0")/.."
-rm -f target/release/deps/titan_spsc-*.s
+T="${CARGO_TARGET_DIR:-target}"
+rm -f "$T"/release/deps/titan_spsc-*.s
 # Cargo skips rustc when nothing changed, and then no assembly is written.
 touch crates/titan-spsc/src/census.rs
 cargo rustc --release -q -p titan-spsc --lib -- --emit asm
-S=$(ls -t target/release/deps/titan_spsc-*.s 2>/dev/null | head -1 || true)
+S=$(ls -t "$T"/release/deps/titan_spsc-*.s 2>/dev/null | head -1 || true)
 [ -n "$S" ] || { echo "census: no assembly produced" >&2; exit 1; }
 # A function ends at .cfi_endproc or at the next global label. Local labels
 # (L... on Mach-O, .L... on ELF) do not end it; Mach-O output built with
