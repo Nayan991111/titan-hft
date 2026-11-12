@@ -25,8 +25,9 @@ nothing, and each hypothesis is committed to
   <img src="docs/figures/t2t-path.svg" alt="The measured trading path: ITCH feed, ingress ring, decode, L3 order book, signal, egress ring, gateway. Full path 135 cycles per message on a real NASDAQ BX day." width="100%">
 </p>
 
-> **Status: preliminary.** Figures below come from runs of 3 to 5 epochs
-> inside one process on battery power. The final protocol is at least 30
+> **Status: preliminary.** Figures below come from runs of 3 to 10 epochs
+> inside one process, on battery (11 Nov and the first 12 Nov run) or on
+> wall power (later 12 Nov runs); each results file states which. The final protocol is at least 30
 > independent launches per configuration on wall power; until then, read
 > the numbers as estimates with understated uncertainty.
 
@@ -42,24 +43,24 @@ run.
 | L3 book agrees with the reference book after every message of a real NASDAQ BX day | 28,734,686 messages, 0 mismatches, 0 unknown order references | [`results/2026-11-11_m4.txt`](results/2026-11-11_m4.txt) |
 | Full single-core trading path (ring, decode, book, signal, ring), real BX data | **135 cycles, 32.3 ns per message**, 0 allocations | same |
 | Same path, synthetic feed (deeper books, 982k live orders) | 189 cycles, 42.9 ns | same |
-| Share of the path spent in the two ring operations | +6.7% cycles (real), +7.8% (synthetic) | same |
+| Cost of the two ring operations (`full` vs `direct`, which reads and writes arrays instead) | +6.7% cycles (real), +7.8% (synthetic) over `direct` | same |
 | Decode plus book update, real BX data: Titan L3 book vs a `BTreeMap` reference book | 98 vs 326 cycles; 5.98 vs 16.8 L1D load misses per message; 0 vs 301k allocations per pass | same |
 | Fastest cross-core round trip (SPSC ring, `wfe` wait) | 81.1 ns; about 40.5 ns one way | [`results/2026-11-11_m4_spsc.txt`](results/2026-11-11_m4_spsc.txt) |
 | Rust's default `spin_loop` (`isb`) vs a `wfe` wait | slowest of four waits: 96.6 vs 81.1 ns round trip; 347 vs 272 cycles | same |
 | `ldapr` (Acquire, RCpc) vs `ldar` (SeqCst, RCsc) in an SPSC ring | no measurable difference: 8.35 vs 8.34 cycles per streamed message | same |
-| Apparent `ldar` advantage when the consumer misses cache | a code-placement artefact: absent in the default layout (+0.8%, p = 0.33), 12% and 20% with 64 and 128-byte alignment of the same code (10 epochs each) | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
-| Index caching in the ring (each side keeps a private copy of the other's index) | 26x fewer cycles per streamed message (8.35 vs 219) | same |
+| Apparent `ldar` advantage when the consumer misses cache | depends on code layout, so not a fixed cost of the ordering instructions: absent in the default layout (+0.8%, p = 0.33), 12% and 20% fewer cycles with 64 and 128-byte alignment of the same code (10 epochs each); mechanism open | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
+| Index caching in the ring (each side keeps a private copy of the other's index) | 26x fewer cycles per streamed message (8.35 vs 219) | [`results/2026-11-11_m4_spsc.txt`](results/2026-11-11_m4_spsc.txt) |
 | Two-core pipeline, feed release to trading decision, constant 1M msg/s (synthetic), open loop | median 171 to 179 ns, p99 333 to 360 ns, p99.99 10.2 to 10.6 us | [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
-| Same pipeline, offered load swept 1M to 25M msg/s | flat up to 10M msg/s (median 158 to 164 ns), then saturation at about 12.7M msg/s; no gradual knee | same |
-| `wfe` or `isb` wait vs a plain spin on the consumer | lower median and p99 at 1M and 5M msg/s (5 of 5 epochs, p about 0.01); no difference at 10M | same |
+| Same pipeline, offered load swept 1M to 25M msg/s | flat up to 10M msg/s (median 144 to 179 ns from 1M to 10M), saturated at 15M with capacity about 12.7M msg/s; loads between 10M and 15M not tested | same |
+| `wfe` or `isb` wait vs a plain spin on the consumer | lower median and p99 at 1M and 5M msg/s (p about 0.01), except the `wfe` p99 at 5M (p = 0.15); no difference at 10M | same |
 | Same pipeline paced by the real ITCH timestamps of the BX open (09:30:00 plus 30 s) | median 104 to 114 ns, but p99 2.4 to 2.7 us: about 7x the constant-rate p99 (exploratory, 3 epochs) | same |
 | Eight pre-trade checks of the kind SEC Rule 15c3-5 requires (kill switch, size, collar, notional, position, credit, duplicate, rate), measured alone | **21 cycles, 5.2 ns per order** on 1.94 million real orders (17 cycles synthetic); 115 instructions at an IPC of 5.5 | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
 | Same checks inside the trading path, per feed message | +0.5% (real, wall power) to +3.3% (synthetic) cycles per message | same, and [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
-| Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every gap class, so neither bursts nor idle wake-ups explain it | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
-| What does set it: the offered rate, not the data and not the arrival pattern | the same 100,000 real messages: p99 183 to 258 ns at a constant 1M msg/s, 2.2 to 3.0 us at a constant 6,627 msg/s (their mean rate), 1.9 us at their real timestamps; synthetic data at 6,627 msg/s: 1.9 to 2.2 us. A two-core pipeline is about 10x slower at the p99 when it is mostly idle | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
-| Why idle hurts: waiting alone and the data path alone are both fast | with no trading work the p99 at 6,627 msg/s is 83 to 123 ns; the trading path adds only 1 to 3 L1D misses and no branch mispredicts per message at the low rate, yet its p99 is 10x higher. The cost sits below L1D | [`results/2026-11-12_m4_ac3.txt`](results/2026-11-12_m4_ac3.txt) |
-| What removes most of it: keeping memory busy, not keeping the book warm | at 6,627 msg/s the tail is in the service time (p99 about 3 us vs 115 to 125 ns to pop). Strided loads over a 128 MiB scratch buffer while idle cut the end-to-end p99 4.9 to 5.0x (to about 620 ns) on both feeds; re-reading the book's hot data cut it 1.0 to 1.2x. Cost: one wait for a load (pop p99 about 285 ns) and, on real data, a higher median (289 vs 173 ns) | [`results/2026-11-12_m4_ac4.txt`](results/2026-11-12_m4_ac4.txt) |
-| Order encoding at the gateway, per order | OUCH 4.2 Enter Order 28.7 cycles (7.1 ns); FIX 4.2 NewOrderSingle 125 cycles (30.8 ns), 4.3x, on 1.94 million real orders | same |
+| Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every recorded gap class (the 10 to 100 us class was not recorded in that run); gaps over 100 us raise the p99 1.3x but not the median. Neither explains the tail | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
+| What does set it: the offered rate, not the data | the same 100,000 real messages: p99 183 to 258 ns at a constant 1M msg/s, 2.2 to 3.0 us at a constant 6,627 msg/s; synthetic data at 6,627 msg/s: 1.9 to 2.2 us. A two-core pipeline is about 10x slower at the p99 when it is mostly idle. Whether the real arrival pattern adds to this is not yet tested (H30 had a design error) | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
+| Why idle hurts: waiting alone is fast | with no trading work the p99 at 6,627 msg/s is 83 to 123 ns; with the trading path it is 18 to 26x that. Mean L1D misses per message rise by only 1 to 3 and branch mispredicts by under 0.1 at the low rate, so the extra time is not visible in mean L1D or branch counts | [`results/2026-11-12_m4_ac3.txt`](results/2026-11-12_m4_ac3.txt) |
+| What removes most of it: loads to memory while idle, not re-reading the book | at 6,627 msg/s the tail is in the service time (p99 about 3 us vs 115 to 125 ns to pop). Strided loads over a 128 MiB scratch buffer while idle cut the end-to-end p99 4.9 to 5.0x (to about 620 ns) on both feeds; re-reading the book's hot data cut it 1.0 to 1.2x. Memory activity and core activity are not yet separated. Cost: one wait for a load (pop p99 about 285 ns) and, on real data, a higher median (289 vs 173 ns) | [`results/2026-11-12_m4_ac4.txt`](results/2026-11-12_m4_ac4.txt) |
+| Order encoding at the gateway, per order | OUCH 4.2 Enter Order 28.7 cycles (7.1 ns); FIX 4.2 NewOrderSingle 125 cycles (30.8 ns), 4.3x, on 1.94 million real orders | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
 
 <p align="center">
   <img src="docs/figures/t2t-stages.svg" alt="Grouped bar chart of CPU cycles per message for the stages ring, decode, book, direct and full, on a synthetic feed and on real NASDAQ BX data." width="100%">
@@ -136,13 +137,13 @@ reader's light or dark theme.
 - [x] Single-core trading path with stage ablation; hostile-input tests; dependency audit in CI
 - [x] Pre-trade risk checks (kill switch, size, collar, notional, position, credit, duplicate, rate) as a measured stage
 - [x] Open-loop two-core pipeline driven by a constant rate or by the real ITCH timestamps; per-message latency taken from the schedule, so no coordinated omission
-- [x] Pipeline and pre-trade check results on the M4 (preliminary, battery power)
-- [x] Code-placement control (H17): the `ldar` versus `ldapr` gap changes sign with code alignment, so it is placement, not ordering
+- [x] Pipeline and pre-trade check results on the M4 (preliminary)
+- [x] Code-placement control (H17): the `ldar` versus `ldapr` gap depends on code alignment (absent by default, up to 20% when aligned); mechanism open
 - [x] Isolated per-order cost of the checks (H21b); burst and idle-gap decomposition of the real-pacing tail (H26, H27)
-- [x] Cause of the real-pacing tail: real data versus offered rate versus arrival structure (H28 to H30): the rate
+- [x] Cause of the real-pacing tail, data versus offered rate (H28, H29): the rate. Arrival structure (H30) to be rerun after a design error
 - [x] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
-- [x] Mechanism of the low-rate tail, first cut: not the hand-off or wake-up (H33), not branch prediction, little L1D (H32)
-- [x] Service time versus delay to pop, and keep-warm interventions on the book and on memory (H34 to H36): memory activity, not book state
+- [x] Mechanism of the low-rate tail, first cut: not the hand-off or wake-up (H33); not visible in mean L1D or branch counts (H32)
+- [x] Service time versus delay to pop, and keep-warm interventions on the book and on memory (H34 to H36): loads to memory while idle remove most of it; memory versus core activity not yet separated
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)

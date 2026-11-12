@@ -76,6 +76,6 @@
 <circle class="s1" cx="604.0" cy="327.9" r="5"/>
 <text x="616.0" y="331.9" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start">synthetic, constant 1M msg/s</text>
 <text x="616.0" y="346.9" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">p99 333 ns</text>
-<text x="28.0" y="430.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">At the real open the p99 is 7.1x the constant-rate p99, while the p99.99 is 1.1x: bursts hurt the p99 to p99.9 band.</text>
+<text x="28.0" y="430.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">At the real open the p99 is 7.1x the constant-rate p99, while the p99.99 is 1.1x; the penalty sits in the p99 to p99.9 band.</text>
 <text x="792.0" y="456.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-12_m4.txt (commit b20bbf1, battery power, preliminary)</text>
 </svg>
