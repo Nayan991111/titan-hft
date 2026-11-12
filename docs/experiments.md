@@ -64,6 +64,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H34 | At 6,627 msg/s the tail is in the service time: pop-to-decision p99 above 1 us while schedule-to-pop p99 stays below 300 ns, isb wait, both feeds | supported | At 6,627 msg/s, keep-warm off: service p99 3,000 ns (synthetic) and 2,958 ns (real); delay-to-pop p99 125 and 115 ns. At 1M msg/s the service p99 is 250 and 125 ns. Millisecond pop stalls occurred in at least 3 of 5 synthetic epochs (median of the per-epoch maximum 2.37 ms); one raised that epoch's pop p99 to about 1.3 ms. The median over epochs is 125 ns |
 | H35 | Keeping the book warm while waiting (`warm=book`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | refuted | warm=book, end-to-end p99 at 6,627 msg/s: 3,050 vs 3,102 ns synthetic (1.02x lower), 2,491 vs 3,073 ns real (1.23x); service p99 2,959 and 2,208 ns |
 | H36 | Keeping memory active while waiting without touching the book (`warm=mem`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | supported | warm=mem, end-to-end p99 at 6,627 msg/s: 618 vs 3,102 ns synthetic (5.0x lower), 626 vs 3,073 ns real (4.9x); service p99 541 and 542 ns. Costs: the delay-to-pop p99 rises to 284 and 285 ns (a message can wait for one unit), and the real-feed median rises from 173 to 289 ns (synthetic falls from 527 to 312). The outcome, memory helps and the book does not, was not one of the three pre-registered readings. By design the mem units are loads meant to miss the system cache, so they probably keep the core busy longer than the book units (unit duration was not recorded); memory activity and core activity are therefore not separated; neither is identified by these counters |
+| H30b | The first 100,000 messages of the BX open at a constant 13,271 msg/s (their own mean rate: 100,000 over 7.535 s) have a p99 within 1.5x of their p99 under the real timestamps, for all three waits: the arrival structure adds little beyond the rate | pending | rerun of H30 with the correct rate |
 
 ## Notes on `titan-t2t`
 
@@ -220,3 +221,11 @@ H34 to H36 verdicts compare arms of the same run only.
 * H21: the 5-instruction overhead applies to the synthetic feed only.
 * Pre-registration texts above are left as written; corrections live in the
   table and here.
+
+## Pre-registered 2026-11-12, sixth run
+
+**H30b.** As H30, with the window's own mean rate (13,271 msg/s) instead of
+6,627 msg/s. `titan-pipeline file=BX from=34200 limit=100000`, once with
+`rates=13271` and once with `speed=1`, waits spin, isb and wfe, 5 epochs,
+no `split`, no keep-warm. Verdict on the median over epochs of each wait's
+p99.
