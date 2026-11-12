@@ -15,6 +15,7 @@
 pub mod book;
 pub mod decode;
 pub mod gen;
+pub mod path;
 pub mod reference;
 
 /// Side of an order.
