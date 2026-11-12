@@ -1,0 +1,29 @@
+# Summaries of the sixth 2026-11-12 measurement run (statistics only; raw
+# epoch lines stay on the measurement machine; no NASDAQ data is reproduced).
+#
+# Code:      commit 8cbe992 (created 12:35 IST), pushed at 16:39:55 IST by the
+#            run script, before its first measurement
+# Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
+# Toolchain: rustc 1.92.0, release profile, target-cpu=native
+# Power:     wall power (83%, charging), Low Power Mode off, Docker not
+#            running, sleep prevented (caffeinate), no thermal or
+#            performance warning recorded.
+# Load:      operator report: VS Code plus a browser with three more tabs
+#            open than in earlier runs (GitHub, another chat, search);
+#            millisecond-scale stalls appear in the p99.99 and maximum of
+#            several arms.
+# Epochs:    5 inside one process. PRELIMINARY.
+# Window:    BX 2019-07-30 from 09:30:00, first 100,000 messages, 7.535 s of
+#            feed time (mean 13,271 msg/s); constant 13,271 msg/s vs real
+#            timestamps (speed 1); no split, no keep-warm.
+# Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30 (see 2026-11-11_m4.txt).
+== H30b: real BX open, first 100,000 messages, constant 13,271 msg/s vs real timestamps, 3 waits x 5 epochs  [16:39:55]
+pl_config feed=20190730_BX_ITCH_50 messages=28734686 window=351469..451469 window_messages=100000 instruments=8850 peak_live_orders=67283 order_table_slots=262144 ring=4096 path=full epochs=5 feed_locked=true counter_hz=1000000000 window_feed_seconds=7.535 ts_backwards=0
+pl_config feed=20190730_BX_ITCH_50 messages=28734686 window=351469..451469 window_messages=100000 instruments=8850 peak_live_orders=67283 order_table_slots=262144 ring=4096 path=full epochs=5 feed_locked=true counter_hz=1000000000 window_feed_seconds=7.535 ts_backwards=0
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_13271 wait=wfe path=full feed=20190730_BX_ITCH_50    n=5     1867.00 [ 1752.00,  1869.00] p50_ns=113 p999_ns=8.95e+03 p9999_ns=1.16e+06 max_ns=1.91e+06 achieved_mps=0.013 saturated=0 feed_late_over_1us=180 invol_switches
+load=rate_13271 wait=spin path=full feed=20190730_BX_ITCH_50   n=5     2533.00 [ 1913.00,  2980.00] p50_ns=117 p999_ns=5.24e+03 p9999_ns=1.3e+04 max_ns=3.14e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=121 invol_switches=
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50       n=5     2598.00 [ 2311.00,  7266.00] p50_ns=117 p999_ns=9.31e+04 p9999_ns=1.32e+06 max_ns=2.35e+06 achieved_mps=0.013 saturated=0 feed_late_over_1us=594 invol_switches
+load=rate_13271 wait=isb path=full feed=20190730_BX_ITCH_50    n=5     2779.00 [ 2183.00,  3335.00] p50_ns=112 p999_ns=7.03e+03 p9999_ns=1.64e+04 max_ns=3.82e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=164 invol_switches
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50      n=5     2843.00 [ 2118.00, 24832.00] p50_ns=122 p999_ns=1.17e+05 p9999_ns=2.24e+06 max_ns=4.17e+06 achieved_mps=0.013 saturated=0 feed_late_over_1us=341 invol_switches
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50       n=5     2896.00 [ 2158.00,  9032.00] p50_ns=115 p999_ns=6.81e+04 p9999_ns=1.52e+06 max_ns=2.73e+06 achieved_mps=0.013 saturated=0 feed_late_over_1us=451 invol_switches
