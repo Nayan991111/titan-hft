@@ -21,8 +21,14 @@
 //! The trading thread waits for the next message with `spin` (reload only),
 //! `isb` (Rust's spin_loop) or `wfe` (exclusive monitor on the ring index).
 //!
-//!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk] [gaps]
+//!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk|none] [gaps] [pmu]
 //!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E] [gaps]
+//!
+//! `path=none` pops and records each message without running the trading
+//! path: the cost of waiting itself, as a control. `pmu` (run under sudo)
+//! adds the consumer thread's cycles, instructions, L1D load misses and
+//! branch mispredicts per message over each run; waiting is included, and
+//! kperf counts kernel work done while the thread runs.
 //!
 //! `gaps` also keeps one histogram per class of scheduled gap to the previous
 //! message (under 100 ns, 100 ns to 1 us, 1 to 10 us, 10 to 100 us, over
@@ -44,6 +50,7 @@ use titan_itch::{Book, Side};
 use titan_platform::alloc_count::{thread_allocations, CountingAlloc};
 use titan_platform::clock;
 use titan_platform::hist::Histogram;
+use titan_platform::kperf::{events, Kperf, Session};
 use titan_platform::mem::PinnedRegion;
 use titan_platform::qos::{self, Qos};
 use titan_platform::rusage::Usage;
@@ -176,6 +183,9 @@ struct RunResult {
     orders: u64,
     allocations: u64,
     invol: i64,
+    /// Consumer thread counters over the whole run, waiting included:
+    /// cycles, instructions, L1D load misses, branch mispredicts.
+    pmu: [u64; 4],
 }
 
 struct Ctx<'a> {
@@ -185,7 +195,21 @@ struct Ctx<'a> {
     window: std::ops::Range<usize>,
     max_spread: u32,
     with_risk: bool,
+    /// `path=none`: pop and record only, no trading path (control for
+    /// what waiting itself costs).
+    none: bool,
+    pmu: Option<&'a Session>,
     ring: usize,
+}
+
+fn path_name(with_risk: bool, none: bool) -> &'static str {
+    if none {
+        "none"
+    } else if with_risk {
+        "risk"
+    } else {
+        "full"
+    }
 }
 
 fn warm(c: &Ctx, book: &mut L3Book, risk: &mut Risk) {
@@ -218,7 +242,7 @@ fn run<W: Wait>(
     let u0 = Usage::now();
     // Start 5 ms ahead so both threads are running and waiting.
     let start = clock::counter() + freq / 200;
-    let mut result = RunResult { messages: 0, span_ticks: 0, late_max: 0, late_over_1us: 0, orders: 0, allocations: 0, invol: 0 };
+    let mut result = RunResult { messages: 0, span_ticks: 0, late_max: 0, late_over_1us: 0, orders: 0, allocations: 0, invol: 0, pmu: [0; 4] };
     let one_us = freq / 1_000_000;
     thread::scope(|s| {
         let producer = s.spawn(move || {
@@ -246,13 +270,17 @@ fn run<W: Wait>(
         let mut rx = rx;
         let mut state = 0x9E37_79B9_7F4A_7C15u64;
         let a0 = thread_allocations();
+        let p0 = c.pmu.map(|s| s.read());
         let (mut i, mut orders, mut last) = (0usize, 0u64, start);
         loop {
             let d = rx.recv();
             if d == STOP {
                 break;
             }
-            orders += if c.with_risk {
+            orders += if c.none {
+                std::hint::black_box(d);
+                0
+            } else if c.with_risk {
                 step::<true>(c.feed, d, book, risk, &mut state, c.max_spread)
             } else {
                 step::<false>(c.feed, d, book, risk, &mut state, c.max_spread)
@@ -267,6 +295,11 @@ fn run<W: Wait>(
             }
             last = t;
             i += 1;
+        }
+        if let (Some(s), Some(a)) = (c.pmu, p0) {
+            let b = s.read();
+            let d = s.delta(&a, &b);
+            result.pmu = [d[0], d[1], d[2], d[3]];
         }
         result.allocations = thread_allocations() - a0;
         result.messages = i as u64;
@@ -287,6 +320,20 @@ fn main() {
     let max_spread: u32 = num(&args, "spread", 300);
     let ring: usize = num(&args, "ring", 4096);
     let with_risk = kv(&args, "path") == Some("risk");
+    let none = kv(&args, "path") == Some("none");
+    let pmu = if args.iter().any(|a| a == "pmu") {
+        match Kperf::open().and_then(|kp| {
+            kp.session(&[events::CYCLES, events::INSTRUCTIONS, events::L1D_LOAD_MISS, events::BRANCH_MISPREDICT])
+        }) {
+            Ok(s) => Some(s),
+            Err(e) => {
+                eprintln!("pmu unavailable: {e}");
+                std::process::exit(2);
+            }
+        }
+    } else {
+        None
+    };
     let gaps = args.iter().any(|a| a == "gaps");
     let waits: Vec<String> = kv(&args, "waits").unwrap_or("spin,isb,wfe").split(',').map(str::to_string).collect();
     let _ = qos::set_current_thread(Qos::UserInteractive);
@@ -370,11 +417,11 @@ fn main() {
         window.end,
         f.peak,
         1usize << log2,
-        if with_risk { "risk" } else { "full" },
+        path_name(with_risk, none),
         (f.ts[window.clone()].iter().max().copied().unwrap_or(0).saturating_sub(f.ts[window.start])) as f64 / 1e9,
     );
 
-    let c = Ctx { feed: feed_buf, descs: &f.descs, prefix, window, max_spread, with_risk, ring };
+    let c = Ctx { feed: feed_buf, descs: &f.descs, prefix, window, max_spread, with_risk, none, pmu: pmu.as_ref(), ring };
     let kill = AtomicBool::new(false);
     let mut risk = Risk::new(instruments, Limits::default(), &kill);
     let mut book = L3Book::new(log2, instruments);
@@ -411,8 +458,8 @@ fn main() {
                 println!(
                     "pl feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} messages={} offered_mps={:.3} achieved_mps={:.3} \
                      p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} p9999_ns={:.1} p99999_ns={:.1} max_ns={:.1} mean_ns={:.1} \
-                     feed_late_max_ns={:.1} feed_late_over_1us={} orders={} allocations={} invol_switches={}",
-                    if c.with_risk { "risk" } else { "full" },
+                     feed_late_max_ns={:.1} feed_late_over_1us={} orders={} allocations={} invol_switches={}{}",
+                    path_name(c.with_risk, c.none),
                     saturated as u8,
                     r.messages,
                     offered / 1e6,
@@ -430,13 +477,25 @@ fn main() {
                     r.orders,
                     r.allocations,
                     r.invol,
+                    if c.pmu.is_some() {
+                        let m = r.messages.max(1) as f64;
+                        format!(
+                            " msg_cycles={:.2} msg_instructions={:.2} msg_l1d_miss={:.4} msg_br_mispred={:.4}",
+                            r.pmu[0] as f64 / m,
+                            r.pmu[1] as f64 / m,
+                            r.pmu[2] as f64 / m,
+                            r.pmu[3] as f64 / m
+                        )
+                    } else {
+                        String::new()
+                    },
                 );
                 if gaps {
                     for (g, h) in GAP_NAMES.iter().zip(&gh) {
                         println!(
                             "pl_gap feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} gap={g} messages={} \
                              p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} max_ns={:.1} mean_ns={:.1}",
-                            if c.with_risk { "risk" } else { "full" },
+                            path_name(c.with_risk, c.none),
                             saturated as u8,
                             h.count(),
                             to_ns(h.quantile(0.5)),
