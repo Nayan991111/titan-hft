@@ -98,16 +98,16 @@ reader's light or dark theme.
 | Statistics | Per-epoch medians, bootstrap 95% CI, two-sided Mann-Whitney U (exact when there are no ties), Cliff's delta ([`scripts/analyze.py`](scripts/analyze.py), standard library only). |
 
 <p align="center">
-  <img src="docs/figures/hypotheses.svg" alt="Grid of 22 pre-registered hypotheses with their status: 12 supported, 8 refuted or not supported, 1 inconclusive, 1 pending." width="100%">
+  <img src="docs/figures/hypotheses.svg" alt="Grid of the pre-registered hypotheses with their status: supported, refuted or not supported, inconclusive, pending." width="100%">
 </p>
 
 ## Components
 
 | Crate or binary | Purpose |
 |---|---|
-| `titan-platform` | Pinned memory, counter timer and its measured resolution, QoS, kperf PMU sessions, allocation and `getrusage` accounting. Self-test: `titan-probe`. |
+| `titan-platform` | Pinned memory, counter timer and its measured resolution, QoS, kperf PMU sessions, allocation and `getrusage` accounting, a fixed-memory log-linear latency histogram. Self-test: `titan-probe`. |
 | `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip) and `titan-stream` (throughput). |
-| `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator. `titan-replay` (book replay with full verification) and `titan-t2t` (trading path with stage ablation). |
+| `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation) and `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule). |
 | `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. |
 | `scripts/` | Data download, instruction census, statistics, figures. |
 
@@ -117,8 +117,10 @@ reader's light or dark theme.
 - [x] SPSC ring with ordering, padding, caching and wait-strategy ablations; cross-core ping-pong and streaming
 - [x] ITCH 5.0 decoder and L3 book, verified message by message on a real NASDAQ day
 - [x] Single-core trading path with stage ablation; hostile-input tests; dependency audit in CI
-- [ ] Code-placement control (H17): fixed function and loop alignment, then re-test `ldar` against `ldapr`
-- [ ] Open-loop cross-core pipeline driven by the real ITCH timestamps, with latency histograms corrected for coordinated omission: per-message tails, not batch means
+- [x] Pre-trade risk checks (kill switch, size, collar, notional, position, credit, duplicate, rate) as a measured stage
+- [x] Open-loop two-core pipeline driven by a constant rate or by the real ITCH timestamps; per-message latency taken from the schedule, so no coordinated omission
+- [ ] Code-placement control (H17): fixed function and block alignment, then re-test `ldar` against `ldapr`
+- [ ] Pipeline and pre-trade check results on the M4
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
 - [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs
@@ -132,7 +134,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 28 tests, including hostile input
+cargo test --release -- --test-threads=1      # 34 tests, including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 
@@ -144,6 +146,10 @@ sudo ./target/release/titan-t2t messages=5000000 epochs=5 pmu
 scripts/fetch_itch_sample.sh 20190730         # public NASDAQ BX sample day into data/
 ./target/release/titan-replay file=data/20190730.BX_ITCH_50 epochs=3
 ./target/release/titan-t2t file=data/20190730.BX_ITCH_50 limit=20000000 epochs=5
+sudo ./target/release/titan-t2t stages=full,risk limits=open epochs=5 pmu   # cost of the checks alone
+
+./target/release/titan-pipeline rates=1000000,10000000 waits=spin,isb,wfe epochs=5
+./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1
 
 python3 scripts/analyze.py output.txt         # statistics over epochs
 python3 scripts/figures.py                    # redraw docs/figures from results/
