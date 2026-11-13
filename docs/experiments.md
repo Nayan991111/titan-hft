@@ -65,6 +65,12 @@ are added afterwards and are never edited away when a prediction fails.
 | H35 | Keeping the book warm while waiting (`warm=book`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | refuted | warm=book, end-to-end p99 at 6,627 msg/s: 3,050 vs 3,102 ns synthetic (1.02x lower), 2,491 vs 3,073 ns real (1.23x); service p99 2,959 and 2,208 ns |
 | H36 | Keeping memory active while waiting without touching the book (`warm=mem`) lowers the full-path p99 at 6,627 msg/s by at least 2x, both feeds | supported | warm=mem, end-to-end p99 at 6,627 msg/s: 618 vs 3,102 ns synthetic (5.0x lower), 626 vs 3,073 ns real (4.9x); service p99 541 and 542 ns. Costs: the delay-to-pop p99 rises to 284 and 285 ns (a message can wait for one unit), and the real-feed median rises from 173 to 289 ns (synthetic falls from 527 to 312). The outcome, memory helps and the book does not, was not one of the three pre-registered readings. By design the mem units are loads meant to miss the system cache, so they probably keep the core busy longer than the book units (unit duration was not recorded); memory activity and core activity are therefore not separated; neither is identified by these counters |
 | H30b | The first 100,000 messages of the BX open at a constant 13,271 msg/s (their own mean rate: 100,000 over 7.535 s) have a p99 within 1.5x of their p99 under the real timestamps, for all three waits: the arrival structure adds little beyond the rate | supported (noisy run) | Median p99, real timestamps vs constant 13,271 msg/s: wfe 2,598 vs 1,867 ns (1.39x), spin 2,843 vs 2,533 (1.12x), isb 2,896 vs 2,779 (1.04x); all within 1.5x. Medians 112 to 122 ns in all arms. The direction is not established: the identical real-timestamp arms were 1.39 to 1.54x higher here than in the third run (1,873, 1,931, 1,886 ns), a run-to-run change as large as the effect. The run had more browser activity than earlier runs: the three real-timestamp arms and the constant wfe arm show millisecond stalls (p99.99 1.3 to 2.2 ms) and wide intervals (p99 upper bounds 7.3 to 24.8 us), and more messages released over 1 us late (341 to 594 vs 121 to 180). To be repeated in the final protocol on a quiet machine |
+| H30c | Repeat of H30b on a quiet machine (one browser window, no other applications): p99 under the real timestamps within 1.5x of the p99 at a constant 13,271 msg/s, for all three waits | pending | |
+| H37 | One ITCH message per MoldUDP64 datagram over UDP loopback: (a) at 100k msg/s the median latency with a polling receiver is at least 5x the shared-memory pipeline median (isb) at the same rate and window; (b) at 10k msg/s a blocking receiver's median is at least 1.5x the polling receiver's; (c) at 1M msg/s both UDP receivers saturate (achieved below 97% of offered, or messages lost) | pending | |
+| H38 | Parsing a FIX 4.2 NewOrderSingle: (a) a full parse that validates BodyLength and CheckSum and indexes every field costs at least 2x the cycles of a selective parse of the five fields the order needs; (b) finding field delimiters with NEON compares lowers the full parse cost by at least 1.3x; both feeds | pending | |
+| H39 | Audit trail of every risk decision: (a) a 32-byte binary record per order adds under 10 cycles per order to the checks; (b) a formatted text record adds at least 10x the binary record's cost, (median audittext - median checks) / (median auditbin - median checks) >= 10, with auditbin above checks (p < 0.05); both feeds, median `msg_cycles` over epochs | pending | |
+| H40 | An online VPIN update in volume time, with each execution signed exactly from the resting order's side in the L3 book, costs under 30 cycles per signed execution (median `msg_cycles` of vpin minus that of vpinfloor), both feeds | pending | |
+| H41 | Replication on BX 2019-07-30 (instruments with at least 100 signed executions): bulk volume classification (1-minute bars, normal CDF, per-instrument standard deviation of bar price changes) misclassifies a larger share of volume than the tick rule, both measured per 1-minute bar | pending | literature: Chakrabarty, Pascual and Shkilko (2015) and Andersen and Bondarenko (2013 working paper) report the tick rule more accurate at the trade level |
 
 ## Notes on `titan-t2t`
 
@@ -229,3 +235,90 @@ H34 to H36 verdicts compare arms of the same run only.
 `rates=13271` and once with `speed=1`, waits spin, isb and wfe, 5 epochs,
 no `split`, no keep-warm. Verdict on the median over epochs of each wait's
 p99.
+
+## Pre-registered 2026-11-13, seventh run
+
+These complete the measurable parts of the first source brief (see the
+ledger): the network receive path, inbound FIX parsing, an asynchronous
+audit trail, and an order-flow toxicity engine. None of the brief's numbers
+are used.
+
+**H30c.** H30b unchanged, on a quiet machine.
+
+**H37 (network receive path).** `titan-pipeline waits=udpblock,udppoll`
+(same binary, same schedule and trading path as the shared-memory runs). A
+producer thread
+releases each message at its scheduled time (same open-loop schedule as
+`titan-pipeline`) by sending one MoldUDP64 downstream packet to a UDP socket
+on 127.0.0.1 (built before the scheduled time, sent at it; the `send`
+call counts in the latency and in `feed_late_over_1us`): 20-byte header (session, 10 bytes; sequence number of the
+first message, 8 bytes; message count, 2 bytes) and one message block
+(2-byte length plus the ITCH message), as in the NASDAQ MoldUDP64 v1.00
+specification. The consumer checks the session and sequence number, counts
+gaps, then runs the same trading path (decode, book, signal) on the
+received bytes and records completion minus schedule. Receivers: `udpblock`
+(blocking `recv`, 1 s timeout) and `udppoll` (non-blocking `recv` in a
+loop). Rates 10k, 100k and 1M
+msg/s; windows as H28 (BX from 09:30:00, first 100,000 messages) and the
+synthetic feed (first 100,000); 5 epochs. The shared-memory baseline for
+H37a is `titan-pipeline` with `waits=isb` on the same windows and rates,
+in the same script. Receive buffer: 8 MiB requested (`SO_RCVBUF`), halved
+until the kernel accepts it; the granted size is printed with every run
+(`udp_rcvbuf`). Lost datagrams appear as gaps and are reported; a run with
+loss beyond deliberate drops, or ending on the 1 s receive timeout, is
+marked saturated and left out of comparisons. A correctness check (not a
+hypothesis), in its own output file, holds back every 1,000th datagram and
+requires the gaps detected to be at least the datagrams held back (any
+excess is real loopback loss and is printed). The cost of `sendto` sits inside the measured latency,
+as it does for a real feed handler's upstream.
+
+**H38 (inbound FIX).** `titan-t2t stages=fixfull,fixsel,fixneon pmu`.
+Messages are FIX 4.2 NewOrderSingle built (untimed) from the recorded orders
+with the H31 encoder. `fixfull` validates BeginString, BodyLength and CheckSum,
+indexes every field (tag and value span) and reads the five order fields
+(35 and 54 as characters, 55 as a string, 38 and 44 as integers, 44 with
+up to 4 decimals); `fixsel` scans only for those five (tags must be digits),
+with no BeginString, BodyLength or CheckSum validation; `fixneon` is `fixfull` with delimiter (SOH) positions found
+16 bytes at a time with NEON compares. All three must return the recorded
+order exactly (the harness aborts otherwise). Per message, PMU cycles.
+
+**H39 (audit trail).** Stages `auditbin` and `audittext` run the checks of
+H21b with open limits and append one record per order: `auditbin` writes 32
+bytes (feed time, sequence, locate, side, price, shares, decision) into a
+preallocated ring; `audittext` formats the same fields as one text line with
+`core::fmt` into a reusable buffer (no allocation after warm-up). Added cost
+= stage minus `checks`, PMU cycles per order; the audit stages fold the
+same fields into the checksum as `checks`, so the difference is the record. A real system drains the ring
+on another core; only the hot-path cost is measured.
+
+**H40 (toxicity).** An untimed pass records every displayed execution (`E`,
+and `C` with Printable = 'Y') with its aggressor side, the opposite of the
+resting order's side, read from the L3 book before the execution is
+applied. Excluded and counted: `P` trades on non-displayed orders (no
+usable side) and non-printable `C` executions (crosses, which have no
+aggressor). The timed stage `vpin` feeds these
+records to a per-instrument VPIN in volume time (bucket size: 1/50 of the
+instrument's executed volume that day, from the untimed pass; 50 buckets;
+a large execution may fill several buckets). Floor stage `vpinfloor` runs
+the same loop, reading each record (`black_box(*e)`), with no update. Per signed execution,
+PMU cycles. Easley, Lopez de Prado and O'Hara, Review of Financial Studies
+25(5), 2012, doi:10.1093/rfs/hhs053.
+
+**H41 (classification accuracy, replication).** From the same untimed pass
+on the real feed: true buy volume per instrument and 1-minute bar from the
+exact signs; BVC estimate V x Phi(dP / sigma), dP the change of the last
+price from the previous bar that had executions (not necessarily the
+previous minute) and sigma the population standard deviation of those
+changes for the instrument over the day; instruments with a single bar are
+dropped; both methods see displayed executions only; tick rule per execution (uptick buy, downtick sell, zero tick
+keeps the previous sign; an execution with no earlier non-zero tick counts
+half buy and half sell). Each instrument's first 1-minute bar has no price
+change for BVC and is excluded from both methods. The real feed is read in
+full (`limit=100000000`) for H40 and H41.
+Misclassified volume, the same measure for both: sum over bars of
+|estimated minus true buy volume|, divided by total signed volume, with the
+tick rule's buy volume aggregated into the same bars (errors inside a bar
+can cancel for both). The tick rule's trade-level error (volume of wrongly
+signed executions over total) is reported as well, but is not part of the
+verdict. Chakrabarty, Pascual and Shkilko,
+Journal of Financial Markets 25, 2015, doi:10.1016/j.finmar.2015.06.001.
