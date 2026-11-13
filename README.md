@@ -57,9 +57,14 @@ run.
 | Eight pre-trade checks of the kind SEC Rule 15c3-5 requires (kill switch, size, collar, notional, position, credit, duplicate, rate), measured alone | **21 cycles, 5.2 ns per order** on 1.94 million real orders (17 cycles synthetic); 115 instructions at an IPC of 5.5 | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
 | Same checks inside the trading path, per feed message | +0.5% (real, wall power) to +3.3% (synthetic) cycles per message | same, and [`results/2026-11-12_m4.txt`](results/2026-11-12_m4.txt) |
 | Where the real-pacing tail comes from (messages grouped by their gap to the previous one) | bursts under 100 ns are slower (median 165 vs 107 ns) but are only 0.1% of messages; the p99 is 1.9 to 3.6 us in every recorded gap class (the 10 to 100 us class was not recorded in that run); gaps over 100 us raise the p99 1.3x but not the median. Neither explains the tail | [`results/2026-11-12_m4_ac.txt`](results/2026-11-12_m4_ac.txt) |
-| What does set it: the offered rate, not the data | the same 100,000 real messages: p99 183 to 258 ns at a constant 1M msg/s, 2.2 to 3.0 us at a constant 6,627 msg/s; synthetic data at 6,627 msg/s: 1.9 to 2.2 us. A two-core pipeline is 9 to 16x slower at the p99 when it is mostly idle. At the same mean rate (13,271 msg/s), the p99 under the real timestamps was 1.04 to 1.39x that of a constant schedule, within run-to-run noise (H30b, noisy run) | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt), [`results/2026-11-12_m4_ac5.txt`](results/2026-11-12_m4_ac5.txt) |
+| What does set it: the offered rate, not the data | the same 100,000 real messages: p99 183 to 258 ns at a constant 1M msg/s, 2.2 to 3.0 us at a constant 6,627 msg/s; synthetic data at 6,627 msg/s: 1.9 to 2.2 us. A two-core pipeline is 9 to 16x slower at the p99 when it is mostly idle. At the same mean rate (13,271 msg/s), the p99 under the real timestamps was 1.04 to 1.39x that of a constant schedule, within run-to-run noise (H30b, noisy run; quiet repeat H30c: 1.02x, 1.29x, 1.08x, direction mixed) | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt), [`results/2026-11-12_m4_ac5.txt`](results/2026-11-12_m4_ac5.txt), [`results/2026-11-13_m4.txt`](results/2026-11-13_m4.txt) |
 | Why idle hurts: waiting alone is fast | with no trading work the p99 at 6,627 msg/s is 83 to 123 ns; with the trading path it is 18 to 26x that. Mean L1D misses per message rise by only 1 to 3 and branch mispredicts by under 0.1 at the low rate, so the extra time is not visible in mean L1D or branch counts | [`results/2026-11-12_m4_ac3.txt`](results/2026-11-12_m4_ac3.txt) |
 | What removes most of it: loads to memory while idle, not re-reading the book | at 6,627 msg/s the tail is in the service time (p99 about 3 us vs 115 to 125 ns to pop). Strided loads over a 128 MiB scratch buffer while idle cut the end-to-end p99 4.9 to 5.0x (to about 620 ns) on both feeds; re-reading the book's hot data cut it 1.0 to 1.2x. Memory activity and core activity are not yet separated. Cost: one wait for a load (pop p99 about 285 ns) and, on real data, a higher median (289 vs 173 ns) | [`results/2026-11-12_m4_ac4.txt`](results/2026-11-12_m4_ac4.txt) |
+| Network receive path: one MoldUDP64 datagram per message over UDP loopback | about 20 us median at 10k msg/s including the send call (polling 20.7, blocking 23.3) against 112 ns over shared memory; the path cannot sustain 100k msg/s (58k to 59k achieved, 5.5% to 7.0% of messages lost) | [`results/2026-11-13_m4.txt`](results/2026-11-13_m4.txt) |
+| Inbound FIX parsing, per NewOrderSingle | full validated parse 465 cycles, selective 298 (1.56x); NEON delimiter search brings the validated parse to 301, within 1% of selective | same |
+| Audit trail of every risk decision, per order | binary 32-byte record +5.2 cycles; formatted text line +303 cycles (58x the binary record, 15x the checks) | same |
+| Order-flow toxicity: VPIN update per signed execution, exact signs from the L3 book | 22 cycles (real, whole day, 681,693 executions) | same |
+| Trade classification against exact ITCH signs (replication) | bulk volume classification misclassifies 36.7% of volume per 1-minute bar, the tick rule 28.3%; BVC worse in 1,153 of 1,440 instruments | same |
 | Order encoding at the gateway, per order | OUCH 4.2 Enter Order 28.7 cycles (7.1 ns); FIX 4.2 NewOrderSingle 125 cycles (30.8 ns), 4.3x, on 1.94 million real orders | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
 
 <p align="center">
@@ -140,14 +145,14 @@ reader's light or dark theme.
 - [x] Pipeline and pre-trade check results on the M4 (preliminary)
 - [x] Code-placement control (H17): the `ldar` versus `ldapr` gap depends on code alignment (absent by default, up to 20% when aligned); mechanism open
 - [x] Isolated per-order cost of the checks (H21b); burst and idle-gap decomposition of the real-pacing tail (H26, H27)
-- [x] Cause of the real-pacing tail (H28, H29, H30b): the offered rate; the arrival pattern stays within 1.5x at the same mean rate (H30b, noisy run, to repeat)
+- [x] Cause of the real-pacing tail (H28, H29, H30b): the offered rate; the arrival pattern stays within 1.5x at the same mean rate (H30b noisy; H30c quiet repeat: 1.02x, 1.29x, 1.08x, direction mixed)
 - [x] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
 - [x] Mechanism of the low-rate tail, first cut: not the hand-off or wake-up (H33); not visible in mean L1D or branch counts (H32)
 - [x] Service time versus delay to pop, and keep-warm interventions on the book and on memory (H34 to H36): loads to memory while idle remove most of it; memory versus core activity not yet separated
-- [ ] Network receive path: MoldUDP64 over UDP loopback, blocking vs polling receive, with sequence-gap detection (H37)
-- [ ] Inbound FIX parsing: full validation vs selective vs NEON delimiter scan (H38)
-- [ ] Audit trail cost per order: binary record vs formatted text (H39)
-- [ ] Order-flow toxicity: VPIN from exact ITCH trade signs, and its cost per execution (H40); trade classification accuracy, replication (H41)
+- [x] Network receive path: MoldUDP64 over UDP loopback, blocking vs polling receive (H37); sequence-gap detection validated on the development machine only, M4 check pending
+- [x] Inbound FIX parsing: full validation vs selective vs NEON delimiter scan (H38)
+- [x] Audit trail cost per order: binary record vs formatted text (H39)
+- [x] Order-flow toxicity: VPIN update cost per execution with exact ITCH trade signs (H40); trade classification accuracy, replication (H41)
 - [ ] One writer, several strategy readers of book state: seqlock vs per-reader copies
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day

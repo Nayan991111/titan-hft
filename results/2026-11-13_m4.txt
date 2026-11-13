@@ -1,0 +1,165 @@
+# Summaries of the 2026-11-13 measurement run (statistics only; raw epoch
+# lines stay on the measurement machine; no NASDAQ data is reproduced).
+#
+# Code:      commit 48c16f3, pushed at 16:34:51 IST by the run script, before
+#            its first measurement
+# Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
+# Toolchain: rustc 1.92.0, release profile, target-cpu=native
+# Power:     wall power (57%, charging), Low Power Mode off, Docker not
+#            running, sleep prevented (caffeinate), no thermal or performance
+#            warning recorded. Operator: VS Code and one browser window only.
+# Epochs:    5 inside one process. PRELIMINARY.
+# UDP:       kern.ipc.maxsockbuf 8388608; granted SO_RCVBUF 8388608 in every
+#            run. The gap-detection check ran (it asserts and did not abort)
+#            but its summary line failed to print (BSD paste usage); at
+#            100k msg/s it is also uninformative, since real loss occurred.
+# Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30 (see 2026-11-11_m4.txt).
+#            H40 and H41 read the whole day (28,734,686 messages).
+== H30c: H30b repeated on a quiet machine  [16:35:00]
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_13271 wait=wfe path=full feed=20190730_BX_ITCH_50    n=5     1865.00 [ 1680.00,  1872.00] p50_ns=111 p999_ns=3.44e+03 p9999_ns=1.03e+04 max_ns=1.77e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=60 invol_switches=
+load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50       n=5     1904.00 [ 1862.00,  2459.00] p50_ns=104 p999_ns=3.62e+03 p9999_ns=1.02e+04 max_ns=3.66e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=75 invol_switches=
+load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50      n=5     2157.00 [ 1930.00,  2668.00] p50_ns=114 p999_ns=4.22e+03 p9999_ns=1.09e+04 max_ns=2.93e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=76 invol_switches=
+load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50       n=5     2214.00 [ 2066.00,  2878.00] p50_ns=103 p999_ns=4.28e+03 p9999_ns=1.13e+04 max_ns=2.82e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=63 invol_switches=
+load=rate_13271 wait=isb path=full feed=20190730_BX_ITCH_50    n=5     2397.00 [ 2229.00,  3003.00] p50_ns=107 p999_ns=4.31e+03 p9999_ns=1.12e+04 max_ns=3.25e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=90 invol_switches=
+load=rate_13271 wait=spin path=full feed=20190730_BX_ITCH_50   n=5     2780.00 [ 2032.00,  3012.00] p50_ns=115 p999_ns=4.32e+03 p9999_ns=1e+04 max_ns=2.26e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=75 invol_switches=121
+
+== H37: UDP receive path (MoldUDP64, one message per datagram) vs shared memory, 5 epochs  [16:38:52]
+-- gap detection check (every 1,000th datagram held back)
+# (the check printed nothing here: its summary command failed. The
+# per-epoch UDP lines that follow are from the MEASURED runs, h37_syn and
+# h37_real, with no datagrams held back; "missing" counts messages the
+# receiver never got.)
+synthetic_default rate_10000 udpblock epoch=0 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udppoll epoch=0 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_100000 udppoll epoch=0 saturated=1 missing=6706 timed_out=1 rcvbuf=8388608
+synthetic_default rate_100000 udpblock epoch=0 saturated=1 missing=5536 timed_out=0 rcvbuf=8388608
+synthetic_default rate_1000000 udpblock epoch=0 saturated=1 missing=45138 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udppoll epoch=0 saturated=1 missing=45896 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udppoll epoch=1 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udpblock epoch=1 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_100000 udpblock epoch=1 saturated=1 missing=6828 timed_out=1 rcvbuf=8388608
+synthetic_default rate_100000 udppoll epoch=1 saturated=1 missing=6988 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udpblock epoch=1 saturated=1 missing=46351 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udppoll epoch=1 saturated=1 missing=45866 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udpblock epoch=2 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udppoll epoch=2 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_100000 udpblock epoch=2 saturated=1 missing=5876 timed_out=1 rcvbuf=8388608
+synthetic_default rate_100000 udppoll epoch=2 saturated=1 missing=6644 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udppoll epoch=2 saturated=1 missing=46341 timed_out=0 rcvbuf=8388608
+synthetic_default rate_1000000 udpblock epoch=2 saturated=1 missing=44930 timed_out=1 rcvbuf=8388608
+synthetic_default rate_10000 udpblock epoch=3 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udppoll epoch=3 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_100000 udppoll epoch=3 saturated=1 missing=6728 timed_out=1 rcvbuf=8388608
+synthetic_default rate_100000 udpblock epoch=3 saturated=1 missing=6971 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udpblock epoch=3 saturated=1 missing=46419 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udppoll epoch=3 saturated=1 missing=45631 timed_out=1 rcvbuf=8388608
+synthetic_default rate_10000 udppoll epoch=4 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_10000 udpblock epoch=4 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+synthetic_default rate_100000 udpblock epoch=4 saturated=1 missing=6675 timed_out=1 rcvbuf=8388608
+synthetic_default rate_100000 udppoll epoch=4 saturated=1 missing=7008 timed_out=0 rcvbuf=8388608
+synthetic_default rate_1000000 udpblock epoch=4 saturated=1 missing=45183 timed_out=1 rcvbuf=8388608
+synthetic_default rate_1000000 udppoll epoch=4 saturated=1 missing=45556 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udpblock epoch=0 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udppoll epoch=0 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udppoll epoch=0 saturated=1 missing=6932 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udpblock epoch=0 saturated=1 missing=6889 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udpblock epoch=0 saturated=1 missing=46359 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udppoll epoch=0 saturated=1 missing=45818 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udppoll epoch=1 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udpblock epoch=1 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udpblock epoch=1 saturated=1 missing=6746 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udppoll epoch=1 saturated=1 missing=5763 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udpblock epoch=1 saturated=1 missing=46425 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udppoll epoch=1 saturated=1 missing=46020 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udpblock epoch=2 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udppoll epoch=2 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udpblock epoch=2 saturated=1 missing=6099 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udppoll epoch=2 saturated=1 missing=6927 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udppoll epoch=2 saturated=1 missing=46716 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udpblock epoch=2 saturated=1 missing=46378 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udpblock epoch=3 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udppoll epoch=3 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udppoll epoch=3 saturated=1 missing=6213 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udpblock epoch=3 saturated=1 missing=5716 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udpblock epoch=3 saturated=1 missing=46463 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udppoll epoch=3 saturated=1 missing=45707 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udppoll epoch=4 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_10000 udpblock epoch=4 saturated=0 missing=0 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udpblock epoch=4 saturated=1 missing=6280 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_100000 udppoll epoch=4 saturated=1 missing=6780 timed_out=1 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udpblock epoch=4 saturated=1 missing=46287 timed_out=0 rcvbuf=8388608
+20190730_BX_ITCH_50 rate_1000000 udppoll epoch=4 saturated=1 missing=45068 timed_out=1 rcvbuf=8388608
+## pl: p99_ns, median over epochs [bootstrap 95% CI]
+load=rate_1000000 wait=isb path=full feed=20190730_BX_ITCH_50  n=5      279.00 [  191.00,   636.00] p50_ns=106 p999_ns=458 p9999_ns=1.6e+03 max_ns=5e+03 achieved_mps=1 saturated=0 feed_late_over_1us=9 invol_switches=2 allocations=
+load=rate_1000000 wait=isb path=full feed=synthetic_default    n=5      326.00 [  323.00,  1664.00] p50_ns=157 p999_ns=1.15e+03 p9999_ns=6.22e+03 max_ns=1.25e+04 achieved_mps=1 saturated=0 feed_late_over_1us=37 invol_switches=3 al
+load=rate_100000 wait=isb path=full feed=synthetic_default     n=5      540.00 [  539.00,   559.00] p50_ns=259 p999_ns=1.97e+03 p9999_ns=6.65e+03 max_ns=2.62e+04 achieved_mps=0.1 saturated=0 feed_late_over_1us=55 invol_switches=20
+load=rate_100000 wait=isb path=full feed=20190730_BX_ITCH_50   n=5     1319.00 [ 1285.00,  1625.00] p50_ns=104 p999_ns=2.33e+03 p9999_ns=5.79e+03 max_ns=2.66e+04 achieved_mps=0.1 saturated=0 feed_late_over_1us=22 invol_switches=18
+load=rate_10000 wait=isb path=full feed=synthetic_default      n=5     2309.00 [ 2105.00,  2463.00] p50_ns=725 p999_ns=3.76e+03 p9999_ns=1.08e+04 max_ns=3.23e+04 achieved_mps=0.01 saturated=0 feed_late_over_1us=78 invol_switches=1
+load=rate_10000 wait=isb path=full feed=20190730_BX_ITCH_50    n=5     2601.00 [ 2264.00,  3035.00] p50_ns=112 p999_ns=3.69e+03 p9999_ns=9.44e+03 max_ns=3.72e+04 achieved_mps=0.01 saturated=0 feed_late_over_1us=74 invol_switches=1
+load=rate_10000 wait=udppoll path=full feed=20190730_BX_ITCH_50 n=5    26544.00 [26184.00, 27216.00] p50_ns=2.07e+04 p999_ns=3.83e+04 p9999_ns=6.68e+04 max_ns=9.62e+04 achieved_mps=0.01 saturated=0 feed_late_over_1us=1e+05 invol_s
+load=rate_10000 wait=udppoll path=full feed=synthetic_default  n=5    26752.00 [23600.00, 27048.00] p50_ns=2.05e+04 p999_ns=3.41e+04 p9999_ns=6.28e+04 max_ns=9.33e+04 achieved_mps=0.01 saturated=0 feed_late_over_1us=1e+05 invol_sw
+load=rate_10000 wait=udpblock path=full feed=20190730_BX_ITCH_50 n=5    29576.00 [27680.00, 30344.00] p50_ns=2.33e+04 p999_ns=6.88e+04 p9999_ns=8.92e+04 max_ns=1.66e+05 achieved_mps=0.01 saturated=0 feed_late_over_1us=1e+05 invol_
+load=rate_10000 wait=udpblock path=full feed=synthetic_default n=5    30056.00 [28144.00, 30288.00] p50_ns=2.33e+04 p999_ns=7.65e+04 p9999_ns=9.63e+04 max_ns=2.02e+05 achieved_mps=0.01 saturated=0 feed_late_over_1us=1e+05 invol_sw
+load=rate_100000 wait=udppoll path=full feed=synthetic_default n=5   631504896.00 [630980608.00, 633864192.00] p50_ns=4.76e+08 p999_ns=6.33e+08 p9999_ns=6.34e+08 max_ns=6.34e+08 achieved_mps=0.059 saturated=1 feed_late_over_1us=9.
+load=rate_100000 wait=udpblock path=full feed=synthetic_default n=5   633077760.00 [614465536.00, 662437888.00] p50_ns=4.74e+08 p999_ns=6.35e+08 p9999_ns=6.35e+08 max_ns=6.35e+08 achieved_mps=0.059 saturated=1 feed_late_over_1us=9
+load=rate_100000 wait=udpblock path=full feed=20190730_BX_ITCH_50 n=5   641466368.00 [632029184.00, 654573568.00] p50_ns=4.7e+08 p999_ns=6.43e+08 p9999_ns=6.44e+08 max_ns=6.44e+08 achieved_mps=0.058 saturated=1 feed_late_over_1us=
+load=rate_1000000 wait=udpblock path=full feed=synthetic_default n=5   652476416.00 [637796352.00, 666107904.00] p50_ns=3.61e+08 p999_ns=6.54e+08 p9999_ns=6.55e+08 max_ns=6.55e+08 achieved_mps=0.072 saturated=1 feed_late_over_1us=
+load=rate_100000 wait=udppoll path=full feed=20190730_BX_ITCH_50 n=5   656146432.00 [635961344.00, 684457984.00] p50_ns=4.76e+08 p999_ns=6.58e+08 p9999_ns=6.59e+08 max_ns=6.59e+08 achieved_mps=0.058 saturated=1 feed_late_over_1us=
+load=rate_1000000 wait=udpblock path=full feed=20190730_BX_ITCH_50 n=5   661913600.00 [651165696.00, 681050112.00] p50_ns=3.72e+08 p999_ns=6.64e+08 p9999_ns=6.64e+08 max_ns=6.64e+08 achieved_mps=0.07 saturated=1 feed_late_over_1us
+load=rate_1000000 wait=udppoll path=full feed=20190730_BX_ITCH_50 n=5   661913600.00 [655360000.00, 707788800.00] p50_ns=3.71e+08 p999_ns=6.64e+08 p9999_ns=6.64e+08 max_ns=6.64e+08 achieved_mps=0.071 saturated=1 feed_late_over_1us
+load=rate_1000000 wait=udppoll path=full feed=synthetic_default n=5   662700032.00 [645398528.00, 679739392.00] p50_ns=3.76e+08 p999_ns=6.65e+08 p9999_ns=6.65e+08 max_ns=6.65e+08 achieved_mps=0.071 saturated=1 feed_late_over_1us=1
+pl udppoll vs isb, rate_10000 full (20190730_BX_ITCH_50)    A= 26544.00 B=  2601.00 A/B=10.205 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl udppoll vs isb, rate_10000 full (20190730_BX_ITCH_50) [p50_ns] A= 20720.00 B=   112.00 A/B=185.000 nA=5 nB=5 U=25.0 p=0.0086 (normal) cliffs_delta=+1.00
+pl udpblock vs udppoll, rate_10000 full (20190730_BX_ITCH_50) A= 29576.00 B= 26544.00 A/B= 1.114 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl udpblock vs udppoll, rate_10000 full (20190730_BX_ITCH_50) [p50_ns] A= 23256.00 B= 20720.00 A/B= 1.122 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl udppoll vs isb, rate_10000 full (synthetic_default)      A= 26752.00 B=  2309.00 A/B=11.586 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl udppoll vs isb, rate_10000 full (synthetic_default) [p50_ns] A= 20456.00 B=   725.00 A/B=28.215 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl udpblock vs udppoll, rate_10000 full (synthetic_default) A= 30056.00 B= 26752.00 A/B= 1.124 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+pl udpblock vs udppoll, rate_10000 full (synthetic_default) [p50_ns] A= 23280.00 B= 20456.00 A/B= 1.138 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+
+== H38, H39: inbound FIX parsing and audit trail, PMU  [16:45:30]
+t2t_fix feed=synthetic_default messages=25965 bytes=3966088 neon=true
+t2t_fix feed=20190730_BX_ITCH_50 messages=1936537 bytes=300151891 neon=true
+stage=checks feed=synthetic_default                            n=5        4.19 [    4.07,     4.30] msg_cycles=17.1 msg_instructions=117 msg_l1d_miss=0.525 msg_br_mispred=0.0477 ipc=6.81 core_ghz=4.09 batch_p99_ns=4.47 intent_rate=1 allocations=0
+stage=auditbin feed=synthetic_default                          n=5        5.07 [    5.04,     5.17] msg_cycles=20.7 msg_instructions=144 msg_l1d_miss=0.964 msg_br_mispred=0.0475 ipc=6.94 core_ghz=4.08 batch_p99_ns=5.45 intent_rate=1 allocations=0
+stage=checks feed=20190730_BX_ITCH_50                          n=5        5.09 [    4.98,     5.15] msg_cycles=20.8 msg_instructions=115 msg_l1d_miss=0.945 msg_br_mispred=0.181 ipc=5.56 core_ghz=4.08 batch_p99_ns=5.38 intent_rate=1 allocations=0
+stage=auditbin feed=20190730_BX_ITCH_50                        n=5        6.43 [    6.34,     6.47] msg_cycles=26 msg_instructions=143 msg_l1d_miss=1.55 msg_br_mispred=0.181 ipc=5.49 core_ghz=4.07 batch_p99_ns=7.94 intent_rate=1 allocations=0
+stage=fixsel feed=synthetic_default                            n=5       73.11 [   72.88,    73.14] msg_cycles=295 msg_instructions=1.72e+03 msg_l1d_miss=5.88 msg_br_mispred=0.385 ipc=5.83 core_ghz=4.05 batch_p99_ns=74.3 intent_rate=1 allocations=0
+stage=fixneon feed=synthetic_default                           n=5       73.27 [   72.62,    73.42] msg_cycles=297 msg_instructions=2.23e+03 msg_l1d_miss=4.15 msg_br_mispred=0.953 ipc=7.53 core_ghz=4.05 batch_p99_ns=74.7 intent_rate=1 allocations=0
+stage=fixsel feed=20190730_BX_ITCH_50                          n=5       73.84 [   70.87,    76.75] msg_cycles=298 msg_instructions=1.72e+03 msg_l1d_miss=4.67 msg_br_mispred=0.539 ipc=5.76 core_ghz=4.04 batch_p99_ns=77.9 intent_rate=1 allocations=0
+stage=fixneon feed=20190730_BX_ITCH_50                         n=5       74.89 [   74.27,    76.44] msg_cycles=301 msg_instructions=2.24e+03 msg_l1d_miss=4.11 msg_br_mispred=0.99 ipc=7.43 core_ghz=4.04 batch_p99_ns=80.4 intent_rate=1 allocations=0
+stage=audittext feed=synthetic_default                         n=5       78.29 [   77.83,    78.42] msg_cycles=317 msg_instructions=1.95e+03 msg_l1d_miss=1.77 msg_br_mispred=0.544 ipc=6.15 core_ghz=4.05 batch_p99_ns=79.8 intent_rate=1 allocations=0
+stage=audittext feed=20190730_BX_ITCH_50                       n=5       80.03 [   78.77,    83.78] msg_cycles=324 msg_instructions=1.96e+03 msg_l1d_miss=2.34 msg_br_mispred=0.611 ipc=6.07 core_ghz=4.04 batch_p99_ns=82.9 intent_rate=1 allocations=0
+stage=fixfull feed=synthetic_default                           n=5      113.74 [  113.40,   113.86] msg_cycles=460 msg_instructions=2.88e+03 msg_l1d_miss=9.89 msg_br_mispred=1.32 ipc=6.27 core_ghz=4.05 batch_p99_ns=116 intent_rate=1 allocations=0
+stage=fixfull feed=20190730_BX_ITCH_50                         n=5      116.05 [  114.69,   116.52] msg_cycles=465 msg_instructions=2.89e+03 msg_l1d_miss=3.46 msg_br_mispred=1.51 ipc=6.22 core_ghz=4.04 batch_p99_ns=120 intent_rate=1 allocations=0
+t2t fixfull vs fixsel, FIX parse (20190730_BX_ITCH_50)       A=   116.05 B=    73.84 A/B= 1.572 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixsel, FIX parse (20190730_BX_ITCH_50) [msg_cycles] A=   464.62 B=   298.49 A/B= 1.557 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixneon, NEON delimiters (20190730_BX_ITCH_50) A=   116.05 B=    74.89 A/B= 1.550 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixneon, NEON delimiters (20190730_BX_ITCH_50) [msg_cycles] A=   464.62 B=   301.09 A/B= 1.543 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t auditbin vs checks, binary audit record (20190730_BX_ITCH_50) A=     6.43 B=     5.09 A/B= 1.264 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t auditbin vs checks, binary audit record (20190730_BX_ITCH_50) [msg_cycles] A=    25.98 B=    20.75 A/B= 1.252 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t audittext vs checks, text audit record (20190730_BX_ITCH_50) A=    80.03 B=     5.09 A/B=15.733 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t audittext vs checks, text audit record (20190730_BX_ITCH_50) [msg_cycles] A=   323.50 B=    20.75 A/B=15.590 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixsel, FIX parse (synthetic_default)         A=   113.74 B=    73.11 A/B= 1.556 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixsel, FIX parse (synthetic_default) [msg_cycles] A=   460.23 B=   295.07 A/B= 1.560 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixneon, NEON delimiters (synthetic_default)  A=   113.74 B=    73.27 A/B= 1.552 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t fixfull vs fixneon, NEON delimiters (synthetic_default) [msg_cycles] A=   460.23 B=   296.57 A/B= 1.552 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t auditbin vs checks, binary audit record (synthetic_default) A=     5.07 B=     4.19 A/B= 1.210 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t auditbin vs checks, binary audit record (synthetic_default) [msg_cycles] A=    20.71 B=    17.13 A/B= 1.209 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t audittext vs checks, text audit record (synthetic_default) A=    78.29 B=     4.19 A/B=18.681 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t audittext vs checks, text audit record (synthetic_default) [msg_cycles] A=   316.86 B=    17.13 A/B=18.497 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+
+== H40, H41: VPIN cost per signed execution, and classification accuracy (real feed read in full), PMU  [16:45:40]
+tox_execs feed=synthetic_default execs=499796 signed_volume=106574067 hidden_trades_excluded=0 nonprintable_c_excluded=0 instruments_traded=500
+tox_accuracy feed=synthetic_default bar_s=60 min_execs=100 instruments=0 volume=0 bvc_bar_error=0.0000 tick_bar_error=0.0000 tick_trade_error=0.0000 tick_unresolved=0 bvc_worse_instruments=0
+tox_execs feed=20190730_BX_ITCH_50 execs=681693 signed_volume=79037316 hidden_trades_excluded=243778 nonprintable_c_excluded=0 instruments_traded=5785
+tox_accuracy feed=20190730_BX_ITCH_50 bar_s=60 min_execs=100 instruments=1440 volume=71125784 bvc_bar_error=0.3674 tick_bar_error=0.2826 tick_trade_error=0.3008 tick_unresolved=333 bvc_worse_instruments=1153
+stage=vpinfloor feed=synthetic_default                         n=5        0.38 [    0.36,     0.39] msg_cycles=1.52 msg_instructions=7.01 msg_l1d_miss=0.551 msg_br_mispred=0.0002 ipc=4.63 core_ghz=3.96 batch_p99_ns=0.5 intent_rate=1 allocations=0
+stage=vpinfloor feed=20190730_BX_ITCH_50                       n=5        0.39 [    0.36,     0.41] msg_cycles=1.59 msg_instructions=7.01 msg_l1d_miss=0.526 msg_br_mispred=0.0002 ipc=4.41 core_ghz=4.12 batch_p99_ns=0.468 intent_rate=1 allocations=0
+stage=vpin feed=synthetic_default                              n=5        4.23 [    4.18,     4.37] msg_cycles=17.1 msg_instructions=33.3 msg_l1d_miss=0.49 msg_br_mispred=0.507 ipc=1.95 core_ghz=4.05 batch_p99_ns=4.64 intent_rate=1 allocations=0
+stage=vpin feed=20190730_BX_ITCH_50                            n=5        5.85 [    5.80,     6.02] msg_cycles=23.8 msg_instructions=47 msg_l1d_miss=1.48 msg_br_mispred=0.57 ipc=1.97 core_ghz=4.07 batch_p99_ns=10.3 intent_rate=1 allocations=0
+t2t vpin vs vpinfloor, VPIN update (20190730_BX_ITCH_50)     A=     5.85 B=     0.39 A/B=15.148 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t vpin vs vpinfloor, VPIN update (20190730_BX_ITCH_50) [msg_cycles] A=    23.81 B=     1.59 A/B=14.975 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t vpin vs vpinfloor, VPIN update (synthetic_default)       A=     4.23 B=     0.38 A/B=11.081 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
+t2t vpin vs vpinfloor, VPIN update (synthetic_default) [msg_cycles] A=    17.12 B=     1.52 A/B=11.263 nA=5 nB=5 U=25.0 p=0.0088 (normal) cliffs_delta=+1.00
