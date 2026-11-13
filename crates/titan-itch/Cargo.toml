@@ -6,6 +6,7 @@ description = "NASDAQ TotalView-ITCH 5.0 decoder, zero-allocation L3 order book,
 license = "MIT"
 
 [dependencies]
+libc = "0.2"
 titan-platform = { path = "../titan-platform" }
 titan-spsc = { path = "../titan-spsc" }
 
