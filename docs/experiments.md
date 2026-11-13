@@ -71,6 +71,13 @@ are added afterwards and are never edited away when a prediction fails.
 | H39 | Audit trail of every risk decision: (a) a 32-byte binary record per order adds under 10 cycles per order to the checks; (b) a formatted text record adds at least 10x the binary record's cost, (median audittext - median checks) / (median auditbin - median checks) >= 10, with auditbin above checks (p < 0.05); both feeds, median `msg_cycles` over epochs | supported | (a) Binary record: 25.98 vs 20.75 cycles per order real (+5.2), 20.71 vs 17.13 synthetic (+3.6), p = 0.008. (b) Text record adds 302.8 cycles real and 299.7 synthetic: 58x and 84x the binary record, and 15x (real) to 17x (synthetic) the cost of the eight checks themselves |
 | H40 | An online VPIN update in volume time, with each execution signed exactly from the resting order's side in the L3 book, costs under 30 cycles per signed execution (median `msg_cycles` of vpin minus that of vpinfloor), both feeds | supported | vpin minus vpinfloor: 23.81 - 1.59 = 22.2 cycles per signed execution real (681,693 executions, whole day), 17.12 - 1.52 = 15.6 synthetic (medians over 5 epochs) |
 | H41 | Replication on BX 2019-07-30 (instruments with at least 100 signed executions): bulk volume classification (1-minute bars, normal CDF, per-instrument standard deviation of bar price changes) misclassifies a larger share of volume than the tick rule, both measured per 1-minute bar | supported (replication) | 1,440 instruments, 71.1 million shares compared. Bar-level misclassified volume: BVC 36.7%, tick rule 28.3%; BVC worse in 1,153 of 1,440 instruments. Tick rule trade by trade: 30.1% of volume wrongly signed; 333 executions unresolved. Excluded: 243,778 trades on non-displayed orders; non-printable C executions: 0 on BX that day |
+| H42 | Private copies (`titan-fanout work=replay`, one ring per reader): X(copy3) >= 2 X(copy1), and copy3 above copy1, both feeds | pending | |
+| H43 | One shared seqlock snapshot per instrument (`work=replay`): (a) the first reader costs the writer, snap1 above snap0; (b) more readers add little, X(snap3) <= 1.5 X(snap1); both feeds | pending | |
+| H44 | At the highest update rate (`work=replay`) and 3 readers, the shared snapshot costs the writer less than private copies: snap3 below copy3, both feeds | pending | |
+| H45 | At the pace of the real feed (`work=book`, BX) and 3 readers, the order reverses: snap3 above copy3 | pending | |
+| H46 | At the pace of the feed (`work=book`), the median staleness of the updates readers take differs between the designs by at most 42 ns (one counter step) at 1, 2 and 3 readers, both feeds | pending | |
+| H47 | At the pace of the feed (`work=book`, 1 reader), a snapshot reader misses at least 1% of the versions published on the real feed and under 1% on the synthetic feed | pending | |
+| H48 | Profile-guided optimisation of `titan-t2t`, stage `full`: (a) a profile from the same feed lowers cycles per message by at least 3% against the default build; (b) a profile from the other feed gives at least half of that reduction; (c) the same-feed profile changes cycles more than aligning functions and non-fall-through blocks to 64 bytes (the H17 layout) does; both feeds | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -332,3 +339,132 @@ file argument), and at 100k msg/s real loss alone satisfies its assertion
 the development machine (exact equality of missing and held back) and
 needs a rerun on the M4 at 10k msg/s with the held-back count printed. The
 per-epoch UDP lines in the results file are from the measured runs.
+
+## Pre-registered 2026-11-13, eighth run
+
+These are the last two measurable items of the first source brief: its
+multi-strategy deployment (several strategies reading one shared order
+book, Day 13) and its profile-guided optimisation item. None of the brief's
+numbers are used. All verdicts of this run are preliminary in the sense of
+the Protocol (epochs inside one process, not 30 separate launches).
+
+**H42 to H47 (one book, several strategy threads).** `titan-fanout`, new in
+this batch. The writer is the thread that owns the L3 book (main thread, QoS
+USER_INTERACTIVE). It subscribes the K = 8 instruments with the most book
+messages in the window and publishes their best bid and ask (price and size,
+one word per side) whenever either changes. N reader threads (QoS
+USER_INTERACTIVE, busy polling) take the updates; for every update it takes,
+each reader reads the counter, records the staleness in a histogram and
+folds the content, in both designs; the bookkeeping that differs is the
+version check (copy) and the conflation count (snap).
+Designs: `none` (update built and discarded with `black_box`, one 32-byte
+stack store: the floor); `copy` (one titan-spsc ring per reader, AcqRel,
+128-byte index padding, cached indices, 4,096 slots of 32 bytes; the writer
+pushes every update into every ring and spins while one is full, so copies
+are lossless and ordered); `snap` (one seqlock slot per instrument in its
+own 128-byte line, fence-based form of Boehm, MSPC 2012,
+doi:10.1145/2247684.2247688; the writer overwrites it, every reader polls
+all K slots, and versions a reader never sees are counted as conflated).
+Every design, `none` included, reads the counter once per update for the
+staleness stamp, so that cost is part of the floor. The writer's state
+struct and the readers' flags each sit in their own 128-byte lines (their
+small heap buffers are ordinary allocations), and every page of each
+reader's histogram is touched before the pass starts.
+Configs per epoch, order rotated: none, snap0, copy1, snap1, copy2, snap2,
+copy3, snap3. Three readers plus the writer is the number of performance
+cores (4); macOS offers no thread pinning, so QoS is the only placement
+control. `invol_switches` counts the whole process (writer, readers and
+thread start-up) from before the readers start until they are joined.
+Two kinds of work: `work=book` replays the feed (decode, book, publish) as
+fast as the writer can, values per feed message; `work=replay` publishes
+the recorded updates back to back, repeated to at least 2,000,000 per
+pass, with no feed and no book, values per update. In `work=replay` a copy
+writer is limited by its slowest reader once a ring fills, so H42 and H44
+measure the writer including that wait; `full_waits` (pushes that found a
+ring full) and `wait_spins` (spin iterations while waiting) are reported
+to show how much of the cost is waiting.
+Feeds: BX 2019-07-30, first 20,000,000 messages, and the synthetic feed
+(5,000,000 messages, 500 instruments). 10 epochs in one process per feed
+and work. Writer metric: PMU cycles on the writer thread over the whole
+pass (`msg_cycles`); the writer hypotheses are evaluated only from PMU
+cycles, never from nanoseconds, and are not evaluated if the PMU is
+unavailable. Cost per published update above the floor:
+X(d, N) = (median msg_cycles of the config minus median of `none`) / q,
+with q the updates per unit (quotes over messages; 1 in `work=replay`).
+Staleness: the counter when a reader holds a consistent copy minus the
+writer's counter just before publishing (counter shared by all cores,
+41.67 ns step, printed values quantised to 41 or 42 ns); the staleness
+values of all readers of a run are pooled, and a snap reader's staleness
+covers only the versions it took, never the ones it skipped.
+Decision rules. "A above B" and "A below B" mean a two-sided Mann-Whitney U
+test on the per-epoch `msg_cycles` of the two configs (10 against 10) with
+p < 0.05 and the medians in the stated direction. A ratio of X values is
+evaluated on the medians as defined above and is undefined (hypothesis not
+evaluated) if the bootstrap 95% interval of the denominator reaches zero.
+A hypothesis stated for both feeds is supported if it holds on both,
+partly supported if on one, refuted if on neither. H46 is supported if all
+six differences of the medians over epochs of `stale_p50_ns` (N = 1, 2, 3
+on two feeds) are at most 42 ns, partly supported if three to five are,
+refuted otherwise. H47 uses the median over epochs of `conflated_frac` at
+snap1; it is supported if both parts hold, partly supported if one does.
+The harness aborts unless: the recorded updates match the reference pass
+of the feed (count, versions and final top of book of every slot); every
+run publishes that count, those versions and that final top of book; every
+copy reader receives every update in version order with content equal to
+the recorded sequence (fold over all updates); every snap reader's taken
+plus conflated versions equal those published; every reader ends holding
+the final top of book of every slot; and, in the unmeasured warm-up pass of
+every config, every reader checks the content of every update it takes
+against the recorded sequence (switched off in measured passes; a snap
+reader takes only some versions, so for snap the check covers the versions
+taken). Mutation tests on the development machine: one corrupted bid at
+version 3 makes the copy warm-up abort; for snap, where a single version is
+usually skipped, a corrupted bid at every odd version from 3 on in one slot
+makes the warm-up abort on the content check (8 of 8 runs, both kinds of
+work).
+The synthetic feed changes a subscribed top of book on well under 1% of
+messages (0.02% to 0.2% on the development machine), so in `work=book` its
+per-update writer cost is too diluted to estimate; that is why the writer
+hypotheses use `work=replay`, and H45 uses the real feed only.
+Reasoning recorded before the run: in `snap`, the release fence after the
+odd sequence store (expected to compile to `dmb ish`) may have to wait for
+that store to become visible, which needs the line back from every reader
+that polls it; in `copy`, the stores go to the store buffer with no full
+barrier, but the writer must wait for the slowest reader whenever a ring
+is full, as it will be at the replay rate. `scripts/fanout_census.sh`
+disassembles the six writer loops (`write_pass` and `replay_pass` for each
+design) and counts `dmb`, `isb`, `stlr`, `ldar` and `ldapr` per loop with
+each loop function's entry address, so the barrier claim is checked rather
+than assumed. Code layout differs between the separately compiled loops
+(H17 showed layout effects of up to 20%); the entry addresses are
+reported, and no alignment control is run for these hypotheses.
+
+**H48 (profile-guided optimisation).** `titan-t2t stages=decode,book,full
+pmu`, built four times from the same commit with `-C target-cpu=native`
+and the release profile, each in its own target directory, each binary
+printing its build name (`build=`): `base` (default); `align64` (every
+function and every non-fall-through block aligned to 64 bytes, the H17
+flags); `pgo_syn` and `pgo_real` (`-C profile-use` with the profile of an
+instrumented build, `-C profile-generate`, run once with stages decode,
+book and full on the synthetic feed, 5,000,000 messages, or on the first
+20,000,000 BX messages; raw profiles merged with the `llvm-profdata` of the
+toolchain's own `llvm-tools` component). Training and measurement use the
+same windows, so the same-feed profile is the in-sample case. Each build is
+measured on both feeds in 2 processes of 5 epochs, builds interleaved
+within each round: 10 epochs per build and feed. Verdicts on the median
+over epochs of `msg_cycles` of stage `full`; `decode` and `book` are
+reported. Gain G(b) = (median base minus median b) / median base. (a)
+holds on a feed if G(same-feed build) >= 0.03 and the build is below base
+(two-sided Mann-Whitney, p < 0.05). (b) is evaluated only on a feed where
+(a) holds: G(other-feed build) >= G(same-feed build) / 2. (c) holds on a
+feed if |median same-feed build minus median base| is larger than
+|median align64 minus median base|. Each part is supported if it holds on
+both feeds, partly supported on one. If the `llvm-tools` component cannot
+be installed on the measurement machine, H48 is not run and stays pending.
+
+**Gap-detection check (H37 correctness, rerun).** `titan-pipeline
+limit=100000 rates=10000 waits=udppoll drop_every=1000 epochs=1` on the
+synthetic feed and on BX from 09:30:00: every 1,000th datagram held back,
+so 100 per run. Passes if each receiver reports exactly 100 missing
+(`udp_missing`), with no receive timeout; any excess is real loopback loss
+and is printed.
