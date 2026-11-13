@@ -21,3 +21,7 @@ path = "src/bin/titan-t2t.rs"
 [[bin]]
 name = "titan-pipeline"
 path = "src/bin/titan-pipeline.rs"
+
+[[bin]]
+name = "titan-fanout"
+path = "src/bin/titan-fanout.rs"

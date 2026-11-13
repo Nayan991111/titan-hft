@@ -15,10 +15,13 @@
 //! * [`toxicity`]: VPIN from exact ITCH trade signs; bulk volume
 //!   classification and tick rule accuracy against them.
 //! * [`mold`]: MoldUDP64 packet framing and sequence-gap tracking.
+//! * [`fanout`]: top of book shared with several reader threads (per-reader
+//!   ring copies, or one seqlock snapshot per instrument).
 //! * [`gen`]: deterministic synthetic ITCH generator for tests and benchmarks.
 
 pub mod book;
 pub mod decode;
+pub mod fanout;
 pub mod gateway;
 pub mod gen;
 pub mod mold;

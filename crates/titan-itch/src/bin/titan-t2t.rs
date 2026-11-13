@@ -69,6 +69,9 @@
 //! `messages=` and every per-message field of the
 //! report count recorded orders, not feed messages.
 //!
+//! A binary built with the environment variable `TITAN_BUILD=name` prints
+//! `build=name` in its `t2t` and `t2t_config` lines.
+//!
 //! `limits=open` sets risk limits that no order can breach, so every check
 //! runs to the end and every order is sent: `risk` minus `full` is then the
 //! cost of the checks alone.
@@ -642,13 +645,20 @@ fn pct(v: &mut [f64], q: f64) -> f64 {
     v[i]
 }
 
+/// Build label, set at compile time with `TITAN_BUILD` (the code-layout and
+/// profile-guided builds of H48); printed as `build=` when set.
+fn build_label() -> String {
+    option_env!("TITAN_BUILD").map(|b| format!("build={b} ")).unwrap_or_default()
+}
+
 fn report(feed_name: &str, stage: &str, epoch: usize, with_risk: bool, st: &mut Stats) {
     let n = st.messages as f64;
     let secs = st.ticks as f64 / clock::counter_frequency() as f64;
     let ns = secs * 1e9 / n;
     let mut line = format!(
-        "t2t feed={feed_name} stage={stage} epoch={epoch} messages={} batches={} ns_per_msg={ns:.3} mmsg_per_s={:.2} \
+        "t2t {}feed={feed_name} stage={stage} epoch={epoch} messages={} batches={} ns_per_msg={ns:.3} mmsg_per_s={:.2} \
          batch_p50_ns={:.3} batch_p99_ns={:.3} batch_max_ns={:.3} intents={} intent_rate={:.5} allocations={} checksum={:016x}",
+        build_label(),
         st.messages,
         st.batch_ns.len(),
         1e3 / ns,
@@ -780,8 +790,9 @@ fn main() {
         }
     }
     println!(
-        "t2t_config feed={name} messages={} bytes={len} instruments={} peak_live_orders={peak} order_table_slots={} \
+        "t2t_config {}feed={name} messages={} bytes={len} instruments={} peak_live_orders={peak} order_table_slots={} \
          epochs={epochs} batch={k} spread={max_spread} limits={} pmu={} feed_locked={} pmu_read_pair_cycles={} pmu_read_pair_instructions={}",
+        build_label(),
         descs.len(),
         max_locate as usize + 1,
         1usize << log2,
