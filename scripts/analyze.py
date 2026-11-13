@@ -51,6 +51,8 @@ def load(paths):
                 rec = dict(PAIR.findall(line))
                 if kind == "pl_gap" and rec.get("messages") == "0":
                     continue
+                if kind == "pl" and rec.get("udp_dropped", "0") != "0":
+                    continue  # gap-detection check runs, not measurements
                 if kind in ("pp", "st"):
                     rec.setdefault("qos", "ui")
                 key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS[kind])
@@ -181,6 +183,11 @@ def contrasts(groups):
         extra.append(("t2t", f"checks vs replay, checks alone per order ({feed})", ("checks", feed), ("replay", feed)))
         extra.append(("t2t", f"fix vs ouch, order encoding ({feed})", ("fix", feed), ("ouch", feed)))
         extra.append(("t2t", f"ouch vs replay, binary encoding per order ({feed})", ("ouch", feed), ("replay", feed)))
+        extra.append(("t2t", f"fixfull vs fixsel, FIX parse ({feed})", ("fixfull", feed), ("fixsel", feed)))
+        extra.append(("t2t", f"fixfull vs fixneon, NEON delimiters ({feed})", ("fixfull", feed), ("fixneon", feed)))
+        extra.append(("t2t", f"auditbin vs checks, binary audit record ({feed})", ("auditbin", feed), ("checks", feed)))
+        extra.append(("t2t", f"audittext vs checks, text audit record ({feed})", ("audittext", feed), ("checks", feed)))
+        extra.append(("t2t", f"vpin vs vpinfloor, VPIN update ({feed})", ("vpin", feed), ("vpinfloor", feed)))
     for load, w, path, feed in sorted({k[1:5] for k in groups if k[0] == "pl_gap"}):
         for g in ("lt100ns", "gt100us"):
             if ("pl_gap", load, w, path, feed, g) not in groups:
@@ -189,6 +196,8 @@ def contrasts(groups):
     for load, path, feed in sorted({(k[1], k[3], k[4]) for k in groups if k[0] == "pl"}):
         for w in ("isb", "wfe"):
             extra.append(("pl", f"{w} vs spin, {load} {path} ({feed})", (load, w, path, feed), (load, "spin", path, feed)))
+        extra.append(("pl", f"udppoll vs isb, {load} {path} ({feed})", (load, "udppoll", path, feed), (load, "isb", path, feed)))
+        extra.append(("pl", f"udpblock vs udppoll, {load} {path} ({feed})", (load, "udpblock", path, feed), (load, "udppoll", path, feed)))
     for kind, name, ka, kb in CONTRASTS + extra:
         metrics = [METRIC[kind]] + {"t2t": ["msg_cycles"], "pl": ["p50_ns"], "pl_gap": ["p99_ns"]}.get(kind, [])
         if kind == "pl" and any(r.get("saturated") == "1" for k in (ka, kb) for r in groups.get((kind,) + k, [])):
