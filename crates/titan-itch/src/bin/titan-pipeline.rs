@@ -24,6 +24,17 @@
 //!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk|none] [gaps] [pmu] [split] [warm=book|mem]
 //!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E] [gaps]
 //!
+//! `waits=udpblock,udppoll` sends each message instead as one MoldUDP64
+//! packet over UDP loopback (feed thread `send` at the scheduled time;
+//! trading thread blocking `recv`, or non-blocking `recv` in a loop) and runs
+//! the trading path on the received bytes. `rcvbuf` asks for SO_RCVBUF
+//! (default 8 MiB, halved until the kernel accepts it; the granted size is
+//! printed); `drop_every=N` holds back every Nth datagram to check that the
+//! sequence tracking reports it (write those runs to their own file). A UDP
+//! run is marked saturated, and left out of comparisons, when it falls
+//! below 97% of the offered rate, loses messages beyond the deliberate
+//! drops, or ends on the receive timeout.
+//!
 //! `split` adds a `pl_split` line per run with the delay to pop (schedule to
 //! pop) and the service time (pop to decision) separately; it costs one more
 //! counter read per message. `warm=book|mem` (with `waits=isb`) keeps state
@@ -154,7 +165,12 @@ fn body(feed: &[u8], d: u64) -> &[u8] {
 /// The trading path for one message. Returns 1 if an order left the path.
 #[inline(always)]
 fn step<const RISK: bool>(feed: &[u8], d: u64, book: &mut L3Book, risk: &mut Risk, state: &mut u64, max_spread: u32) -> u64 {
-    let b = body(feed, d);
+    step_body::<RISK>(body(feed, d), book, risk, state, max_spread)
+}
+
+/// The trading path on one message body (decode, book, signal, checks).
+#[inline(always)]
+fn step_body<const RISK: bool>(b: &[u8], book: &mut L3Book, risk: &mut Risk, state: &mut u64, max_spread: u32) -> u64 {
     let Ok(m) = decode(b) else {
         *state = state.rotate_left(1);
         return 0;
@@ -405,6 +421,176 @@ fn run<W: Wait>(
     result
 }
 
+/// Receive-side counters of one UDP run.
+#[derive(Default)]
+struct UdpStats {
+    /// Datagrams not sent on purpose (`drop_every`).
+    dropped: u64,
+    /// Messages the receiver found missing from the sequence.
+    missing: u64,
+    stale: u64,
+    /// The run ended on the receive timeout, not on end of session.
+    timed_out: bool,
+    /// SO_RCVBUF as the kernel reports it.
+    rcvbuf: usize,
+}
+
+const UDP_SESSION: &[u8; 10] = b"TITAN00001";
+
+/// One timed run over UDP loopback: the feed thread sends each message at
+/// its scheduled time as one MoldUDP64 packet; the consumer receives
+/// (blocking, or non-blocking in a loop when `poll`), checks the sequence
+/// and runs the trading path on the received bytes.
+#[allow(clippy::too_many_arguments)]
+fn run_udp(
+    c: &Ctx,
+    sched: &[u64],
+    poll: bool,
+    drop_every: usize,
+    rcvbuf: usize,
+    book: &mut L3Book,
+    risk: &mut Risk,
+    hist: &mut Histogram,
+) -> (RunResult, UdpStats) {
+    use std::net::UdpSocket;
+    use std::os::fd::AsRawFd;
+    use titan_itch::mold::{self, Gaps, Packet};
+    prime(c, book, risk);
+    hist.reset();
+    let freq = clock::counter_frequency();
+    let rx = UdpSocket::bind("127.0.0.1:0").expect("bind receiver");
+    // The largest size the kernel accepts, halving from `rcvbuf` (macOS
+    // rejects sizes above its socket buffer limit); the granted size is
+    // read back and reported.
+    let mut want = rcvbuf.clamp(1 << 16, i32::MAX as usize);
+    loop {
+        let size = want as libc::c_int;
+        // SAFETY: valid socket descriptor and a pointer to a live c_int.
+        let rc = unsafe {
+            libc::setsockopt(
+                rx.as_raw_fd(),
+                libc::SOL_SOCKET,
+                libc::SO_RCVBUF,
+                &size as *const libc::c_int as *const libc::c_void,
+                std::mem::size_of::<libc::c_int>() as libc::socklen_t,
+            )
+        };
+        if rc == 0 {
+            break;
+        }
+        assert!(want > 1 << 16, "SO_RCVBUF: {}", std::io::Error::last_os_error());
+        want /= 2;
+    }
+    let mut got: libc::c_int = 0;
+    let mut len = std::mem::size_of::<libc::c_int>() as libc::socklen_t;
+    // SAFETY: valid descriptor, pointers to live locals of the stated size.
+    let rc = unsafe {
+        libc::getsockopt(rx.as_raw_fd(), libc::SOL_SOCKET, libc::SO_RCVBUF, &mut got as *mut libc::c_int as *mut libc::c_void, &mut len)
+    };
+    assert_eq!(rc, 0, "getsockopt SO_RCVBUF");
+    rx.set_nonblocking(poll).expect("nonblocking");
+    if !poll {
+        rx.set_read_timeout(Some(std::time::Duration::from_secs(1))).expect("timeout");
+    }
+    let tx = UdpSocket::bind("127.0.0.1:0").expect("bind sender");
+    tx.connect(rx.local_addr().expect("addr")).expect("connect");
+    let descs = &c.descs[c.window.clone()];
+    let feed = c.feed;
+    let u0 = Usage::now();
+    let start = clock::counter() + freq / 200;
+    let mut result = RunResult { messages: 0, span_ticks: 0, late_max: 0, late_over_1us: 0, orders: 0, allocations: 0, invol: 0, pmu: [0; 4], warm_units: 0 };
+    let mut us = UdpStats { rcvbuf: got as usize, ..UdpStats::default() };
+    let one_us = freq / 1_000_000;
+    thread::scope(|s| {
+        let producer = s.spawn(move || {
+            let _ = qos::set_current_thread(Qos::UserInteractive);
+            let (mut late_max, mut late_over, mut dropped) = (0u64, 0u64, 0u64);
+            let mut buf = [0u8; 2048];
+            for (i, &d) in descs.iter().enumerate() {
+                let seq = i as u64 + 1;
+                let n = mold::packet(&mut buf, UDP_SESSION, seq, &[body(feed, d)]).expect("packet");
+                let due = start + sched[i];
+                while clock::counter() < due {
+                    std::hint::spin_loop();
+                }
+                if drop_every > 0 && seq.is_multiple_of(drop_every as u64) {
+                    dropped += 1;
+                } else {
+                    // A full socket buffer drops the datagram; the receiver
+                    // sees it as a gap.
+                    let _ = tx.send(&buf[..n]);
+                }
+                let late = clock::counter().saturating_sub(due);
+                late_max = late_max.max(late);
+                late_over += (late > one_us) as u64;
+            }
+            mold::header(&mut buf, UDP_SESSION, descs.len() as u64 + 1, mold::END_OF_SESSION);
+            for _ in 0..3 {
+                let _ = tx.send(&buf[..mold::HEADER]);
+            }
+            (late_max, late_over, dropped)
+        });
+        let _ = qos::set_current_thread(Qos::UserInteractive);
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let a0 = thread_allocations();
+        let (mut got, mut orders, mut last) = (0u64, 0u64, start);
+        let mut gaps = Gaps::new();
+        let mut buf = [0u8; 2048];
+        let mut idle_since = clock::counter();
+        loop {
+            let n = match rx.recv(&mut buf) {
+                Ok(n) => n,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock || e.kind() == std::io::ErrorKind::TimedOut => {
+                    // Poll mode: give up after 1 s without a datagram; block
+                    // mode: the read timeout is 1 s.
+                    if !poll || clock::counter() - idle_since > freq {
+                        us.timed_out = true;
+                        break;
+                    }
+                    std::hint::spin_loop();
+                    continue;
+                }
+                Err(e) => panic!("recv: {e}"),
+            };
+            let Some(p) = Packet::parse(&buf[..n]) else { continue };
+            if p.session != UDP_SESSION {
+                continue;
+            }
+            if p.count == mold::END_OF_SESSION {
+                break;
+            }
+            if !gaps.on(p.seq, p.count) {
+                continue;
+            }
+            for (seq, m) in (p.seq..).zip(p.messages()) {
+                orders += if c.with_risk {
+                    step_body::<true>(m, book, risk, &mut state, c.max_spread)
+                } else {
+                    step_body::<false>(m, book, risk, &mut state, c.max_spread)
+                };
+                let t = clock::counter();
+                hist.record(t.saturating_sub(start + sched[(seq - 1) as usize]));
+                last = t;
+                got += 1;
+            }
+            idle_since = clock::counter();
+        }
+        result.allocations = thread_allocations() - a0;
+        result.messages = got;
+        result.span_ticks = last - start;
+        std::hint::black_box(state);
+        result.orders = orders;
+        let (lm, lo, dr) = producer.join().expect("feed thread");
+        result.late_max = lm;
+        result.late_over_1us = lo;
+        us.dropped = dr;
+        us.missing = gaps.missing + (descs.len() as u64 + 1).saturating_sub(gaps.expected);
+        us.stale = gaps.stale;
+    });
+    result.invol = Usage::now().since(&u0).involuntary_switches;
+    (result, us)
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let epochs: usize = num(&args, "epochs", 3);
@@ -413,6 +599,8 @@ fn main() {
     let with_risk = kv(&args, "path") == Some("risk");
     let none = kv(&args, "path") == Some("none");
     let split = args.iter().any(|a| a == "split");
+    let drop_every: usize = num(&args, "drop_every", 0);
+    let rcvbuf: usize = num(&args, "rcvbuf", 8 << 20);
     let warm: u8 = match kv(&args, "warm") {
         None | Some("off") => 0,
         Some("book") => 1,
@@ -533,6 +721,9 @@ fn main() {
     // With keep-warm the consumer polls the ring itself (pop, keep-warm
     // unit or isb), whatever the wait type, so only isb is meaningful.
     assert!(c.warm == 0 || waits.iter().all(|w| w == "isb"), "warm= needs waits=isb");
+    if waits.iter().any(|w| w.starts_with("udp")) {
+        assert!(c.warm == 0 && !c.split && !gaps && c.pmu.is_none() && !c.none, "udp waits take no warm, split, gaps, pmu or path=none");
+    }
     let classes: Vec<Vec<u8>> = loads.iter().map(|(_, s)| if gaps { gap_classes(s, freq) } else { Vec::new() }).collect();
 
     // Warm-up: one untimed single-thread pass of the whole window grows the
@@ -549,7 +740,13 @@ fn main() {
             for j in 0..waits.len() {
                 let w = &waits[(j + epoch + li) % waits.len()];
                 let cls = &classes[li];
+                let mut udp = None;
                 let r = match w.as_str() {
+                    "udpblock" | "udppoll" => {
+                        let (r, u) = run_udp(&c, sched, w == "udppoll", drop_every, rcvbuf, &mut book, &mut risk, &mut hist);
+                        udp = Some(u);
+                        r
+                    }
                     "spin" => run::<Spin>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh, &mut sh),
                     "isb" => run::<SpinHint>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh, &mut sh),
                     "wfe" => run::<Wfe>(&c, sched, cls, &mut book, &mut risk, &mut hist, &mut gh, &mut sh),
@@ -560,11 +757,14 @@ fn main() {
                 let offered = if offered_span > 0.0 { (n as f64 - 1.0) / offered_span } else { f64::NAN };
                 // Offered load above capacity: the queue grows for the whole run
                 // and percentiles then depend on run length, not on the system.
-                let saturated = achieved < 0.97 * offered;
+                // Over UDP a run is also invalid when messages were lost
+                // beyond the ones held back on purpose, or it timed out:
+                // the histogram would hold survivors only.
+                let saturated = achieved < 0.97 * offered || udp.as_ref().is_some_and(|u| u.missing > u.dropped || u.timed_out);
                 println!(
                     "pl feed={name} load={load} wait={w} path={} epoch={epoch} saturated={} messages={} offered_mps={:.3} achieved_mps={:.3} \
                      p50_ns={:.1} p90_ns={:.1} p99_ns={:.1} p999_ns={:.1} p9999_ns={:.1} p99999_ns={:.1} max_ns={:.1} mean_ns={:.1} \
-                     feed_late_max_ns={:.1} feed_late_over_1us={} orders={} allocations={} invol_switches={}{}",
+                     feed_late_max_ns={:.1} feed_late_over_1us={} orders={} allocations={} invol_switches={}{}{}",
                     path_name(c.with_risk, c.none, c.warm),
                     saturated as u8,
                     r.messages,
@@ -595,7 +795,21 @@ fn main() {
                     } else {
                         String::new()
                     },
+                    match &udp {
+                        Some(u) => format!(
+                            " udp_dropped={} udp_missing={} udp_stale={} udp_timed_out={} udp_rcvbuf={}",
+                            u.dropped, u.missing, u.stale, u.timed_out as u8, u.rcvbuf
+                        ),
+                        None => String::new(),
+                    },
                 );
+                if let Some(u) = &udp {
+                    if drop_every > 0 {
+                        // Correctness check: every datagram held back on purpose
+                        // must be seen as missing (loopback loss adds to it).
+                        assert!(u.missing >= u.dropped, "gap detection missed drops: {} < {}", u.missing, u.dropped);
+                    }
+                }
                 if c.split {
                     for (part, h) in ["pop", "service"].iter().zip(&sh) {
                         println!(

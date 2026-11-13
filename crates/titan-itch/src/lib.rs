@@ -12,14 +12,19 @@
 //!   correctness oracle.
 //! * [`gateway`]: order-entry encoders (OUCH 4.2 Enter Order, FIX 4.2
 //!   NewOrderSingle) into caller-owned buffers.
+//! * [`toxicity`]: VPIN from exact ITCH trade signs; bulk volume
+//!   classification and tick rule accuracy against them.
+//! * [`mold`]: MoldUDP64 packet framing and sequence-gap tracking.
 //! * [`gen`]: deterministic synthetic ITCH generator for tests and benchmarks.
 
 pub mod book;
 pub mod decode;
 pub mod gateway;
 pub mod gen;
+pub mod mold;
 pub mod path;
 pub mod reference;
+pub mod toxicity;
 
 /// Side of an order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
