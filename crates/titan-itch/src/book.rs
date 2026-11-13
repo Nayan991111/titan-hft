@@ -109,6 +109,15 @@ impl L3Book {
         unsafe { &mut *self.slots.add(i) }
     }
 
+    /// Side and price of a live order, read-only (the aggressor of an
+    /// execution is on the other side).
+    pub fn order_info(&self, order: u64) -> Option<(Side, u32)> {
+        self.find(order).map(|i| {
+            let s = self.slot(i);
+            (if s.buy { Side::Buy } else { Side::Sell }, s.price)
+        })
+    }
+
     #[inline(always)]
     fn find(&self, order: u64) -> Option<usize> {
         // Reference 0 is the empty-slot marker and never names a live order.
