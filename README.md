@@ -144,6 +144,11 @@ reader's light or dark theme.
 - [x] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
 - [x] Mechanism of the low-rate tail, first cut: not the hand-off or wake-up (H33); not visible in mean L1D or branch counts (H32)
 - [x] Service time versus delay to pop, and keep-warm interventions on the book and on memory (H34 to H36): loads to memory while idle remove most of it; memory versus core activity not yet separated
+- [ ] Network receive path: MoldUDP64 over UDP loopback, blocking vs polling receive, with sequence-gap detection (H37)
+- [ ] Inbound FIX parsing: full validation vs selective vs NEON delimiter scan (H38)
+- [ ] Audit trail cost per order: binary record vs formatted text (H39)
+- [ ] Order-flow toxicity: VPIN from exact ITCH trade signs, and its cost per execution (H40); trade classification accuracy, replication (H41)
+- [ ] One writer, several strategy readers of book state: seqlock vs per-reader copies
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
@@ -158,7 +163,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 36 tests, including hostile input
+cargo test --release -- --test-threads=1      # 43 tests, including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 
@@ -173,6 +178,10 @@ scripts/fetch_itch_sample.sh 20190730         # public NASDAQ BX sample day into
 sudo ./target/release/titan-t2t stages=full,risk limits=open epochs=5 pmu   # whole-path cost of the checks
 sudo ./target/release/titan-t2t stages=checks,replay limits=open epochs=5 pmu   # the checks alone, per order
 sudo ./target/release/titan-t2t stages=replay,ouch,fix epochs=5 pmu             # FIX vs OUCH encoding, per order
+sudo ./target/release/titan-t2t stages=fixfull,fixsel,fixneon epochs=5 pmu        # inbound FIX parsing, per message
+sudo ./target/release/titan-t2t stages=checks,auditbin,audittext limits=open epochs=5 pmu   # audit trail cost
+sudo ./target/release/titan-t2t file=data/20190730.BX_ITCH_50 limit=100000000 stages=vpin,vpinfloor epochs=5 pmu   # VPIN; prints classification accuracy
+./target/release/titan-pipeline limit=100000 rates=10000,100000,1000000 waits=udpblock,udppoll,isb epochs=5   # UDP receive path vs shared memory
 
 ./target/release/titan-pipeline rates=1000000,10000000 waits=spin,isb,wfe epochs=5
 ./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1 gaps   # latency by arrival gap
