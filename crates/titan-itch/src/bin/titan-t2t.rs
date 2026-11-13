@@ -43,6 +43,16 @@
 //!           49 bytes)
 //!   fix     each recorded order encoded as a FIX 4.2 NewOrderSingle
 //!           (tag=value, BodyLength and CheckSum computed)
+//!   fixfull those NewOrderSingle messages parsed back: BodyLength and
+//!           CheckSum validated, every field indexed
+//!   fixsel  the same messages, only the five order fields read
+//!   fixneon fixfull with field delimiters found by NEON compares
+//!   auditbin  checks (open limits) plus a 32-byte binary audit record per
+//!           order into a preallocated ring
+//!   audittext the same with a formatted text line per order
+//!   vpin    every displayed execution, signed from the resting order's
+//!           side, fed to a per-instrument VPIN in volume time
+//!   vpinfloor the same loop with the update replaced by a fold
 //!
 //! Timing: the generic counter around each batch, and with `pmu` the core
 //! cycle, instruction, L1D load miss and branch mispredict counters around
@@ -55,7 +65,8 @@
 //!   titan-t2t [messages=N] [instruments=M] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
 //!   titan-t2t file=PATH [limit=N] [epochs=E] [batch=K] [spread=S] [stages=a,b] [limits=open] [pmu]
 //!
-//! In `checks`, `replay`, `ouch` and `fix`, `messages=` and every per-message field of the
+//! In `checks`, `replay`, `ouch`, `fix`, the parse and audit stages,
+//! `messages=` and every per-message field of the
 //! report count recorded orders, not feed messages.
 //!
 //! `limits=open` sets risk limits that no order can breach, so every check
@@ -68,7 +79,11 @@ use titan_itch::decode::{decode, Msg, Reader};
 use titan_itch::gen::{feed, Mix};
 use titan_itch::reference::RefBook;
 use std::sync::atomic::AtomicBool;
-use titan_itch::gateway::{fix42_new_order, ouch42_enter, Session as OrderSession, FIX_MAX, OUCH42_ENTER_LEN};
+use titan_itch::gateway::{
+    fix42_new_order, fix42_parse_full, fix42_parse_full_neon, fix42_parse_selective, fix_symbol, ouch42_enter, FixOrder,
+    Session as OrderSession, FIX_MAX, OUCH42_ENTER_LEN,
+};
+use titan_itch::toxicity::{classification_accuracy, Exec, Vpin, VPIN_BUCKETS};
 use titan_itch::path::{locate_of, signal, timestamp, Intent, Limits, Risk, REJECT_NAMES};
 use titan_itch::{Book, Side};
 use titan_platform::alloc_count::{thread_allocations, CountingAlloc};
@@ -96,7 +111,14 @@ const CHECKS: u8 = 6;
 const REPLAY: u8 = 7;
 const OUCH: u8 = 8;
 const FIX: u8 = 9;
-const STAGES: [(u8, &str); 10] = [
+const FIXFULL: u8 = 10;
+const FIXSEL: u8 = 11;
+const FIXNEON: u8 = 12;
+const AUDITBIN: u8 = 13;
+const AUDITTEXT: u8 = 14;
+const VPIN: u8 = 15;
+const VPINFLOOR: u8 = 16;
+const STAGES: [(u8, &str); 17] = [
     (RING, "ring"),
     (DECODE, "decode"),
     (BOOK, "book"),
@@ -107,7 +129,191 @@ const STAGES: [(u8, &str); 10] = [
     (REPLAY, "replay"),
     (OUCH, "ouch"),
     (FIX, "fix"),
+    (FIXFULL, "fixfull"),
+    (FIXSEL, "fixsel"),
+    (FIXNEON, "fixneon"),
+    (AUDITBIN, "auditbin"),
+    (AUDITTEXT, "audittext"),
+    (VPIN, "vpin"),
+    (VPINFLOOR, "vpinfloor"),
 ];
+
+/// Untimed: every displayed execution (`E`, printable `C`) with its
+/// aggressor side, read from the resting order before the execution is
+/// applied. Left out and counted: `P` trades on non-displayed orders (no
+/// usable side) and non-printable `C` executions (crosses, which have no
+/// aggressor; their volume is reported in the cross trade message).
+fn record_execs(feed: &[u8], descs: &[u64], book: &mut L3Book) -> (Vec<Exec>, u64, u64) {
+    book.clear();
+    let (mut out, mut hidden, mut nonprint) = (Vec::new(), 0u64, 0u64);
+    for &d in descs {
+        let b = body(feed, d);
+        let Ok(m) = decode(b) else { continue };
+        match m {
+            Msg::Executed { locate, ts, order, shares } => {
+                if let Some((side, price)) = book.order_info(order) {
+                    out.push(Exec { locate, buy: side == Side::Sell, shares, price, ts });
+                }
+            }
+            Msg::ExecutedWithPrice { locate, ts, order, shares, price } => {
+                // Printable flag at offset 31 of the 36-byte 'C' message.
+                if b[31] == b'N' {
+                    nonprint += 1;
+                } else if let Some((side, _)) = book.order_info(order) {
+                    out.push(Exec { locate, buy: side == Side::Sell, shares, price, ts });
+                }
+            }
+            Msg::Other { kind: b'P' } => hidden += 1,
+            _ => {}
+        }
+        book.apply(&m);
+    }
+    (out, hidden, nonprint)
+}
+
+/// Times `f` over `items` in batches of `c.k` (PMU around each batch);
+/// `f` returns how many items it accepted and folds into the checksum.
+fn timed<T>(c: &Ctx, items: &[T], st: &mut Stats, mut f: impl FnMut(&[T], &mut u64) -> u64) {
+    for chunk in items.chunks(c.k) {
+        let a0 = thread_allocations();
+        let p0 = c.pmu.map(|s| s.read());
+        let t0 = clock::counter();
+        let n = f(chunk, &mut st.checksum);
+        let t1 = clock::counter();
+        let p1 = c.pmu.map(|s| s.read());
+        st.allocations += thread_allocations() - a0;
+        let m = chunk.len() as f64;
+        st.ticks += t1 - t0;
+        st.batch_ns.push((t1 - t0) as f64 * 1e9 / clock::counter_frequency() as f64 / m);
+        if let (Some(s), Some(a), Some(b)) = (c.pmu, p0, p1) {
+            let d = s.delta(&a, &b);
+            for ((acc, &x), &fl) in st.pmu.iter_mut().zip(&d).zip(&c.pmu_floor) {
+                *acc += x.saturating_sub(fl);
+            }
+            st.batch_cycles.push(d[0].saturating_sub(c.pmu_floor[0]) as f64 / m);
+        }
+        st.messages += chunk.len() as u64;
+        st.intents += n;
+    }
+}
+
+/// FIX messages built (untimed) from the recorded orders: one buffer and
+/// (offset, length) per message.
+struct FixMsgs {
+    buf: Vec<u8>,
+    at: Vec<(u32, u16)>,
+    want: Vec<FixOrder>,
+}
+
+fn fix_msgs(orders: &[Order], syms: &[[u8; 8]]) -> FixMsgs {
+    let s = OrderSession::default();
+    let mut m = FixMsgs { buf: Vec::with_capacity(orders.len() * 130), at: Vec::with_capacity(orders.len()), want: Vec::new() };
+    let mut b = [0u8; FIX_MAX];
+    for (i, o) in orders.iter().enumerate() {
+        let sym = &syms[o.it.locate as usize];
+        let n = fix42_new_order(&mut b, &o.it, sym, i as u64 + 1, o.ts, &s);
+        m.at.push((m.buf.len() as u32, n as u16));
+        m.buf.extend_from_slice(&b[..n]);
+        m.want.push(FixOrder { buy: o.it.buy, shares: o.it.shares, price: o.it.price, symbol: fix_symbol(sym) });
+    }
+    m
+}
+
+#[inline(always)]
+fn fold_fix(sum: &mut u64, o: &FixOrder) {
+    *sum = sum.rotate_left(7) ^ o.price as u64 ^ ((o.shares as u64) << 32) ^ o.buy as u64 ^ u64::from_le_bytes(o.symbol);
+}
+
+/// Timed part of the three FIX parse stages.
+#[inline(never)]
+fn parse_fix<const S: u8>(buf: &[u8], at: &[(u32, u16)], sum: &mut u64) -> u64 {
+    let mut ok = 0;
+    for &(o, n) in at {
+        let m = black_box(&buf[o as usize..o as usize + n as usize]);
+        let r = match S {
+            FIXFULL => fix42_parse_full(m).ok(),
+            FIXNEON => fix42_parse_full_neon(m).ok(),
+            _ => fix42_parse_selective(m),
+        };
+        if let Some(x) = r {
+            fold_fix(sum, &x);
+            ok += 1;
+        }
+    }
+    ok
+}
+
+/// Audit trail state: a ring of binary records and a reusable text buffer.
+struct Audit {
+    ring: Vec<[u8; 32]>,
+    text: Vec<u8>,
+    seq: u64,
+}
+
+const AUDIT_RING: usize = 1 << 16;
+const AUDIT_TEXT: usize = 1 << 20;
+
+/// Timed part of the audit stages: checks plus one record per order.
+#[inline(never)]
+fn audit<const S: u8>(orders: &[Order], risk: &mut Risk, a: &mut Audit, sum: &mut u64) -> u64 {
+    use std::io::Write as _;
+    let mut n = 0;
+    for o in orders {
+        let o = black_box(o);
+        let ok = risk.check(&o.it, o.mid, o.ts);
+        a.seq += 1;
+        // The audit trail records rejects as well as accepts.
+        if S == AUDITBIN {
+            let r = &mut a.ring[a.seq as usize & (AUDIT_RING - 1)];
+            r[0..8].copy_from_slice(&o.ts.to_le_bytes());
+            r[8..16].copy_from_slice(&a.seq.to_le_bytes());
+            r[16..20].copy_from_slice(&o.it.price.to_le_bytes());
+            r[20..24].copy_from_slice(&o.it.shares.to_le_bytes());
+            r[24..26].copy_from_slice(&o.it.locate.to_le_bytes());
+            r[26] = o.it.buy as u8;
+            r[27] = ok as u8;
+            black_box(&*r);
+        } else {
+            if a.text.len() > AUDIT_TEXT - 128 {
+                a.text.clear();
+            }
+            let _ = writeln!(
+                a.text,
+                "{} {} {} {} {}.{:04} {} {}",
+                o.ts,
+                a.seq,
+                o.it.locate,
+                if o.it.buy { 'B' } else { 'S' },
+                o.it.price / 10_000,
+                o.it.price % 10_000,
+                o.it.shares,
+                if ok { 'A' } else { 'R' }
+            );
+            black_box(&a.text);
+        }
+        // Same fold as `replay::<CHECKS>`, so the difference to `checks`
+        // is the record alone.
+        if ok {
+            *sum = sum.rotate_left(7) ^ o.it.price as u64 ^ ((o.it.shares as u64) << 32) ^ o.it.locate as u64 ^ o.it.buy as u64;
+            n += 1;
+        }
+    }
+    n
+}
+
+/// Timed part of `vpin` (S = VPIN) and `vpinfloor`.
+#[inline(never)]
+fn vpin_pass<const S: u8>(execs: &[Exec], v: &mut Vpin, sum: &mut u64) -> u64 {
+    // The floor is the loop and the load of each record only.
+    let _ = sum;
+    for e in execs {
+        let e = black_box(*e);
+        if S == VPIN {
+            v.update(e.locate, e.buy, e.shares);
+        }
+    }
+    execs.len() as u64
+}
 
 /// Stock symbol of every locate, from the feed's stock directory messages
 /// (`R`); locates without one get `L` and the locate number.
@@ -611,6 +817,56 @@ fn main() {
     let orders = record(feed_buf, &descs, &mut book, max_spread);
     let syms = symbols(feed_buf, &descs, max_locate as usize + 1);
     println!("t2t_orders feed={name} orders={} per_message={:.5}", orders.len(), orders.len() as f64 / descs.len() as f64);
+    let chosen: Vec<(u8, &str)> = match kv(&args, "stages") {
+        Some(list) => list
+            .split(',')
+            .map(|w| *STAGES.iter().find(|(_, l)| *l == w).unwrap_or_else(|| panic!("unknown stage {w}")))
+            .collect(),
+        None => STAGES.to_vec(),
+    };
+    let wants = |a: u8, b: u8| chosen.iter().any(|&(s, _)| s == a || s == b);
+
+    // FIX parse stages: messages built once, and every parser checked
+    // against the recorded orders before anything is timed.
+    let fixm = if wants(FIXFULL, FIXSEL) || wants(FIXNEON, FIXNEON) {
+        let m = fix_msgs(&orders, &syms);
+        for (i, &(o, n)) in m.at.iter().enumerate() {
+            let x = &m.buf[o as usize..o as usize + n as usize];
+            assert_eq!(fix42_parse_full(x), Ok(m.want[i]), "fixfull, message {i}");
+            assert_eq!(fix42_parse_full_neon(x), Ok(m.want[i]), "fixneon, message {i}");
+            assert_eq!(fix42_parse_selective(x), Some(m.want[i]), "fixsel, message {i}");
+        }
+        println!("t2t_fix feed={name} messages={} bytes={} neon={}", m.at.len(), m.buf.len(), cfg!(target_arch = "aarch64"));
+        m
+    } else {
+        FixMsgs { buf: Vec::new(), at: Vec::new(), want: Vec::new() }
+    };
+    let mut aud = Audit { ring: vec![[0u8; 32]; AUDIT_RING], text: Vec::with_capacity(AUDIT_TEXT), seq: 0 };
+
+    // Toxicity: signed executions, bucket sizes, and the accuracy replication.
+    let (execs, hidden, nonprint) =
+        if wants(VPIN, VPINFLOOR) { record_execs(feed_buf, &descs, &mut book) } else { (Vec::new(), 0, 0) };
+    let mut daily = vec![0u64; max_locate as usize + 1];
+    for e in &execs {
+        daily[e.locate as usize] += e.shares as u64;
+    }
+    let bucket: Vec<u64> = daily.iter().map(|&v| v / VPIN_BUCKETS as u64).collect();
+    let mut vpin = Vpin::new(&bucket);
+    if wants(VPIN, VPINFLOOR) {
+        let vol: u64 = daily.iter().sum();
+        println!(
+            "tox_execs feed={name} execs={} signed_volume={vol} hidden_trades_excluded={hidden} \
+             nonprintable_c_excluded={nonprint} instruments_traded={}",
+            execs.len(),
+            daily.iter().filter(|&&v| v > 0).count()
+        );
+        let a = classification_accuracy(&execs, 60_000_000_000, 100);
+        println!(
+            "tox_accuracy feed={name} bar_s=60 min_execs=100 instruments={} volume={:.0} bvc_bar_error={:.4} \
+             tick_bar_error={:.4} tick_trade_error={:.4} tick_unresolved={} bvc_worse_instruments={}",
+            a.instruments, a.volume, a.bvc_bar_error, a.tick_bar_error, a.tick_trade_error, a.tick_unresolved, a.bvc_worse
+        );
+    }
     let mut run = |stage: u8, ing: &mut Ingress, eg: &mut Egress, out: &mut [Intent], book: &mut L3Book, st: &mut Stats| {
         let r = &mut risk;
         match stage {
@@ -618,6 +874,31 @@ fn main() {
             REPLAY => pass_orders::<REPLAY>(&c, &orders, r, st),
             OUCH => pass_encode::<OUCH>(&c, &orders, &syms, st),
             FIX => pass_encode::<FIX>(&c, &orders, &syms, st),
+            FIXFULL => timed(&c, &fixm.at, st, |ch, sum| parse_fix::<FIXFULL>(&fixm.buf, ch, sum)),
+            FIXSEL => timed(&c, &fixm.at, st, |ch, sum| parse_fix::<FIXSEL>(&fixm.buf, ch, sum)),
+            FIXNEON => timed(&c, &fixm.at, st, |ch, sum| parse_fix::<FIXNEON>(&fixm.buf, ch, sum)),
+            AUDITBIN | AUDITTEXT => {
+                r.reset();
+                aud.seq = 0;
+                if stage == AUDITBIN {
+                    timed(&c, &orders, st, |ch, sum| audit::<AUDITBIN>(ch, r, &mut aud, sum));
+                } else {
+                    timed(&c, &orders, st, |ch, sum| audit::<AUDITTEXT>(ch, r, &mut aud, sum));
+                }
+                st.accepted = r.accepted;
+                st.rejected = r.rejected;
+            }
+            VPIN => {
+                vpin.reset();
+                timed(&c, &execs, st, |ch, sum| vpin_pass::<VPIN>(ch, &mut vpin, sum));
+                // Fold the final VPIN values so the updates cannot be dropped.
+                for l in 0..daily.len() {
+                    if let Some(x) = vpin.value(l as u16) {
+                        st.checksum ^= x.to_bits();
+                    }
+                }
+            }
+            VPINFLOOR => timed(&c, &execs, st, |ch, sum| vpin_pass::<VPINFLOOR>(ch, &mut vpin, sum)),
             RING => pass::<RING>(&c, ing, eg, out, book, r, st),
             DECODE => pass::<DECODE>(&c, ing, eg, out, book, r, st),
             BOOK => pass::<BOOK>(&c, ing, eg, out, book, r, st),
@@ -625,14 +906,6 @@ fn main() {
             DIRECT => pass::<DIRECT>(&c, ing, eg, out, book, r, st),
             _ => pass::<RISK>(&c, ing, eg, out, book, r, st),
         }
-    };
-
-    let chosen: Vec<(u8, &str)> = match kv(&args, "stages") {
-        Some(list) => list
-            .split(',')
-            .map(|w| *STAGES.iter().find(|(_, l)| *l == w).unwrap_or_else(|| panic!("unknown stage {w}")))
-            .collect(),
-        None => STAGES.to_vec(),
     };
 
     // Warm-up: one unmeasured pass of every stage (grows level vectors, warms code).
@@ -646,7 +919,10 @@ fn main() {
             let (s, label) = chosen[(j + epoch) % chosen.len()];
             let mut st = fresh();
             run(s, &mut ing, &mut eg, &mut out, &mut book, &mut st);
-            if (s == CHECKS && open_limits) || s == REPLAY {
+            if s == FIXFULL || s == FIXSEL || s == FIXNEON {
+                assert_eq!(st.intents as usize, fixm.at.len(), "{label}: every message must parse");
+            }
+            if ((s == CHECKS || s == AUDITBIN || s == AUDITTEXT) && open_limits) || s == REPLAY {
                 // Every recorded order passes open limits.
                 assert_eq!(st.intents as usize, orders.len(), "{label}: every recorded order must pass");
             }
@@ -659,7 +935,7 @@ fn main() {
                     Some(prev) => assert_eq!(prev, key, "full and direct disagree"),
                 }
             }
-            report(&name, label, epoch, s == RISK || s == CHECKS, &mut st);
+            report(&name, label, epoch, s == RISK || s == CHECKS || s == AUDITBIN || s == AUDITTEXT, &mut st);
         }
     }
 }
