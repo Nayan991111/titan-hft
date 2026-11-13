@@ -70,6 +70,30 @@ impl Histogram {
         self.sum = 0;
     }
 
+    /// Touch every page of the counters, so recording never takes a first-touch
+    /// page fault. The counters come zeroed from the allocator, and plain
+    /// stores of zero would be removed by the compiler; volatile writes of
+    /// each counter's current value are kept and change nothing.
+    pub fn prefault(&mut self) {
+        const STEP: usize = 4096 / std::mem::size_of::<u64>();
+        let p = self.counts.as_mut_ptr();
+        let mut i = 0;
+        while i < self.counts.len() {
+            unsafe { std::ptr::write_volatile(p.add(i), std::ptr::read_volatile(p.add(i))) };
+            i += STEP;
+        }
+    }
+
+    /// Add every value recorded in `other`.
+    pub fn merge(&mut self, other: &Histogram) {
+        for (a, &b) in self.counts.iter_mut().zip(other.counts.iter()) {
+            *a += b;
+        }
+        self.total += other.total;
+        self.sum += other.sum;
+        self.max = self.max.max(other.max);
+    }
+
     pub fn count(&self) -> u64 {
         self.total
     }
@@ -122,6 +146,31 @@ mod tests {
                 assert!((v - lo) as f64 <= v as f64 / 2048.0, "error too large at {v}");
             }
             x *= 2;
+        }
+    }
+
+    #[test]
+    fn prefault_keeps_counts() {
+        let mut h = Histogram::new();
+        for v in [3u64, 5000, 1 << 30] {
+            h.record(v);
+        }
+        h.prefault();
+        assert_eq!((h.count(), h.max(), h.quantile(0.5)), (3, 1 << 30, Histogram::lower(Histogram::index(5000))));
+    }
+
+    #[test]
+    fn merge_equals_recording_into_one() {
+        let (mut a, mut b, mut both) = (Histogram::new(), Histogram::new(), Histogram::new());
+        for v in 0..20_000u64 {
+            let x = v * v % 1_000_003;
+            if v % 3 == 0 { a.record(x) } else { b.record(x) }
+            both.record(x);
+        }
+        a.merge(&b);
+        assert_eq!((a.count(), a.max(), a.mean()), (both.count(), both.max(), both.mean()));
+        for q in [0.0, 0.5, 0.9, 0.99, 0.999, 1.0] {
+            assert_eq!(a.quantile(q), both.quantile(q));
         }
     }
 
