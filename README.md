@@ -130,7 +130,7 @@ reader's light or dark theme.
 |---|---|
 | `titan-platform` | Pinned memory, counter timer and its measured resolution, QoS, kperf PMU sessions, allocation and `getrusage` accounting, a fixed-memory log-linear latency histogram. Self-test: `titan-probe`. |
 | `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip) and `titan-stream` (throughput). |
-| `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation) and `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule). |
+| `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation), `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule) and `titan-fanout` (one book writer, several strategy readers: per-reader ring copies or seqlock snapshots). |
 | `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. |
 | `scripts/` | Data download, instruction census, statistics, figures. |
 
@@ -153,7 +153,8 @@ reader's light or dark theme.
 - [x] Inbound FIX parsing: full validation vs selective vs NEON delimiter scan (H38)
 - [x] Audit trail cost per order: binary record vs formatted text (H39)
 - [x] Order-flow toxicity: VPIN update cost per execution with exact ITCH trade signs (H40); trade classification accuracy, replication (H41)
-- [ ] One writer, several strategy readers of book state: seqlock vs per-reader copies
+- [ ] One writer, several strategy readers of book state: seqlock vs per-reader copies (H42 to H47, `titan-fanout`, pre-registered)
+- [ ] Profile-guided optimisation of the trading path against a pure layout change (H48, pre-registered)
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
@@ -168,7 +169,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 43 tests, including hostile input
+cargo test --release -- --test-threads=1      # 49 tests, including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 
@@ -187,6 +188,9 @@ sudo ./target/release/titan-t2t stages=fixfull,fixsel,fixneon epochs=5 pmu      
 sudo ./target/release/titan-t2t stages=checks,auditbin,audittext limits=open epochs=5 pmu   # audit trail cost
 sudo ./target/release/titan-t2t file=data/20190730.BX_ITCH_50 limit=100000000 stages=vpin,vpinfloor epochs=5 pmu   # VPIN; prints classification accuracy
 ./target/release/titan-pipeline limit=100000 rates=10000,100000,1000000 waits=udpblock,udppoll,isb epochs=5   # UDP receive path vs shared memory
+sudo ./target/release/titan-fanout file=data/20190730.BX_ITCH_50 epochs=10 pmu               # one writer, 0 to 3 readers, at the feed's pace
+sudo ./target/release/titan-fanout file=data/20190730.BX_ITCH_50 work=replay epochs=10 pmu   # the same updates back to back
+scripts/fanout_census.sh                                                                   # barriers in the six writer loops
 
 ./target/release/titan-pipeline rates=1000000,10000000 waits=spin,isb,wfe epochs=5
 ./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1 gaps   # latency by arrival gap
