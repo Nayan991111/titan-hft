@@ -553,6 +553,7 @@ dependencies = [
 name = "titan-itch"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "titan-platform",
  "titan-spsc",
 ]
