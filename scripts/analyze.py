@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Summarise titan-pingpong ("pp"), titan-stream ("st"), titan-replay ("rp") and
-titan-t2t ("t2t") and titan-pipeline ("pl") output.
+"""Summarise the output of titan-pingpong ("pp"), titan-stream ("st"),
+titan-replay ("rp"), titan-t2t ("t2t"), titan-pipeline ("pl") and
+titan-fanout ("fo").
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -24,10 +25,10 @@ from collections import defaultdict
 from functools import lru_cache
 
 RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
-KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed"),
+KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed", "build"),
               "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap"),
-              "pl_split": ("load", "wait", "path", "feed", "part")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns"}
+              "pl_split": ("load", "wait", "path", "feed", "part"), "fo": ("work", "design", "readers", "feed")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
@@ -35,6 +36,7 @@ EXTRA = {
     "t2t": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz", "batch_p99_ns", "intent_rate", "allocations"),
     "pl_split": ("p50_ns", "p90_ns", "p999_ns", "max_ns", "warm_units_per_msg", "saturated"),
     "pl_gap": ("messages", "p90_ns", "p99_ns", "p999_ns", "max_ns", "saturated"),
+    "fo": ("writer_ns_per_msg", "msg_instructions", "quote_rate", "full_waits", "conflated_frac", "stale_p50_ns", "stale_p99_ns", "worst_reader_p99_ns", "core_ghz", "invol_switches"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
@@ -125,7 +127,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split"):
+    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -175,19 +177,33 @@ def contrasts(groups):
     for mix in sorted({k[2] for k in groups if k[0] == "rp"} - {"default", "add_heavy", "replace_heavy"}):
         extra.append(("rp", f"L3 book vs reference book ({mix})", ("l3", mix), ("ref", mix)))
         extra.append(("rp", f"decode only vs decode + L3 book ({mix})", ("decode", mix), ("l3", mix)))
-    for feed in sorted({k[2] for k in groups if k[0] == "t2t"}):
-        extra.append(("t2t", f"full vs direct, ring cost ({feed})", ("full", feed), ("direct", feed)))
-        extra.append(("t2t", f"book vs full, ablation ({feed})", ("book", feed), ("full", feed)))
-        extra.append(("t2t", f"decode vs book ({feed})", ("decode", feed), ("book", feed)))
-        extra.append(("t2t", f"risk vs full, pre-trade checks ({feed})", ("risk", feed), ("full", feed)))
-        extra.append(("t2t", f"checks vs replay, checks alone per order ({feed})", ("checks", feed), ("replay", feed)))
-        extra.append(("t2t", f"fix vs ouch, order encoding ({feed})", ("fix", feed), ("ouch", feed)))
-        extra.append(("t2t", f"ouch vs replay, binary encoding per order ({feed})", ("ouch", feed), ("replay", feed)))
-        extra.append(("t2t", f"fixfull vs fixsel, FIX parse ({feed})", ("fixfull", feed), ("fixsel", feed)))
-        extra.append(("t2t", f"fixfull vs fixneon, NEON delimiters ({feed})", ("fixfull", feed), ("fixneon", feed)))
-        extra.append(("t2t", f"auditbin vs checks, binary audit record ({feed})", ("auditbin", feed), ("checks", feed)))
-        extra.append(("t2t", f"audittext vs checks, text audit record ({feed})", ("audittext", feed), ("checks", feed)))
-        extra.append(("t2t", f"vpin vs vpinfloor, VPIN update ({feed})", ("vpin", feed), ("vpinfloor", feed)))
+    for feed, b in sorted({(k[2], k[3]) for k in groups if k[0] == "t2t"}):
+        tag = feed if b == "na" else f"{feed}, build {b}"
+        extra.append(("t2t", f"full vs direct, ring cost ({tag})", ("full", feed, b), ("direct", feed, b)))
+        extra.append(("t2t", f"book vs full, ablation ({tag})", ("book", feed, b), ("full", feed, b)))
+        extra.append(("t2t", f"decode vs book ({tag})", ("decode", feed, b), ("book", feed, b)))
+        extra.append(("t2t", f"risk vs full, pre-trade checks ({tag})", ("risk", feed, b), ("full", feed, b)))
+        extra.append(("t2t", f"checks vs replay, checks alone per order ({tag})", ("checks", feed, b), ("replay", feed, b)))
+        extra.append(("t2t", f"fix vs ouch, order encoding ({tag})", ("fix", feed, b), ("ouch", feed, b)))
+        extra.append(("t2t", f"ouch vs replay, binary encoding per order ({tag})", ("ouch", feed, b), ("replay", feed, b)))
+        extra.append(("t2t", f"fixfull vs fixsel, FIX parse ({tag})", ("fixfull", feed, b), ("fixsel", feed, b)))
+        extra.append(("t2t", f"fixfull vs fixneon, NEON delimiters ({tag})", ("fixfull", feed, b), ("fixneon", feed, b)))
+        extra.append(("t2t", f"auditbin vs checks, binary audit record ({tag})", ("auditbin", feed, b), ("checks", feed, b)))
+        extra.append(("t2t", f"audittext vs checks, text audit record ({tag})", ("audittext", feed, b), ("checks", feed, b)))
+        extra.append(("t2t", f"vpin vs vpinfloor, VPIN update ({tag})", ("vpin", feed, b), ("vpinfloor", feed, b)))
+        if b != "na" and b != "base":
+            for stage in ("decode", "book", "full"):
+                extra.append(("t2t", f"build {b} vs base, {stage} ({feed})", (stage, feed, b), (stage, feed, "base")))
+    for work, feed in sorted({(k[1], k[4]) for k in groups if k[0] == "fo"}):
+        def fo(d, n):
+            return (work, d, str(n), feed)
+        extra.append(("fo", f"copy3 vs copy1, writer ({work}, {feed})", fo("copy", 3), fo("copy", 1)))
+        extra.append(("fo", f"snap1 vs snap0, writer ({work}, {feed})", fo("snap", 1), fo("snap", 0)))
+        extra.append(("fo", f"snap3 vs snap1, writer ({work}, {feed})", fo("snap", 3), fo("snap", 1)))
+        extra.append(("fo", f"snap3 vs copy3, writer ({work}, {feed})", fo("snap", 3), fo("copy", 3)))
+        extra.append(("fo", f"snap0 vs none, writer ({work}, {feed})", fo("snap", 0), fo("none", 0)))
+        for n in (1, 2, 3):
+            extra.append(("fo", f"snap{n} vs copy{n}, staleness ({work}, {feed})", fo("snap", n), fo("copy", n)))
     for load, w, path, feed in sorted({k[1:5] for k in groups if k[0] == "pl_gap"}):
         for g in ("lt100ns", "gt100us"):
             if ("pl_gap", load, w, path, feed, g) not in groups:
@@ -200,6 +216,8 @@ def contrasts(groups):
         extra.append(("pl", f"udpblock vs udppoll, {load} {path} ({feed})", (load, "udpblock", path, feed), (load, "udppoll", path, feed)))
     for kind, name, ka, kb in CONTRASTS + extra:
         metrics = [METRIC[kind]] + {"t2t": ["msg_cycles"], "pl": ["p50_ns"], "pl_gap": ["p99_ns"]}.get(kind, [])
+        if kind == "fo" and "staleness" in name:
+            metrics = ["stale_p50_ns", "stale_p99_ns"]
         if kind == "pl" and any(r.get("saturated") == "1" for k in (ka, kb) for r in groups.get((kind,) + k, [])):
             continue  # percentiles of a saturated run grow with run length
         for metric in metrics:
@@ -231,17 +249,68 @@ def gap_epochs(groups):
             print(f"pl_gap {load} {w} {path} ({feed}) {g}: {wins} of {len(common)} epochs")
 
 
+def fo_derived(groups, reps=2000, seed=1):
+    """Writer cost per published update above the `none` floor, X(d, N).
+
+    X = (median msg_cycles of the config - median msg_cycles of none) / q,
+    q = published updates per unit (from the integer fields quotes and
+    messages; 1 in work=replay, where msg_cycles is per update already).
+    Bootstrap 95% intervals resample the epochs of each config and of none.
+    A ratio X(a) / X(b) is printed only when the interval of X(b) lies above
+    zero; otherwise it is undefined."""
+    keys = sorted({(k[1], k[4]) for k in groups if k[0] == "fo"})
+    if not keys:
+        return
+    print("\n## fo: writer cycles per published update above none, X [bootstrap 95% CI]")
+    order = (("snap", 0), ("copy", 1), ("snap", 1), ("copy", 2), ("snap", 2), ("copy", 3), ("snap", 3))
+    for work, feed in keys:
+        nk = ("fo", work, "none", "0", feed)
+        base = values(groups, nk, "msg_cycles")
+        rates = [float(r["quotes"]) / float(r["messages"]) for r in groups.get(nk, []) if "quotes" in r and "messages" in r]
+        if not base or not rates:
+            continue
+        q = median(rates)
+        cyc = {dn: values(groups, ("fo", work, dn[0], str(dn[1]), feed), "msg_cycles") for dn in order}
+        cyc = {dn: v for dn, v in cyc.items() if v}
+        rng = random.Random(seed)
+        boot = {dn: [] for dn in cyc}
+        for _ in range(reps):
+            b = median([rng.choice(base) for _ in base])
+            for dn, v in cyc.items():
+                boot[dn].append((median([rng.choice(v) for _ in v]) - b) / q)
+        x = {dn: (median(v) - median(base)) / q for dn, v in cyc.items()}
+        ci = {}
+        for dn, bs in boot.items():
+            bs = sorted(bs)
+            ci[dn] = (bs[int(0.025 * reps)], bs[int(0.975 * reps) - 1])
+        print(f"fo {work} {feed}: none={median(base):.3f} cycles per unit, updates per unit q={q:.7f}")
+        for dn in cyc:
+            print(f"fo {work} {feed}: X({dn[0]}{dn[1]}) = {x[dn]:.2f} [{ci[dn][0]:.2f}, {ci[dn][1]:.2f}]")
+        for a, c in ((("copy", 3), ("copy", 1)), (("snap", 3), ("snap", 1)), (("snap", 1), ("snap", 0)), (("snap", 3), ("copy", 3))):
+            if a not in x or c not in x:
+                continue
+            if ci[c][0] <= 0:
+                print(f"fo {work} {feed}: X({a[0]}{a[1]}) / X({c[0]}{c[1]}) undefined (interval of X({c[0]}{c[1]}) reaches 0 or below)")
+                continue
+            rs = sorted(ba / bc for ba, bc in zip(boot[a], boot[c]))
+            print(f"fo {work} {feed}: X({a[0]}{a[1]}) / X({c[0]}{c[1]}) = {x[a] / x[c]:.3f} [{rs[int(0.025 * reps)]:.3f}, {rs[int(0.975 * reps) - 1]:.3f}]")
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__)
         return 1
     groups = load(argv[1:])
+    builds = {k[3] for k in groups if k[0] == "t2t"}
+    if "na" in builds and len(builds) > 1:
+        print("WARNING: t2t lines with and without build= are mixed; unlabelled lines are grouped as build=na")
     if not groups:
-        print("no pp/st/rp/t2t/pl records found")
+        print("no pp/st/rp/t2t/pl/fo records found")
         return 1
     summary(groups)
     contrasts(groups)
     gap_epochs(groups)
+    fo_derived(groups)
     return 0
 
 
