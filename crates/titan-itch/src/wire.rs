@@ -27,7 +27,7 @@
 //! Every decoder maps the text symbol back to the instrument locate through
 //! [`Symbols`], which is part of the cost of normalising text formats.
 
-use crate::gateway::{price4, soh_scalar, symbol8, uint, FIX_MAX_FIELDS};
+use crate::gateway::{price4, soh_neon, soh_scalar, symbol8, uint, FIX_MAX_FIELDS};
 
 /// The normalised record: what every decoder must return.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -253,11 +253,60 @@ fn utc_timestamp_ok(v: &[u8]) -> bool {
     (1..=12).contains(&two(4)) && (1..=31).contains(&two(6)) && two(9) < 24 && two(12) < 60 && two(15) < 60
 }
 
-/// Validated parse of a one-entry MarketDataIncrementalRefresh.
+/// Sum of `m`'s bytes modulo 256, 16 bytes per step with NEON (aarch64);
+/// the scalar fold elsewhere and for the tail. Every lane is a `u8`, so the
+/// lane adds and the horizontal add are already modulo 256.
+#[inline(always)]
+fn checksum_neon(m: &[u8]) -> u32 {
+    #[cfg(target_arch = "aarch64")]
+    {
+        use core::arch::aarch64::*;
+        let mut i = 0usize;
+        // SAFETY: every load reads 16 bytes at m[i..i + 16] with i + 16 <= m.len().
+        unsafe {
+            let mut acc = vdupq_n_u8(0);
+            while i + 16 <= m.len() {
+                acc = vaddq_u8(acc, vld1q_u8(m.as_ptr().add(i)));
+                i += 16;
+            }
+            let mut s = vaddvq_u8(acc) as u32;
+            for &c in &m[i..] {
+                s = s.wrapping_add(c as u32);
+            }
+            s % 256
+        }
+    }
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+        checksum_scalar(m)
+    }
+}
+
+/// Sum of `m`'s bytes modulo 256, one byte at a time.
+#[inline(always)]
+fn checksum_scalar(m: &[u8]) -> u32 {
+    m.iter().fold(0u32, |a, &c| a.wrapping_add(c as u32)) % 256
+}
+
+/// Validated parse of a one-entry MarketDataIncrementalRefresh, delimiters
+/// and checksum one byte at a time.
 #[inline(always)]
 pub fn decode_fix(m: &[u8], sym: &Symbols) -> Result<Level, WireError> {
+    decode_fix_with::<false>(m, sym)
+}
+
+/// As [`decode_fix`], with the NEON delimiter search of [`soh_neon`] and a
+/// NEON checksum. The validation below is the same code for both, so they
+/// must reach the same verdict on every input.
+#[inline(always)]
+pub fn decode_fix_simd(m: &[u8], sym: &Symbols) -> Result<Level, WireError> {
+    decode_fix_with::<true>(m, sym)
+}
+
+#[inline(always)]
+fn decode_fix_with<const SIMD: bool>(m: &[u8], sym: &Symbols) -> Result<Level, WireError> {
     let mut soh = [0u16; FIX_MAX_FIELDS];
-    let n = soh_scalar(m, &mut soh);
+    let n = if SIMD { soh_neon(m, &mut soh) } else { soh_scalar(m, &mut soh) };
     if n == usize::MAX || n < 4 || soh[n - 1] as usize != m.len() - 1 {
         return Err(WireError::Framing);
     }
@@ -294,7 +343,7 @@ pub fn decode_fix(m: &[u8], sym: &Symbols) -> Result<Level, WireError> {
     if uint(val(1)) != Some((trailer - body_start) as u64) {
         return Err(WireError::BodyLength);
     }
-    let sum = m[..trailer].iter().fold(0u32, |a, &c| a + c as u32) % 256;
+    let sum = if SIMD { checksum_neon(&m[..trailer]) } else { checksum_scalar(&m[..trailer]) };
     if val(n - 1).len() != 3 || uint(val(n - 1)) != Some(sum as u64) {
         return Err(WireError::CheckSum);
     }
@@ -597,6 +646,43 @@ mod tests {
         let sum = m.iter().fold(0u32, |a, &c| a + c as u32) % 256;
         m.extend_from_slice(format!("10={sum:03}\x01").as_bytes());
         m
+    }
+
+    /// The NEON decoder must agree with the scalar one on every input: the
+    /// same accepted records, the same error on every rejected message.
+    #[test]
+    fn both_fix_decoders_agree() {
+        let s = syms();
+        let head = "35=X|49=TITAN|56=CLIENT|34=5|52=20190730-09:30:00.000|";
+        let entry = "268=1|279=0|269=0|55=SPY|270=298.1200|271=300|";
+        let good = frame(&format!("{head}{entry}"));
+        assert_eq!(decode_fix(&good, &s), decode_fix_simd(&good, &s));
+        assert!(decode_fix_simd(&good, &s).is_ok());
+        // Every single-bit change, so the two scans meet damage at every
+        // offset, including inside and across their 16-byte steps.
+        for i in 0..good.len() {
+            for bit in 0..8 {
+                let mut g = good.clone();
+                g[i] ^= 1 << bit;
+                assert_eq!(decode_fix(&g, &s), decode_fix_simd(&g, &s), "byte {i} bit {bit}");
+            }
+        }
+        // Lengths around the 16-byte step, truncated and with extra fields.
+        for k in 0..good.len() {
+            let g = &good[..k];
+            assert_eq!(decode_fix(g, &s), decode_fix_simd(g, &s), "truncated to {k}");
+        }
+        for pad in 0..40 {
+            let mut body = format!("{head}{entry}");
+            body.push_str(&"58=x|".repeat(pad));
+            let g = frame(&body);
+            assert_eq!(decode_fix(&g, &s), decode_fix_simd(&g, &s), "{pad} extra fields");
+        }
+        // A message of every length up to one step, bytes that are not SOH.
+        for k in 0..40 {
+            let g = vec![b'A'; k];
+            assert_eq!(decode_fix(&g, &s), decode_fix_simd(&g, &s), "{k} filler bytes");
+        }
     }
 
     #[test]

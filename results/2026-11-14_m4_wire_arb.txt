@@ -56,6 +56,15 @@ H50 (inbound wire format), supported on both feeds, all three parts.
   The thresholds of (a) and (b) were set after development-machine runs, as
   the pre-registration discloses; the measured ratios exceed them by a wide
   margin on hardware the thresholds were not drawn from.
+  Qualification, added when the run was reviewed: the FIX decoder measured
+  here finds delimiters and sums the checksum one byte at a time, while the
+  binary decoder has no such loop. This repository already showed that a NEON
+  delimiter search cuts a validated FIX 4.2 parse from 465 to 301 cycles
+  (results/2026-11-12_m4_ac2.txt), so the ratios above are against an
+  unoptimised text parser and overstate the gap a best-effort implementation
+  would leave. H52 (twelfth run) measures that best effort; until it is run,
+  the figure to quote for FIX is the one measured here with that
+  qualification attached.
 
 H51 (A/B arbitration and gap recovery): (a) partly supported, (b) supported,
 (c) supported.

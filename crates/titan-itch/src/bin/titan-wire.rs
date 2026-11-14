@@ -9,7 +9,9 @@
 //! exactly the original record for every update before anything is timed.
 //!
 //! Timed, per format, one pass over all updates: decode and fold the record
-//! into a running state. `floor_bin`, `floor_fix` and `floor_json` fold the
+//! into a running state. `fix` finds delimiters and sums the checksum one
+//! byte at a time; `fix_simd` does both 16 bytes at a time with NEON and
+//! validates identically. `floor_bin`, `floor_fix` and `floor_json` fold the
 //! first and last byte and the length of every message of that format: the
 //! loop and a touch of each message, without decoding; each decoder is
 //! compared with the floor of its own format. Values are per
@@ -25,7 +27,8 @@ use titan_itch::decode::{decode, Msg, Reader};
 use titan_itch::gen::{feed, Mix};
 use titan_itch::reference::RefBook;
 use titan_itch::wire::{
-    decode_bin, decode_fix, decode_json_fixed, decode_json_serde, encode_bin, encode_fix, encode_json, md_action, Level, Symbols,
+    decode_bin, decode_fix, decode_fix_simd, decode_json_fixed, decode_json_serde, encode_bin, encode_fix, encode_json, md_action,
+    Level, Symbols,
 };
 use titan_itch::{Book, Side};
 use titan_platform::alloc_count::{thread_allocations, CountingAlloc};
@@ -36,7 +39,7 @@ use titan_platform::qos::{self, Qos};
 #[global_allocator]
 static A: CountingAlloc = CountingAlloc;
 
-const STAGES: [&str; 7] = ["floor_bin", "floor_fix", "floor_json", "bin", "fix", "json_fixed", "json_serde"];
+const STAGES: [&str; 8] = ["floor_bin", "floor_fix", "floor_json", "bin", "fix", "fix_simd", "json_fixed", "json_serde"];
 
 /// Messages of one format, back to back, with (offset, length) per update.
 struct Encoded {
@@ -91,6 +94,11 @@ fn pass(stage: &str, bin: &Encoded, fix: &Encoded, json: &Encoded, sym: &Symbols
         "fix" => {
             for i in 0..n {
                 s = fold(s, &decode_fix(fix.get(i), sym).expect("checked"));
+            }
+        }
+        "fix_simd" => {
+            for i in 0..n {
+                s = fold(s, &decode_fix_simd(fix.get(i), sym).expect("checked"));
             }
         }
         "json_fixed" => {
@@ -231,6 +239,7 @@ fn main() {
     for (i, (u, _, _)) in levels.iter().enumerate() {
         assert_eq!(decode_bin(bin.get(i)).as_ref(), Some(u), "binary decode differs at update {i}");
         assert_eq!(decode_fix(fix.get(i), &sym).as_ref(), Ok(u), "FIX decode differs at update {i}");
+        assert_eq!(decode_fix_simd(fix.get(i), &sym).as_ref(), Ok(u), "NEON FIX decode differs at update {i}");
         assert_eq!(decode_json_fixed(json.get(i), &sym).as_ref(), Ok(u), "fixed JSON decode differs at update {i}");
         assert_eq!(decode_json_serde(json.get(i), &sym).as_ref(), Ok(u), "serde JSON decode differs at update {i}");
     }
