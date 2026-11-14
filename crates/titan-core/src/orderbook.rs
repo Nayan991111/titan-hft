@@ -30,6 +30,12 @@ pub struct GlobalOrderBook {
     pub trades_count: u64,
 }
 
+impl Default for GlobalOrderBook {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlobalOrderBook {
     pub fn new() -> Self {
         Self {

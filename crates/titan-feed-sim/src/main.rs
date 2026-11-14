@@ -31,7 +31,7 @@ fn main() {
         
         for j in 0..TICKS_PER_PACKET {
             let id = (i * TICKS_PER_PACKET + j) as u64;
-            let side = if id % 2 == 0 { 1 } else { 2 };
+            let side = if id.is_multiple_of(2) { 1 } else { 2 };
             
             // Both sides quote 100.0 so incoming orders cross.
             let price = 100.0;
