@@ -84,7 +84,8 @@ are added afterwards and are never edited away when a prediction fails.
 | H52 | Best-effort FIX decode (`titan-wire` stage `fix_simd`: the NEON delimiter search of `soh_neon` and a NEON checksum, validating identically to `fix`): (a) it costs less than the byte-at-a-time `fix`, both feeds; (b) X(fix_simd)/X(fix) lies between 0.5 and 0.9, both feeds; (c) X(fix_simd)/X(bin) is at least 10, both feeds | supported (both feeds) | X(fix_simd)/X(fix) 0.723 BX, 0.732 synthetic, inside the registered 0.5 to 0.9; X(fix_simd)/X(bin) 40.3 BX, 32.6 synthetic; instructions per update 3026.7 to 2517.2 on BX while cycles fall 27.3%, so IPC rises 5.77 to 6.61. The FIX figure to quote is now 372.8 cycles above the FIX floor on BX, not H50's 514.1; results/2026-11-14_m4_fix_cross.txt |
 | H53 | Consolidated book across BX and PSX (`titan-cross`, 2019-07-30, PMU cycles per merged message): (a) keeping a consolidated top incrementally costs at most 0.5x the two venue books alone; (b) re-reading every venue's top for every shared instrument every 1,000 messages costs at least 2x the incremental design, above that floor; (c) the two venues' displayed books lock and cross during continuous trading, both at least once; (d) at least half of the crossed episodes begin and end between two rebuilds, so the periodic design never sees them | (a), (b), (c) supported, (d) refuted | (a) X(incr) 23.45 against a floor of 153.33, so 0.153; (b) X(rebuild)/X(incr) 4.70 at a rebuild every 1,000 messages, with 782.4 instructions and 37.6 L1D misses per message against 253.4 and 7.1; (c) 360 locked and 33 crossed episodes over 17 instruments inside the window; (d) 15 of 33 invisible, 0.4545, just under the registered 0.5. The episodes are long (mean 18.2 s crossed) and are a statement about every displayed order, odd lots included, not about protected quotations: see H54; results/2026-11-14_m4_fix_cross.txt |
 | H54 | The same day over round-lot-sized levels (`titan-cross min_lot=100`, a level holding at least 100 shares, as a proxy for a protected quotation): (a) crossed episodes fall to at most half of the all-orders count of 33; (b) locked episodes fall to at most half of 360; (c) replicated over the whole day rather than the first 4,000,000 merged messages, H53(a) and H53(b) keep their outcomes | supported | (a) 2 crossed episodes against 33, (b) 82 locked against 360; the longest cross falls from 212.8 s to 0.110 ms and the longest lock from 1,208 s to 43.8 ms, so the long episodes were odd lots resting inside the other venue's quote; (c) over the whole day X(incr) 22.50 against a floor of 157.71 (0.143) and X(rebuild)/X(incr) 5.305, both outcomes replicated. Reported: the periodic design missed both round-lot crossings (share 1.000), being 224 ms behind on average against episodes of 110 us; results/2026-11-14_m4_roundlot.txt |
-| H55 | The third brief's order book against this one (`titan-heap`, cycles per message above decoding alone, X): (a) X(heap_indexed, top) / X(array, top) is at least 1.2; (b) X(heap_indexed, depth) / X(array, depth) is at least 2; (c) the lazy heap costs more than the indexed one for depth; (d) harness check: the two array stages, which run identical code, differ by at most 0.10 of the total; both feeds | pending | |
+| H55 | The third brief's order book against this one (`titan-heap`, cycles per message above decoding alone, X): (a) X(heap_indexed, top) / X(array, top) is at least 1.2; (b) X(heap_indexed, depth) / X(array, depth) is at least 2; (c) the lazy heap costs more than the indexed one for depth; (d) harness check: the two array stages, which run identical code, differ by at most 0.10 of the total; both feeds | supported (all four parts, both feeds; (b) and (c) superseded) | (d) the harness check passed first: the two array stages differ by 0.007 BX and 0.010 synthetic against a bound of 0.10; (a) 1.654 BX, 2.023 synthetic; (b) 2.253 BX, 11.563 synthetic; (c) lazy above indexed for depth, p=0.0000 both feeds. L1D misses per message 6.45 array, 17.3 indexed heap at the top, 158 lazy heap at depth. (b) and (c) were measured against a depth query that scanned the whole heap instead of pruning at the first smaller key; the sixteenth run re-measures them and its figure is the one to quote for depth. (a) and (d) never scan and stand as measured; results/2026-11-14_m4_heap.txt |
+| H56 | The heap's depth query given its best form (`HeapBook::best_depth` pruned at the first smaller key) and the fleeting quotes the third brief recommends: (a) X(heap_indexed, depth) / X(array, depth) is still at least 1.5 on both feeds; (b) on the synthetic feed that ratio falls to at most half of H55's 11.563, so at most 5.78; (c) on BX it stays within a quarter of H55's 2.253, between 1.69 and 2.82; (d) on the real feed at least half of the orders that arrive at the best price are gone within one second | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -844,6 +845,51 @@ development number is not the basis: that machine showed 0.141, which is
 noise it has shown throughout, and 0.10 is written because every M4 run so
 far has held its stage medians within about one percent. If (d) fails on the
 M4, the rest of this run is not to be read.
+
+## Pre-registered 2026-11-14, sixteenth run
+
+**H56 (the heap's depth query at its best, and fleeting quotes).** The
+fifteenth run measured the depth workload against a query that scanned every
+entry of the heap and kept those whose key matched the best. A heap can do
+better: its ordering makes keys non-increasing from the root down, so every
+entry holding the best key is reachable from the root through entries that
+also hold it, and a traversal that stops descending at the first smaller key
+visits exactly those and at most their immediate children. `best_depth` now
+does that, over a reusable stack so the query allocates nothing, with a test
+that it finds every order at the best price when all orders share that
+price, when only the root holds it, and on the ask side where the key is
+inverted. Keeping a running total at each price would remove the traversal
+altogether, and would also be the array book, so it is not done.
+
+Parts (a) to (c) re-measure the depth comparison with that query, everything
+else unchanged from the fifteenth run. They are written as a test of whether
+the fifteenth run's numbers are understood rather than merely recorded: at
+the end of its window BX held 42,994 live orders across 8,850 instruments,
+about five an instrument, so pruning should find almost nothing to skip and
+the BX ratio should barely move; the synthetic feed held 982,360 across 501,
+about two thousand an instrument, so its ratio should collapse. If BX moves
+a lot, or the synthetic feed does not, the explanation is wrong.
+
+Part (d) is the brief's own advice measured on real data. Part 1.4 of the
+third source brief recommends posting quotes "for extremely short duration
+(milliseconds)" and cancelling continuously. The untimed pass now records,
+from each message's own timestamp, how long every order rests between
+arriving and being cancelled or fully executed, and separately for the
+orders that arrive at the best price on their side, where that advice would
+bite. Reported as the share gone within 100 microseconds, 1 millisecond, 10
+milliseconds, 100 milliseconds and 1 second, with the mean, and the count
+still resting at the end of the window, which is excluded.
+
+Decision rules: (a), (b) and (c) are ratios of medians with bootstrap 95%
+intervals, undefined if the denominator's interval reaches zero; (d) is a
+share of the orders that ended inside the window on the BX feed. Both feeds
+supported, one partly, for (a). Disclosure: (b) and (c) are set from the
+live-order counts above and from the fifteenth run's measured ratios, both
+known. No timing of the pruned query exists on any machine: it has run only
+on this development machine over a 400,000-message synthetic prefix without
+the PMU, which produced the lifetime figures used to check the output format
+and no cycle counts at all. (d) is set from nothing measured: this
+repository has never measured an order lifetime.
 
 ## Note on the 2026-11-14 run
 

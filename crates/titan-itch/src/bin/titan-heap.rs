@@ -19,6 +19,12 @@
 //! sum of its orders; the heaps must visit every order at the best price,
 //! and the two workloads are reported separately for that reason.
 //!
+//! The untimed pass also measures what the brief calls fleeting quotes,
+//! which it recommends posting "for extremely short duration
+//! (milliseconds)": how long each order rests before it is cancelled or
+//! fully executed, and the same for the orders that arrive at the best
+//! price, where the brief's advice would bite.
+//!
 //! Untimed first: all three books are driven through the same messages and
 //! required to report the same best price, and the heaps the same depth as
 //! the array book, after every message. Timed: `epochs` passes per design
@@ -26,6 +32,7 @@
 //!
 //!   titan-heap [file=PATH] [limit=N] [instruments=M] [log2=K] [epochs=E] [pmu]
 
+use std::collections::HashMap;
 use std::hint::black_box;
 use titan_itch::book::L3Book;
 use titan_itch::decode::{decode, Msg, Reader};
@@ -183,6 +190,13 @@ fn main() {
     let mut lazy = HeapBook::new(log2, instruments, Policy::Lazy);
     let mut indexed = HeapBook::new(log2, instruments, Policy::Indexed);
     let (mut checks, mut scanned, mut queries) = (0u64, 0u64, 0u64);
+    // Order lifetimes: when each order arrived and whether it arrived at the
+    // best price on its side.
+    let mut born: HashMap<u64, (u64, bool)> = HashMap::with_capacity(1 << 20);
+    const EDGES: [u64; 5] = [100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000];
+    let mut all = [0u64; 6];
+    let mut at_best = [0u64; 6];
+    let (mut all_n, mut best_n, mut all_ns, mut best_ns) = (0u64, 0u64, 0u128, 0u128);
     let mut r = Reader::new(&src);
     let mut n = 0u64;
     while n < limit {
@@ -192,6 +206,40 @@ fn main() {
         fast.apply(&m);
         lazy.apply(&m);
         indexed.apply(&m);
+        // Lifetimes, from this message's own timestamp.
+        let (ts, named): (u64, [u64; 2]) = match m {
+            Msg::Add { ts, order, .. } => (ts, [order, 0]),
+            Msg::Executed { ts, order, .. } | Msg::ExecutedWithPrice { ts, order, .. } => (ts, [order, 0]),
+            Msg::Cancel { ts, order, .. } | Msg::Delete { ts, order, .. } => (ts, [order, 0]),
+            Msg::Replace { ts, old, new, .. } => (ts, [old, new]),
+            Msg::Other { .. } => (0, [0, 0]),
+        };
+        if let Msg::Add { locate, order, side, price, .. } = m {
+            let best = fast.best(locate, side).map(|t| t.0) == Some(price);
+            born.insert(order, (ts, best));
+        }
+        if let Msg::Replace { new, ts, locate, .. } = m {
+            if let Some((side, price)) = fast.order_info(new) {
+                let best = fast.best(locate, side).map(|t| t.0) == Some(price);
+                born.insert(new, (ts, best));
+            }
+        }
+        for o in named {
+            if o == 0 || fast.order_info(o).is_some() {
+                continue;
+            }
+            let Some((t0, was_best)) = born.remove(&o) else { continue };
+            let life = ts.saturating_sub(t0);
+            let b = EDGES.iter().position(|&e| life < e).unwrap_or(5);
+            all[b] += 1;
+            all_n += 1;
+            all_ns += life as u128;
+            if was_best {
+                at_best[b] += 1;
+                best_n += 1;
+                best_ns += life as u128;
+            }
+        }
         let Some(loc) = locate_of(&m) else { continue };
         for side in [Side::Buy, Side::Sell] {
             let want = fast.best(loc, side);
@@ -217,6 +265,25 @@ fn main() {
         lazy.stale_popped,
         scanned as f64 / queries.max(1) as f64,
     );
+    let share = |c: &[u64; 6], n: u64| {
+        let mut cum = 0u64;
+        (0..5)
+            .map(|i| {
+                cum += c[i];
+                format!("{:.4}", cum as f64 / n.max(1) as f64)
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    };
+    println!(
+        "heap_life feed={name} orders_ended={all_n} mean_ms={:.3} within_100us_1ms_10ms_100ms_1s={} at_best_ended={best_n} at_best_mean_ms={:.3} at_best_within={} still_resting={}",
+        all_ns as f64 / all_n.max(1) as f64 / 1e6,
+        share(&all, all_n),
+        best_ns as f64 / best_n.max(1) as f64 / 1e6,
+        share(&at_best, best_n),
+        born.len(),
+    );
+    drop(born);
     drop(fast);
     drop(lazy);
     drop(indexed);
