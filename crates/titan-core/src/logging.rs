@@ -36,8 +36,8 @@ impl AsyncLogger {
                         )
                     };
                     
-                    if let Err(_) = writer.write_all(bytes) {
-                    }
+                    // A failed write drops this record (same behaviour as before).
+                    let _ = writer.write_all(bytes);
                     
                     drained += 1;
                     // Drain up to 4096 items before checking flush or yielding

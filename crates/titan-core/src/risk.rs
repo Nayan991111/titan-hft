@@ -8,6 +8,12 @@ pub struct GlobalKillSwitch {
     tripped: AtomicBool,
 }
 
+impl Default for GlobalKillSwitch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlobalKillSwitch {
     pub fn new() -> Self {
         Self { tripped: AtomicBool::new(false) }

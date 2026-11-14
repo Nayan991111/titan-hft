@@ -14,6 +14,12 @@ pub struct MarketMaker {
     pub trade_count: u64,
 }
 
+impl Default for MarketMaker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MarketMaker {
     pub fn new() -> Self {
         Self { position: 0, pnl: 0.0, trade_count: 0 }
