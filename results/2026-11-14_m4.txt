@@ -1,0 +1,321 @@
+# Summaries of the 2026-11-14 measurement run (statistics only; raw epoch
+# lines stay on the measurement machine; no NASDAQ data is reproduced).
+#
+# Code:      commit ba0bba8, pushed by an earlier attempt of the run script
+#            that a power failure stopped before any measurement (GitHub
+#            confirmed at ba0bba8 before this run); this run measured only.
+# Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt
+# Toolchain: rustc 1.92.0, release profile, target-cpu=native; llvm-tools
+#            21.1.3 (installed by the script before measuring) for H48.
+# Power:     wall power at the start (66%, AC attached, not charging); on
+#            battery at the end (71%, discharging), so the battery charged
+#            during part of the run. The switch to battery is not recorded
+#            by the script; the operator reported a power failure about 7
+#            minutes after the start, which is during the H48 measurement.
+#            Low Power Mode off, no thermal or performance warning at any
+#            check. Core clock from PMU cycles over wall time was 4.03 to
+#            4.46 GHz in every H48 epoch except one (3.68 GHz, round 2,
+#            pgo_real, synthetic, stage book). Verdicts use PMU cycles.
+# Epochs:    10 inside one process per feed and work (H42 to H47, H49);
+#            2 processes of 5 epochs per build and feed (H48). PRELIMINARY.
+# PGO:       the instrumented training runs printed 20 times the LLVM
+#            warning "Unable to track new values: Running out of static
+#            counters" (value profiling: indirect-call and memory-operation
+#            size counters); branch and block counts are not affected.
+# Allocations: every titan-fanout line shows allocations=1: the Vec built by
+#            the PMU delta after the timed span ends and before the count is
+#            read (titan-fanout.rs, delta at line 435, count at line 438);
+#            the measured loops do not allocate.
+# Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, first 20,000,000
+#            messages, and the synthetic default feed.
+== gap-detection check (H37 correctness): every 1,000th datagram held back  [11:25:08]
+feed=synthetic_default load=rate_10000 wait=udppoll udp_dropped=100 udp_missing=100 udp_stale=0 udp_timed_out=0 
+feed=20190730_BX_ITCH_50 load=rate_10000 wait=udppoll udp_dropped=100 udp_missing=100 udp_stale=0 udp_timed_out=0 
+gap check: 2 of 2 runs with exactly 100 held back and 100 detected: PASS
+
+== measured loops: barrier and atomic census (titan-fanout, titan-agg)  [11:25:32]
+titan-fanout, loops matching /titan_fanout[0-9]+(write|replay)_pass_(none|copy|snap)/:
+  loop 1: entry=0000000100000eb4 instructions=1202 dmb=0 isb=2 stlr=1 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  write_pass_copy
+  loop 2: entry=000000010000217c instructions=1109 dmb=0 isb=1 stlr=0 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  write_pass_none
+  loop 3: entry=00000001000032d0 instructions=1145 dmb=1 isb=1 stlr=1 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  write_pass_snap
+  loop 4: entry=00000001000044b4 instructions=143 dmb=0 isb=3 stlr=1 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  replay_pass_copy
+  loop 5: entry=00000001000046f0 instructions=60 dmb=0 isb=1 stlr=0 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  replay_pass_none
+  loop 6: entry=00000001000047e0 instructions=66 dmb=1 isb=1 stlr=1 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  replay_pass_snap
+  barrier and atomic mnemonics with operands:
+   2     dmb ish
+titan-agg, loops matching /titan_agg[0-9]+(measured|contend)_(local|faa|cas|shard)/:
+  loop 1: entry=0000000100001d38 instructions=120 dmb=0 isb=0 stlr=0 ldar=0 ldapr=2 lse_rmw=3 cas=1 ldxr_stxr=0 x86_rmw=0  contend_cas
+  loop 2: entry=0000000100001f18 instructions=109 dmb=0 isb=0 stlr=0 ldar=0 ldapr=2 lse_rmw=4 cas=0 ldxr_stxr=0 x86_rmw=0  contend_faa
+  loop 3: entry=00000001000020cc instructions=76 dmb=0 isb=0 stlr=0 ldar=0 ldapr=0 lse_rmw=1 cas=1 ldxr_stxr=0 x86_rmw=0  measured_cas
+  loop 4: entry=00000001000021fc instructions=62 dmb=0 isb=0 stlr=0 ldar=0 ldapr=0 lse_rmw=2 cas=0 ldxr_stxr=0 x86_rmw=0  measured_faa
+  loop 5: entry=00000001000022f4 instructions=137 dmb=0 isb=0 stlr=0 ldar=0 ldapr=2 lse_rmw=1 cas=0 ldxr_stxr=0 x86_rmw=0  contend_local
+  loop 6: entry=0000000100002518 instructions=144 dmb=0 isb=0 stlr=0 ldar=0 ldapr=2 lse_rmw=1 cas=0 ldxr_stxr=0 x86_rmw=0  contend_shard
+  loop 7: entry=0000000100002758 instructions=79 dmb=0 isb=0 stlr=0 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  measured_local
+  loop 8: entry=0000000100002894 instructions=91 dmb=0 isb=0 stlr=0 ldar=0 ldapr=0 lse_rmw=0 cas=0 ldxr_stxr=0 x86_rmw=0  measured_shard
+  barrier and atomic mnemonics with operands:
+   1     cas x3,
+   1     cas x6,
+   2     ldadd x1,
+   1     ldadd x13,
+   1     ldadd x14,
+   2     ldadd x17,
+   1     ldadd x2,
+   1     ldadd x3,
+   4     ldaddl x9,
+
+fo_subs feed=synthetic_default subs=8 book_message_share=0.0167 locates=408,184,281,270,109,178,225,369 symbols=L408,L184,L281,L270,L109,L178,L225,L369
+fo_work feed=synthetic_default work=book feed_updates=1088 reps=1 updates_per_pass=1088
+fo_subs feed=synthetic_default subs=8 book_message_share=0.0167 locates=408,184,281,270,109,178,225,369 symbols=L408,L184,L281,L270,L109,L178,L225,L369
+fo_work feed=synthetic_default work=replay feed_updates=1088 reps=1839 updates_per_pass=2000832
+fo_subs feed=20190730_BX_ITCH_50 subs=8 book_message_share=0.0566 locates=7397,4323,4325,7322,14,8687,6527,5289 symbols=SPY,IWM,IWO,SOXL,AAPL,XLK,QQQ,MSFT
+fo_work feed=20190730_BX_ITCH_50 work=book feed_updates=580056 reps=1 updates_per_pass=580056
+fo_subs feed=20190730_BX_ITCH_50 subs=8 book_message_share=0.0566 locates=7397,4323,4325,7322,14,8687,6527,5289 symbols=SPY,IWM,IWO,SOXL,AAPL,XLK,QQQ,MSFT
+fo_work feed=20190730_BX_ITCH_50 work=replay feed_updates=580056 reps=4 updates_per_pass=2320224
+agg_config ops=5000000 window=16 epochs=10 pmu=true configs=local1,faa1,cas1,shard1,local2,faa2,cas2,shard2,local3,faa3,cas3,shard3
+
+== Statistics: scripts/analyze.py on the raw lines of this run
+
+## t2t: ns_per_msg, median over epochs [bootstrap 95% CI]
+stage=decode feed=20190730_BX_ITCH_50 build=align64            n=10       6.29 [    6.25,     6.33] msg_cycles=28 msg_instructions=47.9 msg_l1d_miss=0.611 msg_br_mispred=0.738 ipc=1.71 core_ghz=4.45 batch_p99_ns=6.91 intent_rate=0 allocations=0
+stage=decode feed=20190730_BX_ITCH_50 build=base               n=10       6.31 [    6.30,     6.35] msg_cycles=28.1 msg_instructions=47.9 msg_l1d_miss=0.61 msg_br_mispred=0.741 ipc=1.7 core_ghz=4.45 batch_p99_ns=6.92 intent_rate=0 allocations=0
+stage=decode feed=20190730_BX_ITCH_50 build=pgo_real           n=10       6.31 [    6.29,     6.47] msg_cycles=28 msg_instructions=45.6 msg_l1d_miss=0.606 msg_br_mispred=0.698 ipc=1.63 core_ghz=4.43 batch_p99_ns=7.09 intent_rate=0 allocations=0
+stage=decode feed=20190730_BX_ITCH_50 build=pgo_syn            n=10       6.45 [    6.41,     6.47] msg_cycles=28.4 msg_instructions=45.9 msg_l1d_miss=0.608 msg_br_mispred=0.701 ipc=1.62 core_ghz=4.4 batch_p99_ns=7.39 intent_rate=0 allocations=0
+stage=decode feed=synthetic_default build=align64              n=10       7.07 [    7.05,     7.11] msg_cycles=31.4 msg_instructions=52.6 msg_l1d_miss=0.663 msg_br_mispred=0.927 ipc=1.67 core_ghz=4.44 batch_p99_ns=7.91 intent_rate=0 allocations=0
+stage=decode feed=synthetic_default build=base                 n=10       7.07 [    7.05,     7.09] msg_cycles=31.4 msg_instructions=52.6 msg_l1d_miss=0.662 msg_br_mispred=0.927 ipc=1.67 core_ghz=4.45 batch_p99_ns=7.97 intent_rate=0 allocations=0
+stage=decode feed=synthetic_default build=pgo_real             n=10       7.68 [    7.62,     7.74] msg_cycles=33.9 msg_instructions=51 msg_l1d_miss=0.661 msg_br_mispred=0.974 ipc=1.5 core_ghz=4.43 batch_p99_ns=8.5 intent_rate=0 allocations=0
+stage=decode feed=synthetic_default build=pgo_syn              n=10       7.72 [    7.68,     7.79] msg_cycles=34.2 msg_instructions=51 msg_l1d_miss=0.66 msg_br_mispred=0.98 ipc=1.49 core_ghz=4.44 batch_p99_ns=8.79 intent_rate=0 allocations=0
+stage=book feed=20190730_BX_ITCH_50 build=pgo_real             n=10      27.74 [   27.61,    28.06] msg_cycles=117 msg_instructions=152 msg_l1d_miss=5.23 msg_br_mispred=2.44 ipc=1.3 core_ghz=4.21 batch_p99_ns=33.8 intent_rate=0 allocations=0
+stage=book feed=20190730_BX_ITCH_50 build=pgo_syn              n=10      27.83 [   27.67,    27.94] msg_cycles=116 msg_instructions=153 msg_l1d_miss=5.25 msg_br_mispred=2.45 ipc=1.32 core_ghz=4.19 batch_p99_ns=33.4 intent_rate=0 allocations=0
+stage=book feed=20190730_BX_ITCH_50 build=align64              n=10      27.86 [   27.75,    27.92] msg_cycles=118 msg_instructions=156 msg_l1d_miss=5.6 msg_br_mispred=2.47 ipc=1.32 core_ghz=4.25 batch_p99_ns=33.7 intent_rate=0 allocations=0
+stage=book feed=20190730_BX_ITCH_50 build=base                 n=10      27.87 [   27.70,    28.15] msg_cycles=119 msg_instructions=156 msg_l1d_miss=5.64 msg_br_mispred=2.48 ipc=1.31 core_ghz=4.26 batch_p99_ns=33.8 intent_rate=0 allocations=0
+stage=full feed=20190730_BX_ITCH_50 build=pgo_syn              n=10      31.81 [   31.59,    31.96] msg_cycles=133 msg_instructions=182 msg_l1d_miss=6.79 msg_br_mispred=2.71 ipc=1.37 core_ghz=4.19 batch_p99_ns=38 intent_rate=0.0968 allocations=0
+stage=full feed=20190730_BX_ITCH_50 build=align64              n=10      31.92 [   31.84,    32.14] msg_cycles=134 msg_instructions=188 msg_l1d_miss=7.17 msg_br_mispred=2.73 ipc=1.4 core_ghz=4.2 batch_p99_ns=38.5 intent_rate=0.0968 allocations=0
+stage=full feed=20190730_BX_ITCH_50 build=base                 n=10      31.96 [   31.57,    32.21] msg_cycles=134 msg_instructions=188 msg_l1d_miss=7.23 msg_br_mispred=2.73 ipc=1.4 core_ghz=4.19 batch_p99_ns=38.4 intent_rate=0.0968 allocations=0
+stage=full feed=20190730_BX_ITCH_50 build=pgo_real             n=10      32.28 [   32.14,    32.33] msg_cycles=135 msg_instructions=181 msg_l1d_miss=6.79 msg_br_mispred=2.74 ipc=1.34 core_ghz=4.17 batch_p99_ns=39 intent_rate=0.0968 allocations=0
+stage=book feed=synthetic_default build=align64                n=10      37.82 [   37.46,    38.20] msg_cycles=166 msg_instructions=203 msg_l1d_miss=12.2 msg_br_mispred=1.4 ipc=1.22 core_ghz=4.4 batch_p99_ns=42.8 intent_rate=0 allocations=0
+stage=book feed=synthetic_default build=base                   n=10      38.32 [   37.81,    38.95] msg_cycles=168 msg_instructions=203 msg_l1d_miss=12.2 msg_br_mispred=1.4 ipc=1.21 core_ghz=4.41 batch_p99_ns=46.9 intent_rate=0 allocations=0
+stage=book feed=synthetic_default build=pgo_real               n=10      38.36 [   37.82,    39.36] msg_cycles=168 msg_instructions=198 msg_l1d_miss=11.7 msg_br_mispred=1.45 ipc=1.18 core_ghz=4.37 batch_p99_ns=43.3 intent_rate=0 allocations=0
+stage=book feed=synthetic_default build=pgo_syn                n=10      38.76 [   38.45,    39.02] msg_cycles=170 msg_instructions=197 msg_l1d_miss=11.9 msg_br_mispred=1.45 ipc=1.16 core_ghz=4.38 batch_p99_ns=47.8 intent_rate=0 allocations=0
+stage=full feed=synthetic_default build=align64                n=10      43.30 [   42.73,    43.92] msg_cycles=189 msg_instructions=236 msg_l1d_miss=16.2 msg_br_mispred=1.42 ipc=1.25 core_ghz=4.38 batch_p99_ns=48.6 intent_rate=0.00519 allocations=0
+stage=full feed=synthetic_default build=pgo_syn                n=10      43.42 [   42.89,    44.16] msg_cycles=189 msg_instructions=228 msg_l1d_miss=15.6 msg_br_mispred=1.46 ipc=1.21 core_ghz=4.36 batch_p99_ns=50.5 intent_rate=0.00519 allocations=0
+stage=full feed=synthetic_default build=base                   n=10      43.59 [   43.29,    44.01] msg_cycles=191 msg_instructions=236 msg_l1d_miss=16.2 msg_br_mispred=1.42 ipc=1.24 core_ghz=4.39 batch_p99_ns=50.1 intent_rate=0.00519 allocations=0
+stage=full feed=synthetic_default build=pgo_real               n=10      43.91 [   43.63,    45.13] msg_cycles=191 msg_instructions=230 msg_l1d_miss=15.6 msg_br_mispred=1.46 ipc=1.2 core_ghz=4.34 batch_p99_ns=49.6 intent_rate=0.00519 allocations=0
+
+## fo: msg_cycles, median over epochs [bootstrap 95% CI]
+work=replay design=none readers=0 feed=synthetic_default       n=10      39.29 [   39.22,    39.42] writer_ns_per_msg=9.02 msg_instructions=26.1 quote_rate=1 full_waits=0 core_ghz=4.36 invol_switches=9.5
+work=replay design=none readers=0 feed=20190730_BX_ITCH_50     n=10      39.52 [   39.48,    39.59] writer_ns_per_msg=9.09 msg_instructions=26.1 quote_rate=1 full_waits=0 core_ghz=4.35 invol_switches=7.5
+work=replay design=snap readers=0 feed=synthetic_default       n=10      42.29 [   42.27,    42.36] writer_ns_per_msg=9.72 msg_instructions=35.1 quote_rate=1 full_waits=0 core_ghz=4.36 invol_switches=6.5
+work=replay design=snap readers=0 feed=20190730_BX_ITCH_50     n=10      42.78 [   42.73,    42.85] writer_ns_per_msg=9.82 msg_instructions=35.1 quote_rate=1 full_waits=0 core_ghz=4.36 invol_switches=6.5
+work=replay design=copy readers=2 feed=20190730_BX_ITCH_50     n=10      72.21 [   69.26,    75.66] writer_ns_per_msg=18.4 msg_instructions=68.6 quote_rate=1 full_waits=4.14e+03 conflated_frac=0 stale_p50_ns=2.23e+04 stale_p99_ns=8.99e+04 worst_reader_p99_ns=9.86e+04 core_ghz=3.91 invol_switches=88.5
+work=replay design=copy readers=2 feed=synthetic_default       n=10      82.67 [   73.78,   222.10] writer_ns_per_msg=21.1 msg_instructions=68.6 quote_rate=1 full_waits=1.95e+03 conflated_frac=0 stale_p50_ns=1.56e+04 stale_p99_ns=9.44e+04 worst_reader_p99_ns=1.02e+05 core_ghz=3.92 invol_switches=97.5
+work=replay design=copy readers=1 feed=20190730_BX_ITCH_50     n=10      98.15 [   95.33,   100.83] writer_ns_per_msg=22.4 msg_instructions=52.9 quote_rate=1 full_waits=1.91e+05 conflated_frac=0 stale_p50_ns=8.44e+04 stale_p99_ns=1.43e+05 worst_reader_p99_ns=1.43e+05 core_ghz=4.37 invol_switches=40.5
+work=replay design=snap readers=1 feed=20190730_BX_ITCH_50     n=10     105.73 [  103.87,   108.08] writer_ns_per_msg=24.5 msg_instructions=35.1 quote_rate=1 full_waits=0 conflated_frac=0.127 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=4.28 invol_switches=44.5
+work=replay design=snap readers=1 feed=synthetic_default       n=10     109.38 [  108.00,   110.65] writer_ns_per_msg=25.1 msg_instructions=35.2 quote_rate=1 full_waits=0 conflated_frac=0.00986 stale_p50_ns=42 stale_p99_ns=83 worst_reader_p99_ns=83 core_ghz=4.37 invol_switches=44
+work=replay design=copy readers=1 feed=synthetic_default       n=10     111.91 [  104.26,   117.19] writer_ns_per_msg=25.7 msg_instructions=54 quote_rate=1 full_waits=1.99e+05 conflated_frac=0 stale_p50_ns=1.09e+05 stale_p99_ns=1.43e+05 worst_reader_p99_ns=1.43e+05 core_ghz=4.37 invol_switches=44
+work=book design=none readers=0 feed=20190730_BX_ITCH_50       n=10     113.67 [  113.35,   114.14] writer_ns_per_msg=28.2 msg_instructions=153 quote_rate=0.029 full_waits=0 core_ghz=4.04 invol_switches=14
+work=book design=copy readers=1 feed=20190730_BX_ITCH_50       n=10     113.83 [  113.03,   114.90] writer_ns_per_msg=28.5 msg_instructions=153 quote_rate=0.029 full_waits=0 conflated_frac=0 stale_p50_ns=83 stale_p99_ns=125 worst_reader_p99_ns=125 core_ghz=3.99 invol_switches=70
+work=book design=snap readers=1 feed=20190730_BX_ITCH_50       n=10     114.15 [  113.20,   114.74] writer_ns_per_msg=28.6 msg_instructions=155 quote_rate=0.029 full_waits=0 conflated_frac=0.00205 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.98 invol_switches=67.5
+work=book design=snap readers=0 feed=20190730_BX_ITCH_50       n=10     114.22 [  113.10,   114.66] writer_ns_per_msg=28.3 msg_instructions=155 quote_rate=0.029 full_waits=0 core_ghz=4.04 invol_switches=15.5
+work=book design=snap readers=2 feed=20190730_BX_ITCH_50       n=10     114.26 [  114.10,   114.45] writer_ns_per_msg=29 msg_instructions=155 quote_rate=0.029 full_waits=0 conflated_frac=0.00109 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.93 invol_switches=182
+work=book design=snap readers=3 feed=20190730_BX_ITCH_50       n=10     114.76 [  114.02,   115.30] writer_ns_per_msg=29.3 msg_instructions=155 quote_rate=0.029 full_waits=0 conflated_frac=0.00339 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.93 invol_switches=356
+work=book design=copy readers=2 feed=20190730_BX_ITCH_50       n=10     114.76 [  114.28,   115.21] writer_ns_per_msg=29.2 msg_instructions=153 quote_rate=0.029 full_waits=0 conflated_frac=0 stale_p50_ns=84 stale_p99_ns=125 worst_reader_p99_ns=154 core_ghz=3.93 invol_switches=193
+work=book design=copy readers=3 feed=20190730_BX_ITCH_50       n=10     116.00 [  115.39,   116.70] writer_ns_per_msg=29.5 msg_instructions=154 quote_rate=0.029 full_waits=0 conflated_frac=0 stale_p50_ns=125 stale_p99_ns=167 worst_reader_p99_ns=167 core_ghz=3.93 invol_switches=323
+work=replay design=snap readers=2 feed=synthetic_default       n=10     119.47 [  114.95,   120.25] writer_ns_per_msg=30.5 msg_instructions=35.2 quote_rate=1 full_waits=0 conflated_frac=0.00863 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.92 invol_switches=94.5
+work=replay design=snap readers=3 feed=synthetic_default       n=10     124.23 [  121.17,   126.41] writer_ns_per_msg=31.7 msg_instructions=35.2 quote_rate=1 full_waits=0 conflated_frac=0.0427 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.91 invol_switches=132
+work=replay design=snap readers=2 feed=20190730_BX_ITCH_50     n=10     125.35 [  114.11,   126.94] writer_ns_per_msg=32 msg_instructions=35.2 quote_rate=1 full_waits=0 conflated_frac=0.0522 stale_p50_ns=42 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.92 invol_switches=91.5
+work=replay design=snap readers=3 feed=20190730_BX_ITCH_50     n=10     140.07 [  137.80,   141.33] writer_ns_per_msg=35.8 msg_instructions=35.2 quote_rate=1 full_waits=0 conflated_frac=0.049 stale_p50_ns=83 stale_p99_ns=84 worst_reader_p99_ns=84 core_ghz=3.92 invol_switches=139
+work=book design=copy readers=2 feed=synthetic_default         n=10     149.19 [  148.20,   149.54] writer_ns_per_msg=38 msg_instructions=199 quote_rate=0.000218 full_waits=0 conflated_frac=0 stale_p50_ns=125 stale_p99_ns=333 worst_reader_p99_ns=416 core_ghz=3.93 invol_switches=154
+work=book design=copy readers=3 feed=synthetic_default         n=10     150.33 [  149.18,   150.93] writer_ns_per_msg=38.4 msg_instructions=199 quote_rate=0.000218 full_waits=0 conflated_frac=0 stale_p50_ns=125 stale_p99_ns=2.77e+03 worst_reader_p99_ns=2.94e+03 core_ghz=3.91 invol_switches=229
+work=book design=snap readers=3 feed=synthetic_default         n=10     152.90 [  152.51,   153.63] writer_ns_per_msg=39.1 msg_instructions=202 quote_rate=0.000218 full_waits=0 conflated_frac=0.00046 stale_p50_ns=42 stale_p99_ns=2.83e+03 worst_reader_p99_ns=2.88e+03 core_ghz=3.92 invol_switches=228
+work=book design=snap readers=2 feed=synthetic_default         n=10     152.95 [  152.19,   153.71] writer_ns_per_msg=39 msg_instructions=202 quote_rate=0.000218 full_waits=0 conflated_frac=0 stale_p50_ns=42 stale_p99_ns=2.83e+03 worst_reader_p99_ns=2.83e+03 core_ghz=3.92 invol_switches=163
+work=book design=none readers=0 feed=synthetic_default         n=10     154.34 [  153.70,   155.59] writer_ns_per_msg=36.4 msg_instructions=199 quote_rate=0.000218 full_waits=0 core_ghz=4.24 invol_switches=22.5
+work=book design=copy readers=1 feed=synthetic_default         n=10     155.46 [  154.72,   156.22] writer_ns_per_msg=36.3 msg_instructions=199 quote_rate=0.000218 full_waits=0 conflated_frac=0 stale_p50_ns=83 stale_p99_ns=230 worst_reader_p99_ns=230 core_ghz=4.27 invol_switches=72.5
+work=book design=snap readers=1 feed=synthetic_default         n=10     157.74 [  157.10,   159.73] writer_ns_per_msg=37.3 msg_instructions=202 quote_rate=0.000218 full_waits=0 conflated_frac=0 stale_p50_ns=42 stale_p99_ns=229 worst_reader_p99_ns=229 core_ghz=4.21 invol_switches=78
+work=book design=snap readers=0 feed=synthetic_default         n=10     159.42 [  158.18,   160.27] writer_ns_per_msg=37 msg_instructions=202 quote_rate=0.000218 full_waits=0 core_ghz=4.29 invol_switches=15.5
+work=replay design=copy readers=3 feed=20190730_BX_ITCH_50     n=10     290.16 [  223.92,   328.38] writer_ns_per_msg=73.9 msg_instructions=89.1 quote_rate=1 full_waits=1.57e+04 conflated_frac=0 stale_p50_ns=83.5 stale_p99_ns=1.35e+05 worst_reader_p99_ns=1.52e+05 core_ghz=3.92 invol_switches=179
+work=replay design=copy readers=3 feed=synthetic_default       n=10     316.62 [  303.70,   329.71] writer_ns_per_msg=82.4 msg_instructions=88.5 quote_rate=1 full_waits=1.26e+03 conflated_frac=0 stale_p50_ns=83 stale_p99_ns=6.43e+04 worst_reader_p99_ns=7.58e+04 core_ghz=3.92 invol_switches=188
+
+## agg: msg_cycles, median over epochs [bootstrap 95% CI]
+design=local strategies=3                                      n=10       6.59 [    6.39,     7.70] ns_per_order=1.7 msg_instructions=33 msg_l1d_miss=0.0001 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=4.59e+06 core_ghz=3.91 invol_switches=38
+design=local strategies=2                                      n=10       7.60 [    6.42,     8.02] ns_per_order=1.91 msg_instructions=33 msg_l1d_miss=5e-05 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=5.06e+06 core_ghz=3.96 invol_switches=16
+design=local strategies=1                                      n=10       8.21 [    6.50,     9.93] ns_per_order=2.06 msg_instructions=33 msg_l1d_miss=0 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=0 core_ghz=4.01 invol_switches=2
+design=shard strategies=1                                      n=10       9.58 [    8.44,    10.49] ns_per_order=2.4 msg_instructions=42 msg_l1d_miss=5e-05 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=0 core_ghz=4 invol_switches=5
+design=cas strategies=1                                        n=10      14.12 [   14.11,    14.13] ns_per_order=3.5 msg_instructions=26 msg_l1d_miss=0.0001 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=0 core_ghz=4.04 invol_switches=5.5
+design=faa strategies=1                                        n=10      14.28 [   14.25,    14.30] ns_per_order=3.53 msg_instructions=23 msg_l1d_miss=0 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=0 core_ghz=4.05 invol_switches=3
+design=shard strategies=2                                      n=10      17.92 [   17.82,    18.00] ns_per_order=4.51 msg_instructions=47 msg_l1d_miss=1.06 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=4.65e+06 core_ghz=3.97 invol_switches=30.5
+design=shard strategies=3                                      n=10      19.72 [   19.52,    19.99] ns_per_order=5.05 msg_instructions=52.1 msg_l1d_miss=2.27 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=5.84e+06 core_ghz=3.91 invol_switches=73
+design=cas strategies=2                                        n=10      51.55 [   46.98,    56.03] ns_per_order=12.4 msg_instructions=27.7 msg_l1d_miss=0.406 cas_retries_s0=0.202 cas_retries_per_order=0.208 min_other_orders=4.93e+06 core_ghz=4.17 invol_switches=42
+design=faa strategies=2                                        n=10     103.38 [   99.50,   105.42] ns_per_order=25.4 msg_instructions=23.1 msg_l1d_miss=1.04 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=4.97e+06 core_ghz=4.07 invol_switches=54
+design=faa strategies=3                                        n=10     217.88 [  207.92,   227.25] ns_per_order=55.4 msg_instructions=23.2 msg_l1d_miss=1.89 cas_retries_s0=0 cas_retries_per_order=0 min_other_orders=3.97e+06 core_ghz=3.93 invol_switches=144
+design=cas strategies=3                                        n=10     221.23 [  207.73,   239.28] ns_per_order=56.3 msg_instructions=30.4 msg_l1d_miss=1.99 cas_retries_s0=0.535 cas_retries_per_order=0.58 min_other_orders=4.38e+06 core_ghz=3.93 invol_switches=140
+
+## contrasts: A vs B on the primary metric (lower is better)
+t2t book vs full, ablation (20190730_BX_ITCH_50, build align64) A=    27.86 B=    31.92 A/B= 0.873 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50, build align64) [msg_cycles] A=   118.46 B=   134.27 A/B= 0.882 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build align64)      A=     6.29 B=    27.86 A/B= 0.226 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build align64) [msg_cycles] A=    27.98 B=   118.46 A/B= 0.236 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t build align64 vs base, decode (20190730_BX_ITCH_50)      A=     6.29 B=     6.31 A/B= 0.996 nA=10 nB=10 U=28.0 p=0.1051 (exact) cliffs_delta=-0.44
+t2t build align64 vs base, decode (20190730_BX_ITCH_50) [msg_cycles] A=    27.98 B=    28.09 A/B= 0.996 nA=10 nB=10 U=11.5 p=0.0035 (normal) cliffs_delta=-0.77
+t2t build align64 vs base, book (20190730_BX_ITCH_50)        A=    27.86 B=    27.87 A/B= 1.000 nA=10 nB=10 U=43.5 p=0.6230 (normal) cliffs_delta=-0.13
+t2t build align64 vs base, book (20190730_BX_ITCH_50) [msg_cycles] A=   118.46 B=   118.88 A/B= 0.996 nA=10 nB=10 U=20.5 p=0.0257 (normal) cliffs_delta=-0.59
+t2t build align64 vs base, full (20190730_BX_ITCH_50)        A=    31.92 B=    31.96 A/B= 0.999 nA=10 nB=10 U=53.0 p=0.8534 (exact) cliffs_delta=+0.06
+t2t build align64 vs base, full (20190730_BX_ITCH_50) [msg_cycles] A=   134.27 B=   134.31 A/B= 1.000 nA=10 nB=10 U=55.0 p=0.7394 (exact) cliffs_delta=+0.10
+t2t book vs full, ablation (20190730_BX_ITCH_50, build base) A=    27.87 B=    31.96 A/B= 0.872 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50, build base) [msg_cycles] A=   118.88 B=   134.31 A/B= 0.885 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build base)         A=     6.31 B=    27.87 A/B= 0.226 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build base) [msg_cycles] A=    28.09 B=   118.88 A/B= 0.236 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50, build pgo_real) A=    27.74 B=    32.28 A/B= 0.859 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50, build pgo_real) [msg_cycles] A=   116.81 B=   134.66 A/B= 0.867 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build pgo_real)     A=     6.31 B=    27.74 A/B= 0.228 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build pgo_real) [msg_cycles] A=    27.95 B=   116.81 A/B= 0.239 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t build pgo_real vs base, decode (20190730_BX_ITCH_50)     A=     6.31 B=     6.31 A/B= 1.000 nA=10 nB=10 U=52.5 p=0.8501 (normal) cliffs_delta=+0.05
+t2t build pgo_real vs base, decode (20190730_BX_ITCH_50) [msg_cycles] A=    27.95 B=    28.09 A/B= 0.995 nA=10 nB=10 U=20.5 p=0.0251 (normal) cliffs_delta=-0.59
+t2t build pgo_real vs base, book (20190730_BX_ITCH_50)       A=    27.74 B=    27.87 A/B= 0.995 nA=10 nB=10 U=42.0 p=0.5787 (exact) cliffs_delta=-0.16
+t2t build pgo_real vs base, book (20190730_BX_ITCH_50) [msg_cycles] A=   116.81 B=   118.88 A/B= 0.983 nA=10 nB=10 U=1.0 p=0.0000 (exact) cliffs_delta=-0.98
+t2t build pgo_real vs base, full (20190730_BX_ITCH_50)       A=    32.28 B=    31.96 A/B= 1.010 nA=10 nB=10 U=78.0 p=0.0355 (exact) cliffs_delta=+0.56
+t2t build pgo_real vs base, full (20190730_BX_ITCH_50) [msg_cycles] A=   134.66 B=   134.31 A/B= 1.003 nA=10 nB=10 U=54.0 p=0.7959 (exact) cliffs_delta=+0.08
+t2t book vs full, ablation (20190730_BX_ITCH_50, build pgo_syn) A=    27.83 B=    31.81 A/B= 0.875 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (20190730_BX_ITCH_50, build pgo_syn) [msg_cycles] A=   116.44 B=   133.34 A/B= 0.873 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build pgo_syn)      A=     6.45 B=    27.83 A/B= 0.232 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (20190730_BX_ITCH_50, build pgo_syn) [msg_cycles] A=    28.36 B=   116.44 A/B= 0.244 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t build pgo_syn vs base, decode (20190730_BX_ITCH_50)      A=     6.45 B=     6.31 A/B= 1.022 nA=10 nB=10 U=96.0 p=0.0001 (exact) cliffs_delta=+0.92
+t2t build pgo_syn vs base, decode (20190730_BX_ITCH_50) [msg_cycles] A=    28.36 B=    28.09 A/B= 1.010 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+t2t build pgo_syn vs base, book (20190730_BX_ITCH_50)        A=    27.83 B=    27.87 A/B= 0.999 nA=10 nB=10 U=40.0 p=0.4813 (exact) cliffs_delta=-0.20
+t2t build pgo_syn vs base, book (20190730_BX_ITCH_50) [msg_cycles] A=   116.44 B=   118.88 A/B= 0.979 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t build pgo_syn vs base, full (20190730_BX_ITCH_50)        A=    31.81 B=    31.96 A/B= 0.995 nA=10 nB=10 U=40.0 p=0.4813 (exact) cliffs_delta=-0.20
+t2t build pgo_syn vs base, full (20190730_BX_ITCH_50) [msg_cycles] A=   133.34 B=   134.31 A/B= 0.993 nA=10 nB=10 U=16.0 p=0.0089 (exact) cliffs_delta=-0.68
+t2t book vs full, ablation (synthetic_default, build align64) A=    37.82 B=    43.30 A/B= 0.873 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (synthetic_default, build align64) [msg_cycles] A=   166.14 B=   189.42 A/B= 0.877 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build align64)        A=     7.07 B=    37.82 A/B= 0.187 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build align64) [msg_cycles] A=    31.43 B=   166.14 A/B= 0.189 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t build align64 vs base, decode (synthetic_default)        A=     7.07 B=     7.07 A/B= 0.999 nA=10 nB=10 U=53.0 p=0.8534 (exact) cliffs_delta=+0.06
+t2t build align64 vs base, decode (synthetic_default) [msg_cycles] A=    31.43 B=    31.41 A/B= 1.000 nA=10 nB=10 U=49.0 p=0.9397 (normal) cliffs_delta=-0.02
+t2t build align64 vs base, book (synthetic_default)          A=    37.82 B=    38.32 A/B= 0.987 nA=10 nB=10 U=26.0 p=0.0753 (exact) cliffs_delta=-0.48
+t2t build align64 vs base, book (synthetic_default) [msg_cycles] A=   166.14 B=   168.35 A/B= 0.987 nA=10 nB=10 U=29.0 p=0.1230 (exact) cliffs_delta=-0.42
+t2t build align64 vs base, full (synthetic_default)          A=    43.30 B=    43.59 A/B= 0.993 nA=10 nB=10 U=37.0 p=0.3527 (exact) cliffs_delta=-0.26
+t2t build align64 vs base, full (synthetic_default) [msg_cycles] A=   189.42 B=   190.87 A/B= 0.992 nA=10 nB=10 U=37.0 p=0.3527 (exact) cliffs_delta=-0.26
+t2t book vs full, ablation (synthetic_default, build base)   A=    38.32 B=    43.59 A/B= 0.879 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (synthetic_default, build base) [msg_cycles] A=   168.35 B=   190.87 A/B= 0.882 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build base)           A=     7.07 B=    38.32 A/B= 0.185 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build base) [msg_cycles] A=    31.41 B=   168.35 A/B= 0.187 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t book vs full, ablation (synthetic_default, build pgo_real) A=    38.36 B=    43.91 A/B= 0.873 nA=10 nB=10 U=9.0 p=0.0011 (exact) cliffs_delta=-0.82
+t2t book vs full, ablation (synthetic_default, build pgo_real) [msg_cycles] A=   167.76 B=   191.42 A/B= 0.876 nA=10 nB=10 U=7.0 p=0.0005 (exact) cliffs_delta=-0.86
+t2t decode vs book (synthetic_default, build pgo_real)       A=     7.68 B=    38.36 A/B= 0.200 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build pgo_real) [msg_cycles] A=    33.92 B=   167.76 A/B= 0.202 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t build pgo_real vs base, decode (synthetic_default)       A=     7.68 B=     7.07 A/B= 1.085 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+t2t build pgo_real vs base, decode (synthetic_default) [msg_cycles] A=    33.92 B=    31.41 A/B= 1.080 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+t2t build pgo_real vs base, book (synthetic_default)         A=    38.36 B=    38.32 A/B= 1.001 nA=10 nB=10 U=57.0 p=0.6305 (exact) cliffs_delta=+0.14
+t2t build pgo_real vs base, book (synthetic_default) [msg_cycles] A=   167.76 B=   168.35 A/B= 0.996 nA=10 nB=10 U=48.0 p=0.9118 (exact) cliffs_delta=-0.04
+t2t build pgo_real vs base, full (synthetic_default)         A=    43.91 B=    43.59 A/B= 1.007 nA=10 nB=10 U=74.0 p=0.0753 (exact) cliffs_delta=+0.48
+t2t build pgo_real vs base, full (synthetic_default) [msg_cycles] A=   191.42 B=   190.87 A/B= 1.003 nA=10 nB=10 U=54.5 p=0.7336 (normal) cliffs_delta=+0.09
+t2t book vs full, ablation (synthetic_default, build pgo_syn) A=    38.76 B=    43.42 A/B= 0.893 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t book vs full, ablation (synthetic_default, build pgo_syn) [msg_cycles] A=   170.21 B=   188.84 A/B= 0.901 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build pgo_syn)        A=     7.72 B=    38.76 A/B= 0.199 nA=10 nB=10 U=0.0 p=0.0002 (normal) cliffs_delta=-1.00
+t2t decode vs book (synthetic_default, build pgo_syn) [msg_cycles] A=    34.19 B=   170.21 A/B= 0.201 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+t2t build pgo_syn vs base, decode (synthetic_default)        A=     7.72 B=     7.07 A/B= 1.091 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+t2t build pgo_syn vs base, decode (synthetic_default) [msg_cycles] A=    34.19 B=    31.41 A/B= 1.088 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+t2t build pgo_syn vs base, book (synthetic_default)          A=    38.76 B=    38.32 A/B= 1.011 nA=10 nB=10 U=69.0 p=0.1655 (exact) cliffs_delta=+0.38
+t2t build pgo_syn vs base, book (synthetic_default) [msg_cycles] A=   170.21 B=   168.35 A/B= 1.011 nA=10 nB=10 U=59.0 p=0.5288 (exact) cliffs_delta=+0.18
+t2t build pgo_syn vs base, full (synthetic_default)          A=    43.42 B=    43.59 A/B= 0.996 nA=10 nB=10 U=43.0 p=0.6305 (exact) cliffs_delta=-0.14
+t2t build pgo_syn vs base, full (synthetic_default) [msg_cycles] A=   188.84 B=   190.87 A/B= 0.989 nA=10 nB=10 U=37.0 p=0.3527 (exact) cliffs_delta=-0.26
+agg faa1 vs local1, one uncontended atomic add               A=    14.28 B=     8.21 A/B= 1.738 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+agg faa3 vs faa1, contention on one shared total             A=   217.88 B=    14.28 A/B=15.260 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+agg cas3 vs faa3, exact limit vs two-step check              A=   221.23 B=   217.88 A/B= 1.015 nA=10 nB=10 U=50.0 p=1.0000 (exact) cliffs_delta=+0.00
+agg shard3 vs faa3, per-strategy totals vs one shared total  A=    19.72 B=   217.88 A/B= 0.091 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+agg shard3 vs shard1, cost of the other strategies writing their totals A=    19.72 B=     9.58 A/B= 2.058 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo copy3 vs copy1, writer (book, 20190730_BX_ITCH_50)       A=   116.00 B=   113.83 A/B= 1.019 nA=10 nB=10 U=97.0 p=0.0001 (exact) cliffs_delta=+0.94
+fo snap1 vs snap0, writer (book, 20190730_BX_ITCH_50)       A=   114.15 B=   114.22 A/B= 0.999 nA=10 nB=10 U=51.0 p=0.9705 (exact) cliffs_delta=+0.02
+fo snap3 vs snap1, writer (book, 20190730_BX_ITCH_50)       A=   114.76 B=   114.15 A/B= 1.005 nA=10 nB=10 U=71.0 p=0.1230 (exact) cliffs_delta=+0.42
+fo snap3 vs copy3, writer (book, 20190730_BX_ITCH_50)       A=   114.76 B=   116.00 A/B= 0.989 nA=10 nB=10 U=11.0 p=0.0021 (exact) cliffs_delta=-0.78
+fo snap0 vs none, writer (book, 20190730_BX_ITCH_50)        A=   114.22 B=   113.67 A/B= 1.005 nA=10 nB=10 U=64.0 p=0.3150 (exact) cliffs_delta=+0.28
+fo snap1 vs copy1, staleness (book, 20190730_BX_ITCH_50) [stale_p50_ns] A=    42.00 B=    83.00 A/B= 0.506 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap1 vs copy1, staleness (book, 20190730_BX_ITCH_50) [stale_p99_ns] A=    84.00 B=   125.00 A/B= 0.672 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap2 vs copy2, staleness (book, 20190730_BX_ITCH_50) [stale_p50_ns] A=    42.00 B=    84.00 A/B= 0.500 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap2 vs copy2, staleness (book, 20190730_BX_ITCH_50) [stale_p99_ns] A=    84.00 B=   125.00 A/B= 0.672 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap3 vs copy3, staleness (book, 20190730_BX_ITCH_50) [stale_p50_ns] A=    42.00 B=   125.00 A/B= 0.336 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap3 vs copy3, staleness (book, 20190730_BX_ITCH_50) [stale_p99_ns] A=    84.00 B=   167.00 A/B= 0.503 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo copy3 vs copy1, writer (book, synthetic_default)         A=   150.33 B=   155.46 A/B= 0.967 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+fo snap1 vs snap0, writer (book, synthetic_default)         A=   157.74 B=   159.42 A/B= 0.989 nA=10 nB=10 U=36.0 p=0.3150 (exact) cliffs_delta=-0.28
+fo snap3 vs snap1, writer (book, synthetic_default)         A=   152.90 B=   157.74 A/B= 0.969 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+fo snap3 vs copy3, writer (book, synthetic_default)         A=   152.90 B=   150.33 A/B= 1.017 nA=10 nB=10 U=98.0 p=0.0000 (exact) cliffs_delta=+0.96
+fo snap0 vs none, writer (book, synthetic_default)          A=   159.42 B=   154.34 A/B= 1.033 nA=10 nB=10 U=98.0 p=0.0000 (exact) cliffs_delta=+0.96
+fo snap1 vs copy1, staleness (book, synthetic_default) [stale_p50_ns] A=    42.00 B=    83.00 A/B= 0.506 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap1 vs copy1, staleness (book, synthetic_default) [stale_p99_ns] A=   229.00 B=   229.50 A/B= 0.998 nA=10 nB=10 U=51.0 p=0.9386 (normal) cliffs_delta=+0.02
+fo snap2 vs copy2, staleness (book, synthetic_default) [stale_p50_ns] A=    42.00 B=   125.00 A/B= 0.336 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap2 vs copy2, staleness (book, synthetic_default) [stale_p99_ns] A=  2833.00 B=   333.00 A/B= 8.508 nA=10 nB=10 U=100.0 p=0.0001 (normal) cliffs_delta=+1.00
+fo snap3 vs copy3, staleness (book, synthetic_default) [stale_p50_ns] A=    42.00 B=   125.00 A/B= 0.336 nA=10 nB=10 U=0.0 p=0.0000 (normal) cliffs_delta=-1.00
+fo snap3 vs copy3, staleness (book, synthetic_default) [stale_p99_ns] A=  2834.00 B=  2771.00 A/B= 1.023 nA=10 nB=10 U=64.5 p=0.2710 (normal) cliffs_delta=+0.29
+fo copy3 vs copy1, writer (replay, 20190730_BX_ITCH_50)     A=   290.16 B=    98.15 A/B= 2.956 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap1 vs snap0, writer (replay, 20190730_BX_ITCH_50)     A=   105.73 B=    42.78 A/B= 2.472 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap3 vs snap1, writer (replay, 20190730_BX_ITCH_50)     A=   140.07 B=   105.73 A/B= 1.325 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap3 vs copy3, writer (replay, 20190730_BX_ITCH_50)     A=   140.07 B=   290.16 A/B= 0.483 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+fo snap0 vs none, writer (replay, 20190730_BX_ITCH_50)      A=    42.78 B=    39.52 A/B= 1.083 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+fo snap1 vs copy1, staleness (replay, 20190730_BX_ITCH_50) [stale_p50_ns] A=    42.00 B= 84400.00 A/B= 0.000 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap1 vs copy1, staleness (replay, 20190730_BX_ITCH_50) [stale_p99_ns] A=    84.00 B=143008.00 A/B= 0.001 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap2 vs copy2, staleness (replay, 20190730_BX_ITCH_50) [stale_p50_ns] A=    42.00 B= 22348.00 A/B= 0.002 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap2 vs copy2, staleness (replay, 20190730_BX_ITCH_50) [stale_p99_ns] A=    84.00 B= 89872.00 A/B= 0.001 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap3 vs copy3, staleness (replay, 20190730_BX_ITCH_50) [stale_p50_ns] A=    83.00 B=    83.50 A/B= 0.994 nA=10 nB=10 U=25.0 p=0.0129 (normal) cliffs_delta=-0.50
+fo snap3 vs copy3, staleness (replay, 20190730_BX_ITCH_50) [stale_p99_ns] A=    84.00 B=135136.00 A/B= 0.001 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo copy3 vs copy1, writer (replay, synthetic_default)       A=   316.62 B=   111.91 A/B= 2.829 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap1 vs snap0, writer (replay, synthetic_default)       A=   109.38 B=    42.29 A/B= 2.586 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap3 vs snap1, writer (replay, synthetic_default)       A=   124.23 B=   109.38 A/B= 1.136 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap3 vs copy3, writer (replay, synthetic_default)       A=   124.23 B=   316.62 A/B= 0.392 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+fo snap0 vs none, writer (replay, synthetic_default)        A=    42.29 B=    39.29 A/B= 1.076 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+fo snap1 vs copy1, staleness (replay, synthetic_default) [stale_p50_ns] A=    42.00 B=109136.00 A/B= 0.000 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap1 vs copy1, staleness (replay, synthetic_default) [stale_p99_ns] A=    83.00 B=142560.00 A/B= 0.001 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap2 vs copy2, staleness (replay, synthetic_default) [stale_p50_ns] A=    42.00 B= 15612.00 A/B= 0.003 nA=10 nB=10 U=1.5 p=0.0001 (normal) cliffs_delta=-0.97
+fo snap2 vs copy2, staleness (replay, synthetic_default) [stale_p99_ns] A=    84.00 B= 94432.00 A/B= 0.001 nA=10 nB=10 U=0.0 p=0.0001 (normal) cliffs_delta=-1.00
+fo snap3 vs copy3, staleness (replay, synthetic_default) [stale_p50_ns] A=    42.00 B=    83.00 A/B= 0.506 nA=10 nB=10 U=12.0 p=0.0012 (normal) cliffs_delta=-0.76
+fo snap3 vs copy3, staleness (replay, synthetic_default) [stale_p99_ns] A=    84.00 B= 64264.00 A/B= 0.001 nA=10 nB=10 U=0.5 p=0.0001 (normal) cliffs_delta=-0.99
+
+## fo: writer cycles per published update above none, X [bootstrap 95% CI]
+fo book 20190730_BX_ITCH_50: none=113.669 cycles per unit, updates per unit q=0.0290028
+fo book 20190730_BX_ITCH_50: X(snap0) = 19.15 [-21.45, 38.34]
+fo book 20190730_BX_ITCH_50: X(copy1) = 5.53 [-28.96, 42.98]
+fo book 20190730_BX_ITCH_50: X(snap1) = 16.57 [-20.22, 37.67]
+fo book 20190730_BX_ITCH_50: X(copy2) = 37.70 [13.15, 56.13]
+fo book 20190730_BX_ITCH_50: X(snap2) = 20.45 [3.72, 33.60]
+fo book 20190730_BX_ITCH_50: X(copy3) = 80.35 [53.55, 108.08]
+fo book 20190730_BX_ITCH_50: X(snap3) = 37.53 [7.83, 61.20]
+fo book 20190730_BX_ITCH_50: X(copy3) / X(copy1) undefined (interval of X(copy1) reaches 0 or below)
+fo book 20190730_BX_ITCH_50: X(snap3) / X(snap1) undefined (interval of X(snap1) reaches 0 or below)
+fo book 20190730_BX_ITCH_50: X(snap1) / X(snap0) undefined (interval of X(snap0) reaches 0 or below)
+fo book 20190730_BX_ITCH_50: X(snap3) / X(copy3) = 0.467 [0.095, 0.843]
+fo book synthetic_default: none=154.335 cycles per unit, updates per unit q=0.0002176
+fo book synthetic_default: X(snap0) = 23389.25 [15133.27, 28403.03]
+fo book synthetic_default: X(copy1) = 5160.85 [-1838.24, 9839.15]
+fo book synthetic_default: X(snap1) = 15643.38 [8474.26, 25590.53]
+fo book synthetic_default: X(copy2) = -23623.62 [-31298.25, -19846.05]
+fo book synthetic_default: X(snap2) = -6362.59 [-13366.27, -1286.76]
+fo book synthetic_default: X(copy3) = -18384.65 [-26560.20, -14209.56]
+fo book synthetic_default: X(snap3) = -6578.58 [-12564.34, -1939.34]
+fo book synthetic_default: X(copy3) / X(copy1) undefined (interval of X(copy1) reaches 0 or below)
+fo book synthetic_default: X(snap3) / X(snap1) = -0.421 [-1.336, -0.102]
+fo book synthetic_default: X(snap1) / X(snap0) = 0.669 [0.452, 1.172]
+fo book synthetic_default: X(snap3) / X(copy3) undefined (interval of X(copy3) reaches 0 or below)
+fo replay 20190730_BX_ITCH_50: none=39.519 cycles per unit, updates per unit q=1.0000000
+fo replay 20190730_BX_ITCH_50: X(snap0) = 3.26 [3.17, 3.33]
+fo replay 20190730_BX_ITCH_50: X(copy1) = 58.63 [56.10, 61.46]
+fo replay 20190730_BX_ITCH_50: X(snap1) = 66.21 [64.37, 68.12]
+fo replay 20190730_BX_ITCH_50: X(copy2) = 32.69 [29.68, 36.16]
+fo replay 20190730_BX_ITCH_50: X(snap2) = 85.83 [74.58, 87.37]
+fo replay 20190730_BX_ITCH_50: X(copy3) = 250.64 [184.40, 288.90]
+fo replay 20190730_BX_ITCH_50: X(snap3) = 100.55 [98.28, 101.80]
+fo replay 20190730_BX_ITCH_50: X(copy3) / X(copy1) = 4.275 [3.184, 4.981]
+fo replay 20190730_BX_ITCH_50: X(snap3) / X(snap1) = 1.519 [1.461, 1.566]
+fo replay 20190730_BX_ITCH_50: X(snap1) / X(snap0) = 20.304 [19.595, 21.158]
+fo replay 20190730_BX_ITCH_50: X(snap3) / X(copy3) = 0.401 [0.348, 0.546]
+fo replay synthetic_default: none=39.291 cycles per unit, updates per unit q=1.0000000
+fo replay synthetic_default: X(snap0) = 3.00 [2.89, 3.12]
+fo replay synthetic_default: X(copy1) = 72.62 [64.92, 77.86]
+fo replay synthetic_default: X(snap1) = 70.09 [68.72, 71.27]
+fo replay synthetic_default: X(copy2) = 43.38 [34.45, 182.87]
+fo replay synthetic_default: X(snap2) = 80.18 [75.61, 80.98]
+fo replay synthetic_default: X(copy3) = 277.33 [264.32, 288.64]
+fo replay synthetic_default: X(snap3) = 84.94 [81.84, 87.16]
+fo replay synthetic_default: X(copy3) / X(copy1) = 3.819 [3.494, 4.293]
+fo replay synthetic_default: X(snap3) / X(snap1) = 1.212 [1.166, 1.249]
+fo replay synthetic_default: X(snap1) / X(snap0) = 23.335 [22.399, 24.327]
+fo replay synthetic_default: X(snap3) / X(copy3) = 0.306 [0.290, 0.321]
+
+## agg: epochs excluded as starved (another strategy under ops/100 orders): 0
