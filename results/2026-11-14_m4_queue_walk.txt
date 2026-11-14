@@ -1,0 +1,93 @@
+Queue position and the cost of immediacy (H57, H58)
+Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit f5be2d4, 2026-11-14 21:26 IST.
+AC power, Low Power Mode off, Docker quit, no thermal or performance warning recorded
+before, during or after the run. 10 epochs per design, stage order rotated per epoch,
+PMU on the measuring thread. Real feed: NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, first
+10,000,000 messages, 8,850 instruments. Synthetic feed: 5,000,000 messages, 501
+instruments, reported as contrast only. Zero allocations in every timed pass; one
+checksum per design on each feed, identical across all 10 epochs.
+
+H57 (queue position, and the cancellation rate the fourth brief states)
+
+(a) REFUTED. The share of orders that ever execute is not non-increasing across the five
+    queue-position buckets on the real feed. The reversal is at the first step: orders
+    arriving with nothing ahead of them execute at 0.0266, while orders arriving with 1
+    to 99 shares ahead execute at 0.0961, which is 3.61 times higher. From the second
+    bucket onward the series is monotone as registered: 0.0961, 0.0158, 0.0046, 0.0030.
+    The reversal is a property of the real feed, not of the measurement: on the synthetic
+    feed, where order flow is random by construction, the series is monotone with no
+    reversal at 0.1950, 0.1878, 0.1858, 0.1493, 0.0802.
+
+    Why the registered direction failed. Shares ahead conflates two different things:
+    position in a queue, and whether the price has a queue at all. 3,172,917 of the
+    4,429,141 arrivals on BX, which is 71.6%, arrived with nothing ahead, meaning they
+    opened a price level rather than joined one. An order alone at a price is first in
+    line at a price the market is not trading, and it fills less often than an order
+    second in line at a price the market is trading. Conditional on the level already
+    existing, the brief's mechanism holds exactly as stated.
+
+(b) SUPPORTED. 0.0266 at the front against 0.0030 with 10,000 or more shares ahead, a
+    ratio of 8.87, against a registered threshold of 2. Parts (a) and (b) are consistent:
+    the extremes separate strongly, the ordering in between is not monotone.
+
+(c) SUPPORTED. 4,284,968 of 4,386,147 orders that ended inside the window ended without
+    any execution at all, a rate of 0.9769. The brief states 50%. The venue aggregate is
+    nearly double it. Registered caveat, restated: ITCH names every order but no firm, so
+    this is the rate across all participants and is consistent with the brief's claim
+    about high frequency firms without establishing it. Only 0.0231 of ended orders saw
+    any execution and 0.0210 were filled in full.
+
+(d) SUPPORTED. X(queue) / X(book) = 1.092 [1.082, 1.101] on BX, against a registered
+    ceiling of 1.35. Synthetic 1.205 [1.193, 1.218]. X(book) = 91.25 [91.04, 91.74]
+    cycles per message above decoding, X(queue) = 99.67 [98.89, 100.48]. Instructions
+    rose from 168.73 to 187.30 per message while cycles rose 9.2%, and IPC rose from
+    1.486 to 1.545: the extra work is the binary search the add already performs, run a
+    second time on a level that is still in cache.
+
+H58 (what immediacy costs, and the brief's power above one)
+
+(a) REFUTED. The quote move needed to fill a size, per share, does not rise across the
+    five sizes on the real feed. Measured at 100, 500, 1000, 5000, 10000 shares:
+    4.188, 31.538, 17.026, 1.666, 1.258 basis points per 100 shares. It rises once, from
+    100 to 500, then falls at every later step.
+
+(b) REFUTED. The average price paid per share does not rise either: 2.402, 11.314,
+    3.844, 0.525, 0.591 basis points per 100 shares, with the same single rise and then
+    a fall.
+
+    Confound, recorded rather than argued away. These two series cannot cleanly test the
+    brief's claim, and the reason is in the data beside them. A size that the displayed
+    side cannot fill is excluded from the cost at that size, and the exclusion is not
+    small: 0.08% of sides cannot fill 100 shares, 18.50% cannot fill 500, 38.86% cannot
+    fill 1000, 78.89% cannot fill 5000 and 87.01% cannot fill 10000. The books that
+    survive to the larger sizes are the deepest and tightest in the sample, so the mean
+    at 10000 shares is taken over a different and far more liquid population than the
+    mean at 100. The refutation above is of the registered statement on the measured
+    numbers; it is not evidence that the brief's exponent is below one. A clean test
+    would need the cost conditioned on a fixed set of instrument intervals, which this
+    run does not do and which is recorded here as the open item.
+
+    What survives the confound. At 100 shares, which 99.92% of sides can fill, the cost
+    of immediacy on BX is 2.40 basis points on average and the quote moves 4.19 basis
+    points, over 15,618,175 measured sides. The worst single case at that size is 4830
+    basis points.
+
+(c) SUPPORTED. 13,600,453 of 15,630,442 attempts to fill 10,000 shares could not be
+    filled from the displayed side at all, a rate of 0.8701, against a registered
+    threshold of 0.01. The brief's worked example walks a large order down a ladder of
+    depth; on this venue that ladder is absent in seven cases out of eight. Even 1,000
+    shares cannot be filled 38.86% of the time. The synthetic feed, by contrast, fails
+    at 10,000 shares only 2.36% of the time, which is what an arbitrary generator
+    produces and what a brief written without data assumes.
+
+(d) SUPPORTED. X(walk_10000) / X(top) = 1.667 [1.663, 1.683] on BX, against a registered
+    floor of 1.5. X(top) = 96.99 [96.38, 97.26], X(walk_100) = 105.79 [105.33, 106.20],
+    X(walk_1000) = 147.78 [146.46, 148.75], X(walk_10000) = 161.72 [161.53, 162.91]
+    cycles per message above decoding.
+
+Finding beyond the verdicts: the walk costs far less on the real feed than on the
+synthetic one, 1.667 against 2.140 times the best-price query, and the reason is the same
+thinness that refutes the brief's ladder. A walk to 10,000 shares visits 4.512 levels on
+average on BX and 10.772 on the synthetic feed. On a real venue the walk is cheap because
+there is little to walk. The two facts are one fact seen from the systems side and from
+the market side.
