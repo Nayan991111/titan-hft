@@ -42,6 +42,8 @@ EXTRA = {
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
+# agg epochs excluded as starved, per (design, strategies)
+EXCLUDED = defaultdict(int)
 
 
 def load(paths):
@@ -58,7 +60,9 @@ def load(paths):
                 if kind == "pl" and rec.get("udp_dropped", "0") != "0":
                     continue  # gap-detection check runs, not measurements
                 if kind == "agg" and rec.get("starved") == "1":
-                    continue  # another strategy completed under ops/100 orders: excluded, as pre-registered
+                    # another strategy completed under ops/100 orders: excluded, as pre-registered
+                    EXCLUDED[(rec.get("design", "na"), rec.get("strategies", "na"))] += 1
+                    continue
                 if kind in ("pp", "st"):
                     rec.setdefault("qos", "ui")
                 key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS[kind])
@@ -323,6 +327,11 @@ def main(argv):
     contrasts(groups)
     gap_epochs(groups)
     fo_derived(groups)
+    if any(k[0] == "agg" for k in groups) or EXCLUDED:
+        total = sum(EXCLUDED.values())
+        print(f"\n## agg: epochs excluded as starved (another strategy under ops/100 orders): {total}")
+        for (d, n), c in sorted(EXCLUDED.items()):
+            print(f"agg excluded design={d} strategies={n} epochs={c}")
     return 0
 
 
