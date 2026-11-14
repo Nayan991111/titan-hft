@@ -1,27 +1,30 @@
 #!/bin/bash
-# Download one public NASDAQ BX TotalView-ITCH 5.0 sample day from
-# emi.nasdaq.com, verify it against the published md5 (or the listed size when
-# no md5 is published), and decompress it into data/ (git-ignored; the data is
-# never committed or redistributed).
+# Download one public NASDAQ TotalView-ITCH 5.0 sample day (BX by default,
+# PSX supported) from emi.nasdaq.com, verify it against the published md5 (or
+# the listed size when no md5 is published), and decompress it into data/
+# (git-ignored; the data is never committed or redistributed).
 #
 # File names are not hard-coded: the script reads the server's directory
-# listing, finds the BX ITCH 5.0 folder and the files it holds, and uses the
-# exact links found there. The requested day is used when it is listed;
-# otherwise the smallest listed day is used and the choice is printed.
+# listing, finds the exchange's ITCH 5.0 folder and the files it holds, and
+# uses the exact links found there. The requested day is used when it is
+# listed; otherwise the smallest listed day is used and the choice is printed.
 # Resumable: rerun after an interrupted download.
 #
-# Usage: scripts/fetch_itch_sample.sh [YYYYMMDD]
+# Usage: scripts/fetch_itch_sample.sh [YYYYMMDD] [bx|psx]
 #   TITAN_ITCH_ROOT  listing root (default https://emi.nasdaq.com/ITCH/)
 # The last line of a successful run is ITCH_FILE=data/<name>.
 set -eu
 cd "$(dirname "$0")/.."
 DAY=${1:-20190730}
+EXCH=$(printf '%s' "${2:-bx}" | tr 'A-Z' 'a-z')
+case "$EXCH" in bx|psx) ;; *) echo "unknown exchange '$2' (bx or psx)"; exit 1 ;; esac
+EXCH_UC=$(printf '%s' "$EXCH" | tr 'a-z' 'A-Z')
 ROOT="${TITAN_ITCH_ROOT:-https://emi.nasdaq.com/ITCH/}"
 case "$ROOT" in */) ;; *) ROOT="$ROOT/" ;; esac
 mkdir -p data
 cd data
 
-for f in "$DAY".*ITCH_50; do
+for f in "$DAY".*"${EXCH_UC}"*ITCH_50 "$DAY.${EXCH_UC}_ITCH_50"; do
   if [ -f "$f" ]; then
     echo "data/$f already present ($(wc -c < "$f" | tr -d ' ') bytes)"
     echo "ITCH_FILE=data/$f"
@@ -78,8 +81,8 @@ fail_help() {
 }
 
 get "$ROOT" itch_root_listing.html || fail_help
-dir=$(parse itch_root_listing.html | cut -f2 | awk '{l = tolower($0); gsub(/%20/, " ", l)} l ~ /bx/ && l ~ /itch/ && l ~ /\/$/ {print; exit}')
-[ -n "$dir" ] || { echo "no BX ITCH folder in the root listing; entries:"; parse itch_root_listing.html | cut -f2; fail_help; }
+dir=$(parse itch_root_listing.html | cut -f2 | awk -v e="$EXCH" '{l = tolower($0); gsub(/%20/, " ", l)} l ~ e && l ~ /itch/ && l ~ /\/$/ {print; exit}')
+[ -n "$dir" ] || { echo "no $EXCH_UC ITCH folder in the root listing; entries:"; parse itch_root_listing.html | cut -f2; fail_help; }
 DIR_URL=$(resolve "$ROOT" "$dir")
 echo "listing $DIR_URL"
 get "$DIR_URL" itch_listing.html || fail_help
@@ -102,6 +105,10 @@ GZ_URL=$(resolve "$DIR_URL" "$HREF")
 GZ=$(base_name "$HREF")
 F=${GZ%.gz}
 echo "selected $GZ (listed size $SIZE bytes)"
+case "$(printf '%s' "$GZ" | tr 'a-z' 'A-Z')" in
+  *"${EXCH_UC}"*ITCH*) ;;
+  *) echo "selected file $GZ does not look like a $EXCH_UC ITCH file"; exit 1 ;;
+esac
 
 if [ -f "$F" ]; then
   echo "data/$F already present"

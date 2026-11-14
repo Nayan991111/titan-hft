@@ -80,6 +80,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H48 | Profile-guided optimisation of `titan-t2t`, stage `full`: (a) a profile from the same feed lowers cycles per message by at least 3% against the default build; (b) a profile from the other feed gives at least half of that reduction; (c) the same-feed profile changes cycles more than aligning functions and non-fall-through blocks to 64 bytes (the H17 layout) does; both feeds | (a) refuted; (b) not evaluated; (c) supported by the rule as written, not interpreted | Stage full, medians of msg_cycles over 10 epochs. Same-feed profile against base: synthetic 188.84 vs 190.87 (gain 1.06%, p = 0.35), BX 134.66 vs 134.31 (gain -0.26%, p = 0.80); both below the 3% threshold, so (b) is not evaluated. (c): |same-feed - base| 2.03 vs |align64 - base| 1.45 cycles synthetic, 0.35 vs 0.04 BX, but no one of these four differences is significant. Exploratory: both profiles slowed stage decode on synthetic by 8 to 9% (p = 0.0002) and sped up stage book on BX by 1.7% and 2.1% (p < 0.0001); on BX, stage decode was 1.0% slower with the synthetic profile (p = 0.0002) and 0.5% faster with the BX profile (p = 0.025); stage full changed significantly in one of the four build and feed pairs only: the synthetic profile on BX, 133.34 vs 134.31 cycles (0.7% lower, p = 0.009). Training printed the LLVM warning that value-profile counters ran out (20 times); branch and block counts are not affected |
 | H49 | One exposure limit shared by several strategy threads (`titan-agg`, strategy 0's PMU cycles per order): (a) a shared total costs more than a private one without contention, faa1 above local1; (b) contention on one shared total, faa3 above faa1; (c) an exact limit (compare-and-swap loop) costs more than the two-step check under contention, cas3 above faa3; (d) per-strategy totals cost less than one shared total under contention, shard3 below faa3 | (a) supported; (b) supported; (c) refuted; (d) supported | Strategy 0's PMU cycles per order, medians over 10 epochs, no epoch starved. (a) faa1 14.28 vs local1 8.21 (1.74x, p = 1e-5). (b) faa3 217.88 vs faa1 14.28 (15.3x, p = 1e-5). (c) cas3 221.23 vs faa3 217.88, p = 1.0: no difference; strategy 0's failed compare-and-swap attempts 0.535 per order (`cas_retries_s0`; 0.58 over all strategies). (d) shard3 19.72 vs faa3 217.88 (0.09x, p = 1e-5). Census: faa compiles to `ldadd`, cas to one LSE `cas`, no exclusive pairs, no barriers. Exploratory, not tested: with 2 strategies cas cost about half of faa (51.55 vs 103.38 cycles) |
 | H50 | Inbound wire format, per price-level update (`titan-wire`, PMU cycles): (a) above the floor of each format, the validated FIX 4.4 decode costs at least 5x the fixed binary decode; (b) above the JSON floor, `serde_json` costs at least 2x a scanner specialised to the key order of the documented example; (c) in total cycles, that specialised JSON scanner costs less than the validated FIX decode; both feeds; thresholds set after development-machine runs (see the tenth run) | pending | |
+| H51 | A/B line arbitration (`titan-arb`, PMU cycles per delivered message): (a) above the floor, taking the same stream from two lossless lines costs at most 1.5x one line (the duplicate line costs less than half the delivery itself; 1.5x is the registered rule); (b) 3% independent packet loss per line (registered as 1%, raised before any timed run; see the eleventh run), recovered from the other line and the re-request server, costs at most 2x the lossless two-line cost; (c) delivery is exact (every message once, in order) in every condition on both feeds, by assertion; thresholds set before any run of the program anywhere | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -586,6 +587,68 @@ and about 0.5x for (c) with the shorter FIX header used then, and 28x to
 varies most because X(bin) there was only about 5 ns. They are
 therefore not discoveries: they test whether the order of magnitude seen
 there carries over to the M4 and to the real BX feed.
+
+## Pre-registered 2026-11-14, eleventh run
+
+**H51 (A/B arbitration and gap recovery).** The feed arbitration and gap
+recovery items of the second source brief (Part 3: consuming redundant feed
+lines and recovering losses). `titan-arb`, new in this batch, over
+`titan_itch::arb` and `titan_itch::mold`. Setup, untimed: the first
+2,000,000 ITCH messages of each feed (BX 2019-07-30; the synthetic feed) are
+framed into MoldUDP64 downstream packets of at most 1472 bytes of UDP
+payload (a 1500-byte Ethernet frame less the IPv4 and UDP headers), the
+NASDAQ MoldUDP64 Protocol Specification v1.00 layout (session 10 bytes,
+sequence number 8, message count 2, blocks of a 2-byte length and the
+message; count 0 a heartbeat, 0xFFFF end of session; the Request Packet is
+session, first requested sequence number, requested message count; the
+answer is a standard downstream packet holding only the requested messages
+that completely fit, the rest to be requested again). Line B is a byte copy
+of line A at a different address, arriving a fixed 4 packets behind A, with
+independent per-packet loss by a seeded xorshift64* generator. A dry pass
+records every Request Packet the arbiter sends and builds each answer
+beforehand, so the timed pass allocates nothing (the arbiter's containers
+are created before the timed region; every line reports
+`allocations_pass`, which must be 0 outside the PMU read). The answer to a request is injected
+64 events after it (event time, not waiting), so the conditions measure
+processing cost per message, not recovery latency. Timed, per condition, one
+pass over the whole event schedule: `floor` walks every packet of line A
+and folds its first byte, last byte and length; `one0` one lossless line;
+`two0` two lossless lines; `two_a` loss of 10,000 ppm on A only, so every
+gap is filled by line B; `two_ab` loss of 10,000 ppm on each line
+independently, so some messages are lost on both and come from the
+re-request server (requests must be above 0, asserted). Every condition
+must deliver every message exactly once and in order: the delivered fold
+checksum must equal the store's, asserted in every pass. X(condition) =
+median `msg_cycles` per delivered message minus the floor's median.
+Decision rules: (a) X(two0) / X(one0) at most 1.5, (b) X(two_ab) / X(two0)
+at most 2.0, ratios with bootstrap 95% intervals, undefined if the
+denominator's interval reaches zero; (c) is the assertions holding in every
+epoch of both feeds (each pass checks an order-sensitive fold of every
+delivered message against the store's; byte-exact delivery under loss is
+checked in the unit tests). Both feeds supported, one partly. 10 epochs in one
+process per feed, condition order rotated, stats (duplicates, held,
+max held, requests, resent, partial) printed per condition from the dry
+pass. Disclosure: unlike H50, these thresholds are set before the program
+has been run anywhere, on reasoning alone: a duplicate packet costs one
+header parse and a comparison against the delivered messages it carries
+(about forty-five: 2,000,000 messages over about 45,000 packets), and
+recovery work is confined to the vicinity of gaps; written 2026-11-14
+before any timing, development machine included.
+
+Amendment, 2026-11-14, before any timed run anywhere: the loss is raised
+from 10,000 to 30,000 ppm per line. A correctness-only development run at
+200,000 messages (a development size, not the registered one) aborted on
+the two_ab assertion (requests above 0): over its 4,477 packets at 10,000
+ppm per line the expected number of packets lost on both lines is about
+0.45, so an abort there was likely. At the registered 2,000,000 messages
+(about 45,000 packets) the expected number is about 4.5; an untimed audit
+run at that size passed with 5 such packets. Five recovery events over
+2,000,000 messages would leave two_ab nearly indistinguishable from two_a,
+and a run with none would still happen about once in a hundred. At 30,000
+ppm about 40 to 50 packets are lost on both lines (the audit run counted
+50 requests). The thresholds and every other rule are unchanged; no timing
+was seen before this amendment (the aborted and audit runs printed counts,
+not times).
 
 ## Note on the 2026-11-14 run
 
