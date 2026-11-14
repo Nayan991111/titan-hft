@@ -136,7 +136,7 @@ reader's light or dark theme.
 |---|---|
 | `titan-platform` | Pinned memory, counter timer and its measured resolution, QoS, kperf PMU sessions, allocation and `getrusage` accounting, a fixed-memory log-linear latency histogram. Self-test: `titan-probe`. |
 | `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip) and `titan-stream` (throughput). |
-| `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation), `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule), `titan-fanout` (one book writer, several strategy readers: per-reader ring copies or seqlock snapshots), `titan-agg` (one exposure limit shared by several strategy threads: atomic add, compare-and-swap or per-strategy totals), `titan-wire` (the same price-level updates decoded from binary, FIX 4.4 and JSON) and `titan-arb` (A/B line arbitration and MoldUDP64 gap recovery, exact delivery asserted under seeded loss). |
+| `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation), `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule), `titan-fanout` (one book writer, several strategy readers: per-reader ring copies or seqlock snapshots), `titan-agg` (one exposure limit shared by several strategy threads: atomic add, compare-and-swap or per-strategy totals), `titan-wire` (the same price-level updates decoded from binary, FIX 4.4 and JSON) `titan-arb` (A/B line arbitration and MoldUDP64 gap recovery, exact delivery asserted under seeded loss) and `titan-cross` (one book consolidated across two exchanges, and the locked and crossed markets it exposes). |
 | `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. |
 | `scripts/` | Data download, instruction census, statistics, figures. |
 
@@ -164,6 +164,8 @@ reader's light or dark theme.
 - [x] One exposure limit shared by several strategies: atomic add vs compare-and-swap vs per-strategy totals (H49)
 - [x] Inbound wire format: binary vs FIX 4.4 vs JSON decode of the same updates (H50, measured on the M4)
 - [x] A/B line arbitration and gap recovery over MoldUDP64 (H51, measured on the M4)
+- [ ] Best-effort FIX decode with a NEON delimiter search and checksum (H52, pre-registered)
+- [ ] Consolidated book across NASDAQ BX and PSX, locked and crossed markets (H53, pre-registered blind)
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
@@ -178,7 +180,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 63 tests (62 on macOS), including hostile input
+cargo test --release -- --test-threads=1      # 69 tests (68 on macOS), including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 
