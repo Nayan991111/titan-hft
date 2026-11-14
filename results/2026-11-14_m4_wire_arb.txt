@@ -1,0 +1,165 @@
+# Summaries of the 2026-11-14 wire-format and arbitration run (statistics
+# only; raw epoch lines stay on the measurement machine; no NASDAQ data is
+# reproduced).
+#
+# Code:      commit e3a2471, pushed by this run's script before measuring
+#            (GitHub confirmed at e3a2471; 62 tests passed on macOS).
+# Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt
+# Toolchain: rustc 1.92.0 (ded5c06cf 2025-12-08), release, target-cpu=native
+# Power:     wall power throughout (AC attached, 64% charging at the start);
+#            Low Power Mode off; no thermal limit reported by pmset -g therm
+#            at any checkpoint. Core frequency over the epochs was 2.47 to
+#            4.46 GHz: a few epochs ran at a reduced clock (the lowest, the
+#            synthetic arb epoch 3 and the BX arb epochs 2 and 3), which is
+#            why cycle counts rather than times carry the verdicts.
+# Feeds:     synthetic (5,000,000 messages, 501 instruments; 2,000,000
+#            updates from 1,822,767 messages) and the public NASDAQ BX
+#            TotalView-ITCH 5.0 sample of 2019-07-30 (2,000,000 updates from
+#            2,334,841 messages, 8,850 instruments).
+# Run:       17:33 to 18:04 local time, one process per program per feed,
+#            10 epochs each, stage and condition order rotated, PMU on.
+#
+# Pre-registration: docs/experiments.md, "Pre-registered 2026-11-14, tenth
+# run" (H50) and "eleventh run" (H51, with its amendment).
+
+## configuration and arbitration counts (from the run)
+wire_config feed=synthetic_default messages_read=1822767 updates=2000000 deletes=69016 instruments=501 epochs=10 pmu=true bytes_bin=32.00 bytes_fix=129.45 bytes_json=98.13
+wire_config feed=20190730_BX_ITCH_50 messages_read=2334841 updates=2000000 deletes=744635 instruments=8850 epochs=10 pmu=true bytes_bin=32.00 bytes_fix=124.90 bytes_json=95.95
+arb_config feed=synthetic_default messages=2000000 packets=44759 payload=1472 lag=4 rtt=64 loss_ppm=30000 epochs=10 pmu=true
+arb_cond cond=one0 feed=synthetic_default lines=1 loss_a=0 loss_b=0 events=44760 packets=44760 duplicate=0 held=0 max_held=0 requests=0 resent=0 partial=0 foreign=0
+arb_cond cond=two0 feed=synthetic_default lines=2 loss_a=0 loss_b=0 events=89520 packets=89520 duplicate=44759 held=0 max_held=0 requests=0 resent=0 partial=0 foreign=0
+arb_cond cond=two_a feed=synthetic_default lines=2 loss_a=30000 loss_b=0 events=88182 packets=88182 duplicate=43421 held=4977 max_held=4 requests=0 resent=0 partial=0 foreign=0
+arb_cond cond=two_ab feed=synthetic_default lines=2 loss_a=30000 loss_b=30000 events=86861 packets=86861 duplicate=42150 held=6467 max_held=65 requests=50 resent=2236 partial=0 foreign=0
+arb_config feed=20190730_BX_ITCH_50 messages=2000000 packets=40228 payload=1472 lag=4 rtt=64 loss_ppm=30000 epochs=10 pmu=true
+arb_cond cond=one0 feed=20190730_BX_ITCH_50 lines=1 loss_a=0 loss_b=0 events=40229 packets=40229 duplicate=0 held=0 max_held=0 requests=0 resent=0 partial=0 foreign=0
+arb_cond cond=two0 feed=20190730_BX_ITCH_50 lines=2 loss_a=0 loss_b=0 events=80458 packets=80458 duplicate=40228 held=0 max_held=0 requests=0 resent=0 partial=0 foreign=0
+arb_cond cond=two_a feed=20190730_BX_ITCH_50 lines=2 loss_a=30000 loss_b=0 events=79258 packets=79258 duplicate=39028 held=4467 max_held=4 requests=0 resent=0 partial=0 foreign=0
+arb_cond cond=two_ab feed=20190730_BX_ITCH_50 lines=2 loss_a=30000 loss_b=30000 events=78076 packets=78076 duplicate=37893 held=5873 max_held=65 requests=47 resent=2351 partial=0 foreign=0
+
+## verdicts under the pre-registered rules
+
+H50 (inbound wire format), supported on both feeds, all three parts.
+  (a) X(fix) / X(bin) at least 5: BX 55.49 [55.22, 56.05], synthetic 44.35
+      [44.17, 44.84]. Supported.
+  (b) X(json_serde) / X(json_fixed) at least 2: BX 4.57 [4.53, 4.61],
+      synthetic 4.33 [4.27, 4.36]. Supported.
+  (c) json_fixed below fix in total cycles: BX 163.23 against 522.45,
+      synthetic 167.42 against 518.52, both p = 0.0000 (exact Mann-Whitney,
+      n = 10 per side), medians in the stated direction. Supported.
+  Reported, not tested: allocations per update are 1.0000 for json_serde and
+  0.0000 for the other three decoders, on both feeds and in every epoch.
+  Bytes per update: binary 32.00; FIX 129.45 synthetic, 124.90 BX; JSON
+  98.13 synthetic, 95.95 BX. Every decoder returned the original record for
+  all 2,000,000 updates before timing (asserted), and the four decode stages
+  of a feed printed one identical checksum (synthetic 4baa7350b00781fc, BX
+  b06eb7f33ad1cb53).
+  The thresholds of (a) and (b) were set after development-machine runs, as
+  the pre-registration discloses; the measured ratios exceed them by a wide
+  margin on hardware the thresholds were not drawn from.
+
+H51 (A/B arbitration and gap recovery): (a) partly supported, (b) supported,
+(c) supported.
+  (a) X(two0) / X(one0) at most 1.5: BX 1.429, synthetic 1.670. The rule
+      holds on BX and fails on the synthetic feed, so partly supported.
+      Disclosure: the bootstrap 95% interval on BX is [1.358, 1.586] and so
+      reaches above the 1.5 bound; the registered rule is on the ratio of the
+      medians, and that is how the verdict is read here. The synthetic feed
+      has fewer, larger messages per packet, so each duplicate packet is
+      amortised over fewer delivered messages.
+  (b) X(two_ab) / X(two0) at most 2.0: BX 0.892 [0.799, 0.973], synthetic
+      0.851 [0.800, 0.963]. Supported.
+      Limitation, stated plainly: this test was weak as registered. Loss
+      removes packets from the arrival stream, so the lossy conditions
+      process fewer packets than the lossless two-line condition and come out
+      cheaper than it (both ratios are below 1). The threshold of 2.0 could
+      hardly have been crossed. The quantity that would carry information is
+      the cost of a recovery event with the packet count held constant; this
+      run does not measure it, and the claim made here is only the registered
+      one: recovery does not multiply the per-message cost.
+  (c) Exact delivery in every condition and epoch of both feeds: supported.
+      Within a feed, all four conditions printed one identical delivery
+      checksum in all 10 epochs (synthetic 07b91b3ddcc13928, BX
+      b328fb892a73f302), and the untimed pass asserted message-for-message
+      equality with the store. Recovery was exercised: 50 requests and 2,236
+      resent messages on the synthetic feed, 47 and 2,351 on BX, with no
+      partial response and no foreign packet. allocations_pass is 0 for every
+      condition in every epoch of both feeds.
+  Exploratory, not a registered claim: a lossy second line costs less per
+  message than a perfect one (two_a and two_ab below two0 on both feeds,
+  p = 0.0433 for three of the four contrasts), which follows from the same
+  arrival-count mechanism as the limitation above.
+
+## analysis output (scripts/analyze.py over the run's raw lines)
+
+
+## wire: msg_cycles, median over epochs [bootstrap 95% CI]
+stage=floor_bin feed=synthetic_default                         n=10       3.11 [    3.10,     3.11] ns_per_update=0.772 msg_instructions=22 msg_l1d_miss=0.326 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.02
+stage=floor_bin feed=20190730_BX_ITCH_50                       n=10       3.11 [    3.10,     3.11] ns_per_update=0.772 msg_instructions=22 msg_l1d_miss=0.339 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.03
+stage=floor_json feed=20190730_BX_ITCH_50                      n=10       6.87 [    6.57,     7.06] ns_per_update=1.67 msg_instructions=22 msg_l1d_miss=1.91 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.11
+stage=floor_json feed=synthetic_default                        n=10       7.09 [    6.76,     7.21] ns_per_update=1.75 msg_instructions=22 msg_l1d_miss=2.01 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.06
+stage=floor_fix feed=20190730_BX_ITCH_50                       n=10       8.37 [    8.36,     8.41] ns_per_update=1.9 msg_instructions=22 msg_l1d_miss=2.95 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.41
+stage=floor_fix feed=synthetic_default                         n=10       8.66 [    8.64,     8.68] ns_per_update=1.97 msg_instructions=22 msg_l1d_miss=3.12 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.41
+stage=bin feed=20190730_BX_ITCH_50                             n=10      12.37 [   12.29,    12.40] ns_per_update=2.96 msg_instructions=32.6 msg_l1d_miss=0.57 msg_br_mispred=0.382 allocations_per_update=0 core_ghz=4.19
+stage=bin feed=synthetic_default                               n=10      14.60 [   14.53,    14.65] ns_per_update=3.42 msg_instructions=32.5 msg_l1d_miss=0.572 msg_br_mispred=0.484 allocations_per_update=0 core_ghz=4.26
+stage=json_fixed feed=20190730_BX_ITCH_50                      n=10     163.23 [  161.73,   164.42] ns_per_update=38.4 msg_instructions=842 msg_l1d_miss=2.73 msg_br_mispred=1.77 allocations_per_update=0 core_ghz=4.25
+stage=json_fixed feed=synthetic_default                        n=10     167.42 [  166.38,   169.25] ns_per_update=39.5 msg_instructions=876 msg_l1d_miss=2.71 msg_br_mispred=1.64 allocations_per_update=0 core_ghz=4.24
+stage=fix feed=synthetic_default                               n=10     518.52 [  517.69,   523.22] ns_per_update=123 msg_instructions=3.14e+03 msg_l1d_miss=7.37 msg_br_mispred=2.12 allocations_per_update=0 core_ghz=4.21
+stage=fix feed=20190730_BX_ITCH_50                             n=10     522.45 [  519.72,   524.35] ns_per_update=123 msg_instructions=3.03e+03 msg_l1d_miss=4.79 msg_br_mispred=2.66 allocations_per_update=0 core_ghz=4.25
+stage=json_serde feed=synthetic_default                        n=10     701.98 [  698.57,   703.05] ns_per_update=169 msg_instructions=3.69e+03 msg_l1d_miss=2.58 msg_br_mispred=2.96 allocations_per_update=1 core_ghz=4.14
+stage=json_serde feed=20190730_BX_ITCH_50                      n=10     721.05 [  720.42,   721.22] ns_per_update=175 msg_instructions=3.64e+03 msg_l1d_miss=3.55 msg_br_mispred=3.67 allocations_per_update=1 core_ghz=4.12
+
+## arb: msg_cycles, median over epochs [bootstrap 95% CI]
+cond=floor feed=20190730_BX_ITCH_50                            n=10       0.43 [    0.43,     0.51] ns_per_msg=0.114 msg_instructions=0.469 msg_l1d_miss=0.0427 msg_br_mispred=0 allocations_per_msg=0 core_ghz=3.87
+cond=floor feed=synthetic_default                              n=10       0.54 [    0.48,     0.66] ns_per_msg=0.134 msg_instructions=0.522 msg_l1d_miss=0.0478 msg_br_mispred=0 allocations_per_msg=0 core_ghz=3.91
+cond=one0 feed=synthetic_default                               n=10       7.84 [    7.82,     7.92] ns_per_msg=1.82 msg_instructions=36.8 msg_l1d_miss=0.533 msg_br_mispred=0.0207 allocations_per_msg=0 core_ghz=4.31
+cond=one0 feed=20190730_BX_ITCH_50                             n=10       7.89 [    7.82,     7.97] ns_per_msg=1.83 msg_instructions=36.5 msg_l1d_miss=0.48 msg_br_mispred=0.0202 allocations_per_msg=0 core_ghz=4.28
+cond=two_a feed=synthetic_default                              n=10       9.74 [    9.30,    12.26] ns_per_msg=2.24 msg_instructions=39.7 msg_l1d_miss=0.677 msg_br_mispred=0.0222 allocations_per_msg=0 core_ghz=4.31
+cond=two_ab feed=20190730_BX_ITCH_50                           n=10       9.94 [    9.54,    10.56] ns_per_msg=2.33 msg_instructions=39.2 msg_l1d_miss=0.616 msg_br_mispred=0.0224 allocations_per_msg=0 core_ghz=4.32
+cond=two_a feed=20190730_BX_ITCH_50                            n=10      10.68 [    9.65,    11.69] ns_per_msg=2.47 msg_instructions=39.1 msg_l1d_miss=0.611 msg_br_mispred=0.0216 allocations_per_msg=0 core_ghz=4.34
+cond=two_ab feed=synthetic_default                             n=10      10.91 [   10.63,    11.67] ns_per_msg=2.61 msg_instructions=39.8 msg_l1d_miss=0.684 msg_br_mispred=0.0232 allocations_per_msg=0 core_ghz=4.24
+cond=two0 feed=20190730_BX_ITCH_50                             n=10      11.09 [   10.60,    12.22] ns_per_msg=2.67 msg_instructions=39 msg_l1d_miss=0.56 msg_br_mispred=0.0202 allocations_per_msg=0 core_ghz=4.24
+cond=two0 feed=synthetic_default                               n=10      12.73 [   11.61,    13.31] ns_per_msg=2.96 msg_instructions=39.6 msg_l1d_miss=0.624 msg_br_mispred=0.0207 allocations_per_msg=0 core_ghz=4.31
+
+## contrasts: A vs B on the primary metric (lower is better)
+arb two0 vs one0, second lossless line (20190730_BX_ITCH_50) A=    11.09 B=     7.89 A/B= 1.406 nA=10 nB=10 U=99.0 p=0.0000 (exact) cliffs_delta=+0.98
+arb two_a vs two0, loss on A filled by B (20190730_BX_ITCH_50) A=    10.68 B=    11.09 A/B= 0.963 nA=10 nB=10 U=38.0 p=0.3930 (exact) cliffs_delta=-0.24
+arb two_ab vs two0, loss on both lines (20190730_BX_ITCH_50) A=     9.94 B=    11.09 A/B= 0.896 nA=10 nB=10 U=23.0 p=0.0433 (exact) cliffs_delta=-0.54
+arb two0 vs one0, second lossless line (synthetic_default)   A=    12.73 B=     7.84 A/B= 1.624 nA=10 nB=10 U=99.0 p=0.0000 (exact) cliffs_delta=+0.98
+arb two_a vs two0, loss on A filled by B (synthetic_default) A=     9.74 B=    12.73 A/B= 0.765 nA=10 nB=10 U=23.0 p=0.0433 (exact) cliffs_delta=-0.54
+arb two_ab vs two0, loss on both lines (synthetic_default)   A=    10.91 B=    12.73 A/B= 0.857 nA=10 nB=10 U=23.0 p=0.0433 (exact) cliffs_delta=-0.54
+wire fix vs bin, decode (20190730_BX_ITCH_50)                 A=   522.45 B=    12.37 A/B=42.229 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire json_serde vs json_fixed, JSON decode (20190730_BX_ITCH_50) A=   721.05 B=   163.23 A/B= 4.417 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire json_fixed vs fix (20190730_BX_ITCH_50)                  A=   163.23 B=   522.45 A/B= 0.312 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+wire fix vs bin, decode (synthetic_default)                   A=   518.52 B=    14.60 A/B=35.509 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire json_serde vs json_fixed, JSON decode (synthetic_default) A=   701.98 B=   167.42 A/B= 4.193 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire json_fixed vs fix (synthetic_default)                    A=   167.42 B=   518.52 A/B= 0.323 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+
+## wire: decode cycles per update above the floor of its format, X [bootstrap 95% CI]
+wire 20190730_BX_ITCH_50: X(bin) = 9.27 [9.18, 9.29]
+wire 20190730_BX_ITCH_50: X(fix) = 514.08 [511.86, 515.98]
+wire 20190730_BX_ITCH_50: X(json_fixed) = 156.36 [154.77, 157.65]
+wire 20190730_BX_ITCH_50: X(json_serde) = 714.18 [713.51, 714.48]
+wire 20190730_BX_ITCH_50: X(fix) / X(bin) = 55.486 [55.222, 56.052]
+wire 20190730_BX_ITCH_50: X(json_serde) / X(json_fixed) = 4.568 [4.530, 4.614]
+wire 20190730_BX_ITCH_50: X(json_fixed) / X(fix) = 0.304 [0.301, 0.307]
+wire synthetic_default: X(bin) = 11.50 [11.42, 11.54]
+wire synthetic_default: X(fix) = 509.86 [509.02, 514.57]
+wire synthetic_default: X(json_fixed) = 160.33 [159.41, 162.48]
+wire synthetic_default: X(json_serde) = 694.89 [691.47, 695.88]
+wire synthetic_default: X(fix) / X(bin) = 44.347 [44.167, 44.838]
+wire synthetic_default: X(json_serde) / X(json_fixed) = 4.334 [4.269, 4.359]
+wire synthetic_default: X(json_fixed) / X(fix) = 0.314 [0.311, 0.319]
+
+## arb: cycles per delivered message above the floor, X [bootstrap 95% CI]
+arb 20190730_BX_ITCH_50: X(one0) = 7.46 [7.36, 7.51]
+arb 20190730_BX_ITCH_50: X(two0) = 10.66 [10.13, 11.79]
+arb 20190730_BX_ITCH_50: X(two_a) = 10.25 [9.17, 11.25]
+arb 20190730_BX_ITCH_50: X(two_ab) = 9.51 [9.06, 10.12]
+arb 20190730_BX_ITCH_50: X(two0) / X(one0) = 1.429 [1.358, 1.586]
+arb 20190730_BX_ITCH_50: X(two_ab) / X(two0) = 0.892 [0.799, 0.973]
+arb synthetic_default: X(one0) = 7.30 [7.17, 7.39]
+arb synthetic_default: X(two0) = 12.19 [11.01, 12.79]
+arb synthetic_default: X(two_a) = 9.20 [8.74, 11.74]
+arb synthetic_default: X(two_ab) = 10.37 [10.09, 11.12]
+arb synthetic_default: X(two0) / X(one0) = 1.670 [1.509, 1.752]
+arb synthetic_default: X(two_ab) / X(two0) = 0.851 [0.800, 0.963]
