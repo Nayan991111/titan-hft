@@ -35,3 +35,7 @@ path = "src/bin/titan-agg.rs"
 [[bin]]
 name = "titan-wire"
 path = "src/bin/titan-wire.rs"
+
+[[bin]]
+name = "titan-arb"
+path = "src/bin/titan-arb.rs"
