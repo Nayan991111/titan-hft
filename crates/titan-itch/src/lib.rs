@@ -16,6 +16,7 @@
 //!   classification and tick rule accuracy against them.
 //! * [`mold`]: MoldUDP64 packet framing and sequence-gap tracking.
 //! * [`arb`]: A/B line arbitration and MoldUDP64 gap recovery.
+//! * [`combine`]: consolidated top of book across venues, locked and crossed.
 //! * [`fanout`]: top of book shared with several reader threads (per-reader
 //!   ring copies, or one seqlock snapshot per instrument).
 //! * [`wire`]: one price-level update in binary, FIX 4.4 and JSON, with
@@ -28,6 +29,7 @@ pub mod fanout;
 pub mod gateway;
 pub mod gen;
 pub mod arb;
+pub mod combine;
 pub mod mold;
 pub mod path;
 pub mod reference;

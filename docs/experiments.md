@@ -82,6 +82,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H50 | Inbound wire format, per price-level update (`titan-wire`, PMU cycles): (a) above the floor of each format, the validated FIX 4.4 decode costs at least 5x the fixed binary decode; (b) above the JSON floor, `serde_json` costs at least 2x a scanner specialised to the key order of the documented example; (c) in total cycles, that specialised JSON scanner costs less than the validated FIX decode; both feeds; thresholds set after development-machine runs (see the tenth run) | supported (both feeds) | X(fix)/X(bin) 55.5 BX, 44.3 synthetic; X(serde)/X(fixed) 4.57 BX, 4.33 synthetic; json_fixed below fix p=0.0000 both feeds; serde allocates 1.0 per update, the others 0; results/2026-11-14_m4_wire_arb.txt |
 | H51 | A/B line arbitration (`titan-arb`, PMU cycles per delivered message): (a) above the floor, taking the same stream from two lossless lines costs at most 1.5x one line (the duplicate line costs less than half the delivery itself; 1.5x is the registered rule); (b) 3% independent packet loss per line (registered as 1%, raised before any timed run; see the eleventh run), recovered from the other line and the re-request server, costs at most 2x the lossless two-line cost; (c) delivery is exact (every message once, in order) in every condition on both feeds, by assertion; thresholds set before any run of the program anywhere | (a) partly supported, (b) supported, (c) supported | (a) X(two0)/X(one0) 1.429 BX (interval reaches 1.586), 1.670 synthetic, so BX only; (b) 0.892 BX, 0.851 synthetic, but a weak test: loss removes arrivals, so the lossy conditions are cheaper than lossless two-line; (c) one delivery checksum across all conditions and epochs of each feed, 50 and 47 requests, 2,236 and 2,351 resent, 0 partial, 0 foreign, allocations_pass 0 throughout; results/2026-11-14_m4_wire_arb.txt |
 | H52 | Best-effort FIX decode (`titan-wire` stage `fix_simd`: the NEON delimiter search of `soh_neon` and a NEON checksum, validating identically to `fix`): (a) it costs less than the byte-at-a-time `fix`, both feeds; (b) X(fix_simd)/X(fix) lies between 0.5 and 0.9, both feeds; (c) X(fix_simd)/X(bin) is at least 10, both feeds | pending | |
+| H53 | Consolidated book across BX and PSX (`titan-cross`, 2019-07-30, PMU cycles per merged message): (a) keeping a consolidated top incrementally costs at most 0.5x the two venue books alone; (b) re-reading every venue's top for every shared instrument every 1,000 messages costs at least 2x the incremental design, above that floor; (c) the two venues' displayed books lock and cross during continuous trading, both at least once; (d) at least half of the crossed episodes begin and end between two rebuilds, so the periodic design never sees them | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -692,6 +693,60 @@ passes, a delimiter index and a checksum over every byte, which is why it is
 the one with a loop to accelerate. That those passes are inherent to the
 protocol, not to our implementation, is itself part of what H50 and H52
 measure.
+
+## Pre-registered 2026-11-14, thirteenth run
+
+**H53 (consolidated book across two exchanges).** The market-data
+normalisation and cross-venue items of the second source brief (one book
+built from venues that number their instruments independently, and the
+arbitrage the brief looks for, which is exactly a crossed consolidated
+book). `titan-cross` and `titan_itch::combine`, new in this batch. Data: the
+public NASDAQ BX and PSX TotalView-ITCH 5.0 samples of 2019-07-30, the same
+day on both venues. The two Stock Directories are intersected by symbol and
+each shared symbol gets one identifier; the venues' stock locates differ, so
+a view that matched on locate would be wrong, and `make_feeds` in the
+end-to-end check gives the same symbol locate 1 on one venue and locate 7 on
+the other. Both feeds are replayed into one stream ordered by the 6-byte
+timestamp each ITCH message carries, each into its own L3 book. Designs:
+`floor`, the two venue books alone; `incr`, which after each message
+re-reads that instrument's top on that venue and refolds its consolidated
+top; `rebuild`, which keeps no per-instrument state and re-reads every
+venue's top for every shared instrument every 1,000 messages. X(design) =
+median `msg_cycles` of the design minus the median of `floor`. Timed: 10
+epochs of the first 4,000,000 merged messages, design order rotated, PMU on.
+Untimed and once, over as much of both days as memory allows: the same
+replay with the incremental design, accumulating locked and crossed
+episodes and their durations inside 09:30:00 to 16:00:00, and what the
+periodic design would have missed. After every incremental pass the harness
+rebuilds the consolidated view from the books and requires it to equal the
+view kept update by update. Decision rules: (a) and (b) ratios with
+bootstrap 95% intervals, read on the ratio of the medians, undefined if the
+denominator's interval reaches zero ((a) is X(incr) against the median of
+`floor`, since the consolidation is being compared with the book work it is
+added to); (c) counts above zero inside the window; (d) the share of crossed
+episodes whose first and last message fall between the same two rebuilds, at
+least 0.5. Reported, not tested: episode durations and their maxima, the
+mean amount a crossed market was crossed by, how many instruments crossed at
+all, how far behind the periodic design fell, and allocations per pass
+(these are not zero: the L3 books grow as instruments first appear).
+
+Limitation, stated before the run: a crossed consolidated book here means
+the two venues' displayed books disagreed as each venue timestamped them. It
+is not a claim that one participant could have seen both sides at that
+instant, because the replay uses each venue's own clock and models no
+propagation delay between them, and it is not the official NBBO: these are
+the venues' own displayed depth feeds, without odd lots, hidden liquidity or
+the SIP's processing. Whether such an episode was tradable is a different
+question from whether it existed in the data, and only the second is
+measured here. Thresholds: (a) and (b) rest on counting the work (two
+constant-time top reads per message against a full book update, against
+four reads for every shared instrument every 1,000 messages, which is about
+thirty reads per message if the venues share some eight thousand symbols);
+(d) rests on crossed episodes between venues being short, which this
+repository has not measured. No part of this has been run on the real BX and
+PSX data, on any machine: the only run so far is the end-to-end check on two
+hand-built feeds of fourteen messages whose expected episode durations were
+computed by hand first.
 
 ## Note on the 2026-11-14 run
 

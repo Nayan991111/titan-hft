@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Summarise the output of titan-pingpong ("pp"), titan-stream ("st"),
 titan-replay ("rp"), titan-t2t ("t2t"), titan-pipeline ("pl"),
-titan-fanout ("fo"), titan-agg ("agg"), titan-wire ("wire") and titan-arb ("arb").
+titan-fanout ("fo"), titan-agg ("agg"), titan-wire ("wire"), titan-arb ("arb") and titan-cross ("cross").
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -28,8 +28,8 @@ RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
 KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed", "build"),
               "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap"),
               "pl_split": ("load", "wait", "path", "feed", "part"), "fo": ("work", "design", "readers", "feed"),
-              "agg": ("design", "strategies"), "wire": ("stage", "feed"), "arb": ("cond", "feed")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles", "wire": "msg_cycles", "arb": "msg_cycles"}
+              "agg": ("design", "strategies"), "wire": ("stage", "feed"), "arb": ("cond", "feed"), "cross": ("design",)}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles", "wire": "msg_cycles", "arb": "msg_cycles", "cross": "msg_cycles"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
@@ -41,6 +41,7 @@ EXTRA = {
     "agg": ("ns_per_order", "msg_instructions", "msg_l1d_miss", "cas_retries_s0", "cas_retries_per_order", "min_other_orders", "core_ghz", "invol_switches"),
     "wire": ("ns_per_update", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "allocations_per_update", "core_ghz"),
     "arb": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "allocations_per_msg", "core_ghz"),
+    "cross": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
@@ -137,7 +138,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo", "agg", "wire", "arb"):
+    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo", "agg", "wire", "arb", "cross"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -212,6 +213,9 @@ def contrasts(groups):
         extra.append(("agg", "cas3 vs faa3, exact limit vs two-step check", ag("cas", 3), ag("faa", 3)))
         extra.append(("agg", "shard3 vs faa3, per-strategy totals vs one shared total", ag("shard", 3), ag("faa", 3)))
         extra.append(("agg", "shard3 vs shard1, cost of the other strategies writing their totals", ag("shard", 3), ag("shard", 1)))
+    if any(k[0] == "cross" for k in groups):
+        extra.append(("cross", "incr vs floor, keeping a consolidated top", ("incr",), ("floor",)))
+        extra.append(("cross", "rebuild vs incr, re-reading every venue", ("rebuild",), ("incr",)))
     for feed in sorted({k[2] for k in groups if k[0] == "arb"}):
         extra.append(("arb", f"two0 vs one0, second lossless line ({feed})", ("two0", feed), ("one0", feed)))
         extra.append(("arb", f"two_a vs two0, loss on A filled by B ({feed})", ("two_a", feed), ("two0", feed)))
@@ -385,6 +389,34 @@ def arb_derived(groups, reps=2000, seed=1):
             print(f"arb {feed}: X({a}) / X({b}) = {x[a] / x[b]:.3f} [{rs[int(0.025 * reps)]:.3f}, {rs[int(0.975 * reps) - 1]:.3f}]")
 
 
+def cross_derived(groups, reps=2000, seed=1):
+    """Consolidation cost per merged message above the two venue books alone."""
+    if not any(k[0] == "cross" for k in groups):
+        return
+    v = {d: values(groups, ("cross", d), "msg_cycles") for d in ("floor", "incr", "rebuild")}
+    if any(not x for x in v.values()):
+        return
+    print("\n## cross: cycles per merged message above the venue books alone, X [bootstrap 95% CI]")
+    rng = random.Random(seed)
+    boot = {d: [] for d in ("incr", "rebuild")}
+    for _ in range(reps):
+        fl = median([rng.choice(v["floor"]) for _ in v["floor"]])
+        for d in boot:
+            boot[d].append(median([rng.choice(v[d]) for _ in v[d]]) - fl)
+    x, ci = {}, {}
+    for d in boot:
+        x[d] = median(v[d]) - median(v["floor"])
+        bs = sorted(boot[d])
+        ci[d] = (bs[int(0.025 * reps)], bs[int(0.975 * reps) - 1])
+        print(f"cross: X({d}) = {x[d]:.2f} [{ci[d][0]:.2f}, {ci[d][1]:.2f}]")
+    print(f"cross: incr / floor on the totals = {median(v['incr']) / median(v['floor']):.3f}")
+    if ci["incr"][0] > 0:
+        rs = sorted(a / b for a, b in zip(boot["rebuild"], boot["incr"]))
+        print(f"cross: X(rebuild) / X(incr) = {x['rebuild'] / x['incr']:.3f} [{rs[int(0.025 * reps)]:.3f}, {rs[int(0.975 * reps) - 1]:.3f}]")
+    else:
+        print("cross: X(rebuild) / X(incr) undefined (interval of X(incr) reaches 0 or below)")
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__)
@@ -394,7 +426,7 @@ def main(argv):
     if "na" in builds and len(builds) > 1:
         print("WARNING: t2t lines with and without build= are mixed; unlabelled lines are grouped as build=na")
     if not groups:
-        print("no pp/st/rp/t2t/pl/fo/agg/wire/arb records found")
+        print("no pp/st/rp/t2t/pl/fo/agg/wire/arb/cross records found")
         return 1
     summary(groups)
     contrasts(groups)
@@ -402,6 +434,7 @@ def main(argv):
     fo_derived(groups)
     wire_derived(groups)
     arb_derived(groups)
+    cross_derived(groups)
     if any(k[0] == "agg" for k in groups) or EXCLUDED:
         total = sum(EXCLUDED.values())
         print(f"\n## agg: epochs excluded as starved (another strategy under ops/100 orders): {total}")
