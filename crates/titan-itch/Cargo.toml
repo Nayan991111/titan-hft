@@ -7,6 +7,8 @@ license = "MIT"
 
 [dependencies]
 libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 titan-platform = { path = "../titan-platform" }
 titan-spsc = { path = "../titan-spsc" }
 
@@ -29,3 +31,7 @@ path = "src/bin/titan-fanout.rs"
 [[bin]]
 name = "titan-agg"
 path = "src/bin/titan-agg.rs"
+
+[[bin]]
+name = "titan-wire"
+path = "src/bin/titan-wire.rs"

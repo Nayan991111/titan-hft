@@ -21,6 +21,16 @@ pub struct RefBook {
 }
 
 impl RefBook {
+    /// Total shares resting at one price level (0 if the level is empty).
+    pub fn level_shares(&self, locate: u16, side: Side, price: u32) -> u64 {
+        self.levels.get(&(locate, side == Side::Buy)).and_then(|l| l.get(&price)).map_or(0, |e| e.0)
+    }
+
+    /// Instrument, side and price of a live order.
+    pub fn order_level(&self, order: u64) -> Option<(u16, Side, u32)> {
+        self.orders.get(&order).map(|o| (o.locate, o.side, o.price))
+    }
+
     fn level(&mut self, locate: u16, side: Side) -> &mut BTreeMap<u32, (u64, u32)> {
         self.levels.entry((locate, side == Side::Buy)).or_default()
     }

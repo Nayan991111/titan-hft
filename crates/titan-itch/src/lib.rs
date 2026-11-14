@@ -17,6 +17,8 @@
 //! * [`mold`]: MoldUDP64 packet framing and sequence-gap tracking.
 //! * [`fanout`]: top of book shared with several reader threads (per-reader
 //!   ring copies, or one seqlock snapshot per instrument).
+//! * [`wire`]: one price-level update in binary, FIX 4.4 and JSON, with
+//!   decoders that normalise each to the same record.
 //! * [`gen`]: deterministic synthetic ITCH generator for tests and benchmarks.
 
 pub mod book;
@@ -28,6 +30,7 @@ pub mod mold;
 pub mod path;
 pub mod reference;
 pub mod toxicity;
+pub mod wire;
 
 /// Side of an order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
