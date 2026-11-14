@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Summarise the output of titan-pingpong ("pp"), titan-stream ("st"),
 titan-replay ("rp"), titan-t2t ("t2t"), titan-pipeline ("pl"),
-titan-fanout ("fo"), titan-agg ("agg"), titan-wire ("wire"), titan-arb ("arb"), titan-cross ("cross") and titan-heap ("heap").
+titan-fanout ("fo"), titan-agg ("agg"), titan-wire ("wire"), titan-arb ("arb"),
+titan-cross ("cross"), titan-heap ("heap"), titan-queue ("queue") and titan-walk ("walk").
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -28,8 +29,9 @@ RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
 KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed", "build"),
               "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap"),
               "pl_split": ("load", "wait", "path", "feed", "part"), "fo": ("work", "design", "readers", "feed"),
-              "agg": ("design", "strategies"), "wire": ("stage", "feed"), "arb": ("cond", "feed"), "cross": ("design",), "heap": ("design", "workload", "feed")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles", "wire": "msg_cycles", "arb": "msg_cycles", "cross": "msg_cycles", "heap": "msg_cycles"}
+              "agg": ("design", "strategies"), "wire": ("stage", "feed"), "arb": ("cond", "feed"), "cross": ("design",), "heap": ("design", "workload", "feed"),
+              "queue": ("design", "feed"), "walk": ("design", "feed")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles", "wire": "msg_cycles", "arb": "msg_cycles", "cross": "msg_cycles", "heap": "msg_cycles", "queue": "msg_cycles", "walk": "msg_cycles"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
@@ -43,6 +45,8 @@ EXTRA = {
     "arb": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "allocations_per_msg", "core_ghz"),
     "cross": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz"),
     "heap": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz"),
+    "queue": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz"),
+    "walk": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "ipc", "core_ghz"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
@@ -431,6 +435,52 @@ def heap_derived(groups, reps=2000, seed=1):
         print(f"heap {feed}: array depth against array top, the same code, differ by {gap:.3f} of the total")
 
 
+def stage_ladder(groups, kind, floor, stages, ratios, title, reps=2000, seed=1):
+    """Cycles per message above a floor stage, with bootstrap intervals, and
+    named ratios between them. Shared by the queue and walk experiments,
+    which differ only in their stage names."""
+    feeds = sorted({k[2] for k in groups if k[0] == kind})
+    if not feeds:
+        return
+    print(f"\n## {kind}: {title}, X [bootstrap 95% CI]")
+    for feed in feeds:
+        v = {st: values(groups, (kind, st, feed), "msg_cycles") for st in stages}
+        v[floor] = values(groups, (kind, floor, feed), "msg_cycles")
+        if any(not x for x in v.values()):
+            continue
+        rng = random.Random(seed)
+        boot = {st: [] for st in stages}
+        for _ in range(reps):
+            fl = median([rng.choice(v[floor]) for _ in v[floor]])
+            for st in stages:
+                boot[st].append(median([rng.choice(v[st]) for _ in v[st]]) - fl)
+        x, ci = {}, {}
+        for st in stages:
+            x[st] = median(v[st]) - median(v[floor])
+            bs = sorted(boot[st])
+            ci[st] = (bs[int(0.025 * reps)], bs[int(0.975 * reps) - 1])
+            print(f"{kind} {feed}: X({st}) = {x[st]:.2f} [{ci[st][0]:.2f}, {ci[st][1]:.2f}]")
+        for a, b in ratios:
+            if ci[b][0] <= 0:
+                print(f"{kind} {feed}: X({a}) / X({b}) undefined (interval of the denominator reaches 0)")
+                continue
+            rs = sorted(p / q for p, q in zip(boot[a], boot[b]))
+            print(f"{kind} {feed}: X({a}) / X({b}) = {x[a] / x[b]:.3f} [{rs[int(0.025 * reps)]:.3f}, {rs[int(0.975 * reps) - 1]:.3f}]")
+
+
+def queue_derived(groups, reps=2000, seed=1):
+    """What knowing the queue position of every arriving order costs."""
+    stage_ladder(groups, "queue", "none", ["book", "queue"], [("queue", "book")],
+                 "book and queue position cycles per message above decoding alone", reps, seed)
+
+
+def walk_derived(groups, reps=2000, seed=1):
+    """What walking the book to fill a size costs against reading the top."""
+    stage_ladder(groups, "walk", "none", ["top", "walk_100", "walk_1000", "walk_10000"],
+                 [("walk_100", "top"), ("walk_1000", "top"), ("walk_10000", "top"), ("walk_10000", "walk_100")],
+                 "top and walk cycles per message above decoding alone", reps, seed)
+
+
 def cross_derived(groups, reps=2000, seed=1):
     """Consolidation cost per merged message above the two venue books alone."""
     if not any(k[0] == "cross" for k in groups):
@@ -478,6 +528,8 @@ def main(argv):
     arb_derived(groups)
     cross_derived(groups)
     heap_derived(groups)
+    queue_derived(groups)
+    walk_derived(groups)
     if any(k[0] == "agg" for k in groups) or EXCLUDED:
         total = sum(EXCLUDED.values())
         print(f"\n## agg: epochs excluded as starved (another strategy under ops/100 orders): {total}")

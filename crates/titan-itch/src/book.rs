@@ -81,6 +81,55 @@ impl L3Book {
         }
     }
 
+    /// Shares already resting at `price` on one side, 0 if no order rests
+    /// there. Under price-time priority this is the number of shares ahead of
+    /// an order arriving at that price, so it is that order's queue position.
+    /// The level is found by the same binary search an add performs.
+    #[inline(always)]
+    pub fn level_shares(&self, locate: u16, side: Side, price: u32) -> u64 {
+        let buy = side == Side::Buy;
+        let Some(levels) = self.levels.get(locate as usize) else { return 0 };
+        let v = &levels[(!buy) as usize];
+        let key = key_of(price, buy);
+        let i = v.partition_point(|l| l.key <= key);
+        if i > 0 && v[i - 1].key == key { v[i - 1].shares } else { 0 }
+    }
+
+    /// Cost of filling `shares` immediately against the orders resting on one
+    /// side, as the sum over levels of price times the shares taken there,
+    /// with the number of levels visited and the price of the last level
+    /// consumed. `None` when the side does not hold that many shares. The
+    /// side named is the side of the resting orders consumed, so the cost of
+    /// buying is a walk of `Side::Sell`.
+    ///
+    /// The cost answers what the size is paid for on average; the last price
+    /// answers how far the quote has to move to fill it. They differ, and a
+    /// claim about price impact is a claim about one of them, not both.
+    ///
+    /// Cost cannot overflow: a walk takes at most `shares` in total, and
+    /// `shares` times the largest representable price stays well inside
+    /// `u64` for any size this feed can express.
+    #[inline(always)]
+    pub fn walk(&self, locate: u16, side: Side, shares: u64) -> Option<(u64, u32, u32)> {
+        if shares == 0 {
+            return Some((0, 0, 0));
+        }
+        let buy = side == Side::Buy;
+        let levels = self.levels.get(locate as usize)?;
+        let (mut left, mut cost, mut n) = (shares, 0u64, 0u32);
+        for l in levels[(!buy) as usize].iter().rev() {
+            let price = l.price(buy);
+            let take = l.shares.min(left);
+            cost += take * price as u64;
+            n += 1;
+            left -= take;
+            if left == 0 {
+                return Some((cost, n, price));
+            }
+        }
+        None
+    }
+
     /// Best price on one side whose level holds at least `min_shares`,
     /// with that level's shares. Thinner levels nearer the top are skipped.
     /// At `min_shares` of 1 this is `best`; at 100 it is a proxy for a
