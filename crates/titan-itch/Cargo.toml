@@ -43,3 +43,7 @@ path = "src/bin/titan-arb.rs"
 [[bin]]
 name = "titan-cross"
 path = "src/bin/titan-cross.rs"
+
+[[bin]]
+name = "titan-heap"
+path = "src/bin/titan-heap.rs"

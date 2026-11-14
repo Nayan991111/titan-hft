@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Summarise the output of titan-pingpong ("pp"), titan-stream ("st"),
 titan-replay ("rp"), titan-t2t ("t2t"), titan-pipeline ("pl"),
-titan-fanout ("fo"), titan-agg ("agg"), titan-wire ("wire"), titan-arb ("arb") and titan-cross ("cross").
+titan-fanout ("fo"), titan-agg ("agg"), titan-wire ("wire"), titan-arb ("arb"), titan-cross ("cross") and titan-heap ("heap").
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -28,8 +28,8 @@ RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
 KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed", "build"),
               "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap"),
               "pl_split": ("load", "wait", "path", "feed", "part"), "fo": ("work", "design", "readers", "feed"),
-              "agg": ("design", "strategies"), "wire": ("stage", "feed"), "arb": ("cond", "feed"), "cross": ("design",)}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles", "wire": "msg_cycles", "arb": "msg_cycles", "cross": "msg_cycles"}
+              "agg": ("design", "strategies"), "wire": ("stage", "feed"), "arb": ("cond", "feed"), "cross": ("design",), "heap": ("design", "workload", "feed")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles", "wire": "msg_cycles", "arb": "msg_cycles", "cross": "msg_cycles", "heap": "msg_cycles"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
@@ -42,6 +42,7 @@ EXTRA = {
     "wire": ("ns_per_update", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "allocations_per_update", "core_ghz"),
     "arb": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "allocations_per_msg", "core_ghz"),
     "cross": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz"),
+    "heap": ("ns_per_msg", "msg_instructions", "msg_l1d_miss", "msg_br_mispred", "core_ghz"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
@@ -138,7 +139,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo", "agg", "wire", "arb", "cross"):
+    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo", "agg", "wire", "arb", "cross", "heap"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -213,6 +214,11 @@ def contrasts(groups):
         extra.append(("agg", "cas3 vs faa3, exact limit vs two-step check", ag("cas", 3), ag("faa", 3)))
         extra.append(("agg", "shard3 vs faa3, per-strategy totals vs one shared total", ag("shard", 3), ag("faa", 3)))
         extra.append(("agg", "shard3 vs shard1, cost of the other strategies writing their totals", ag("shard", 3), ag("shard", 1)))
+    for feed in sorted({k[3] for k in groups if k[0] == "heap"}):
+        for w in ("top", "depth"):
+            extra.append(("heap", f"heap_indexed vs array, {w} ({feed})", ("heap_indexed", w, feed), ("array", w, feed)))
+        extra.append(("heap", f"heap_lazy vs heap_indexed, depth ({feed})", ("heap_lazy", "depth", feed), ("heap_indexed", "depth", feed)))
+        extra.append(("heap", f"array depth vs array top, the same code ({feed})", ("array", "depth", feed), ("array", "top", feed)))
     if any(k[0] == "cross" for k in groups):
         extra.append(("cross", "incr vs floor, keeping a consolidated top", ("incr",), ("floor",)))
         extra.append(("cross", "rebuild vs incr, re-reading every venue", ("rebuild",), ("incr",)))
@@ -389,6 +395,42 @@ def arb_derived(groups, reps=2000, seed=1):
             print(f"arb {feed}: X({a}) / X({b}) = {x[a] / x[b]:.3f} [{rs[int(0.025 * reps)]:.3f}, {rs[int(0.975 * reps) - 1]:.3f}]")
 
 
+def heap_derived(groups, reps=2000, seed=1):
+    """Book and query cycles per message above decoding alone, and the H55 ratios."""
+    feeds = sorted({k[3] for k in groups if k[0] == "heap"})
+    if not feeds:
+        return
+    stages = [("array", "top"), ("array", "depth"), ("heap_lazy", "top"), ("heap_lazy", "depth"),
+              ("heap_indexed", "top"), ("heap_indexed", "depth")]
+    print("\n## heap: book and query cycles per message above decoding alone, X [bootstrap 95% CI]")
+    for feed in feeds:
+        v = {st: values(groups, ("heap", st[0], st[1], feed), "msg_cycles") for st in stages}
+        v[("none", "none")] = values(groups, ("heap", "none", "none", feed), "msg_cycles")
+        if any(not x for x in v.values()):
+            continue
+        rng = random.Random(seed)
+        boot = {st: [] for st in stages}
+        for _ in range(reps):
+            fl = median([rng.choice(v[("none", "none")]) for _ in v[("none", "none")]])
+            for st in stages:
+                boot[st].append(median([rng.choice(v[st]) for _ in v[st]]) - fl)
+        x, ci = {}, {}
+        for st in stages:
+            x[st] = median(v[st]) - median(v[("none", "none")])
+            bs = sorted(boot[st])
+            ci[st] = (bs[int(0.025 * reps)], bs[int(0.975 * reps) - 1])
+            print(f"heap {feed}: X({st[0]}, {st[1]}) = {x[st]:.2f} [{ci[st][0]:.2f}, {ci[st][1]:.2f}]")
+        for a, b in ((("heap_indexed", "top"), ("array", "top")), (("heap_indexed", "depth"), ("array", "depth")),
+                     (("heap_lazy", "depth"), ("heap_indexed", "depth"))):
+            if ci[b][0] <= 0:
+                print(f"heap {feed}: X({a[0]},{a[1]}) / X({b[0]},{b[1]}) undefined (interval of the denominator reaches 0)")
+                continue
+            rs = sorted(p / q for p, q in zip(boot[a], boot[b]))
+            print(f"heap {feed}: X({a[0]},{a[1]}) / X({b[0]},{b[1]}) = {x[a] / x[b]:.3f} [{rs[int(0.025 * reps)]:.3f}, {rs[int(0.975 * reps) - 1]:.3f}]")
+        gap = abs(median(v[("array", "depth")]) - median(v[("array", "top")])) / median(v[("array", "top")])
+        print(f"heap {feed}: array depth against array top, the same code, differ by {gap:.3f} of the total")
+
+
 def cross_derived(groups, reps=2000, seed=1):
     """Consolidation cost per merged message above the two venue books alone."""
     if not any(k[0] == "cross" for k in groups):
@@ -426,7 +468,7 @@ def main(argv):
     if "na" in builds and len(builds) > 1:
         print("WARNING: t2t lines with and without build= are mixed; unlabelled lines are grouped as build=na")
     if not groups:
-        print("no pp/st/rp/t2t/pl/fo/agg/wire/arb/cross records found")
+        print("no pp/st/rp/t2t/pl/fo/agg/wire/arb/cross/heap records found")
         return 1
     summary(groups)
     contrasts(groups)
@@ -435,6 +477,7 @@ def main(argv):
     wire_derived(groups)
     arb_derived(groups)
     cross_derived(groups)
+    heap_derived(groups)
     if any(k[0] == "agg" for k in groups) or EXCLUDED:
         total = sum(EXCLUDED.values())
         print(f"\n## agg: epochs excluded as starved (another strategy under ops/100 orders): {total}")
