@@ -1,0 +1,163 @@
+# Summaries of the 2026-11-14 pruned depth query and order lifetime run
+# (statistics only; raw epoch lines stay on the measurement machine; no
+# NASDAQ data is reproduced).
+#
+# Code:      commit fa41ff6, pushed by this run's script before measuring
+#            (GitHub confirmed at fa41ff6; 73 tests passed on macOS).
+# Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt
+# Toolchain: rustc 1.92.0 (ded5c06cf 2025-12-08), release, target-cpu=native
+# Power:     wall power throughout (AC attached, 85%); Low Power Mode off;
+#            macOS recorded no thermal and no performance warning.
+# Feeds:     the synthetic feed (5,000,000 messages, 501 instruments) and the
+#            public NASDAQ BX TotalView-ITCH 5.0 sample of 2019-07-30 (the
+#            first 10,000,000 messages, 8,850 instruments).
+# Run:       20:32 to 20:36 local time, PMU on, stage order rotated.
+#
+# Pre-registration: docs/experiments.md, "Pre-registered 2026-11-14,
+# sixteenth run" (H56).
+
+## configuration and order lifetimes (from the run)
+heap_config feed=synthetic_default messages=5000000 instruments=501 log2=22 limit=10000000 epochs=10 pmu=true checks=40000000 live_at_end=982360 stale_popped_lazy=50547 shares_at_best_per_query=501.84
+heap_life feed=synthetic_default orders_ended=1766807 mean_ms=659.968 within_100us_1ms_10ms_100ms_1s=0.0006,0.0046,0.0322,0.1962,0.7642 at_best_ended=38484 at_best_mean_ms=425.383 at_best_within=0.0113,0.0566,0.1872,0.4469,0.8574 still_resting=982360
+heap_config feed=20190730_BX_ITCH_50 messages=10000000 instruments=8850 log2=22 limit=10000000 epochs=10 pmu=true checks=63587440 live_at_end=42994 stale_popped_lazy=4200776 shares_at_best_per_query=1116.16
+heap_life feed=20190730_BX_ITCH_50 orders_ended=4386147 mean_ms=23169.857 within_100us_1ms_10ms_100ms_1s=0.0230,0.0892,0.1891,0.3048,0.5196 at_best_ended=3424615 at_best_mean_ms=21575.135 at_best_within=0.0271,0.0994,0.2066,0.3209,0.5388 still_resting=42994
+
+## verdicts under the pre-registered rules
+
+H56, supported, all four parts.
+  (a) X(heap_indexed, depth) / X(array, depth) still at least 1.5: BX 2.299
+      [2.271, 2.318], synthetic 2.690 [2.669, 2.717]. Supported.
+  (b) On the synthetic feed that ratio at most half of the fifteenth run's
+      11.563, so at most 5.78: 2.690, which is 23 percent of it. Supported.
+  (c) On BX within a quarter of the fifteenth run's 2.253, so between 1.69
+      and 2.82: 2.299, a change of 2.0 percent. Supported.
+  (d) At least half of the orders arriving at the best price on the real
+      feed gone within one second: 0.5388 of the 3,424,615 that ended inside
+      the window. Supported, and robust to the obvious objection: 42,994
+      orders were still resting when the window ended and are excluded, and
+      even if every one of them would have outlived a second the share is
+      0.5321, still above a half.
+
+So the explanation written into the pre-registration was right, and that is
+what (b) and (c) were for. BX held about five live orders an instrument, so
+pruning found almost nothing to skip and its ratio moved 2 percent; the
+synthetic feed held about two thousand an instrument, so its ratio fell to
+less than a quarter of what the unpruned scan had made it look. The
+fifteenth run's depth figures were an artifact of our implementation, and
+these are the ones to quote.
+
+Per message above decoding alone, on the real BX feed, with every structure
+at its best:
+
+  array, best price only                 94.87 cycles   187 instructions
+  array, best price and depth            94.92          187
+  heap_indexed, best price only         161.13          344
+  heap_indexed, best price and depth    218.25          511
+  heap_lazy, best price only            195.47          387
+  heap_lazy, best price and depth       334.33          677
+
+The headline stands and is now honest on both sides: a sorted array of
+aggregated price levels answers the best price 1.70x cheaper than a binary
+heap of orders, answers depth for nothing where the heap pays 2.30x, and the
+two array stages differ by 0.000 of the total because they are the same
+operation.
+
+## which deletion policy wins depends on the feed, and reverses
+
+Under the unpruned scan the lazy heap looked worse than the indexed one for
+depth on both feeds. With the query at its best the ordering reverses on one
+of them:
+
+                          BX (real)        synthetic
+  lazy depth / indexed      1.532            0.792
+  lazy top / indexed top    1.213            0.573
+
+The mechanism is in the counters rather than in the timings. The indexed
+policy writes a position back into the order table at every step of every
+sift, so it pays in proportion to how deep the heaps are; the lazy policy
+pays only when a dead entry reaches the top, so it pays in proportion to
+churn. The synthetic feed ended 1,766,807 orders over 5,000,000 messages and
+popped 50,547 stale entries; BX ended 4,386,147 over 10,000,000 and popped
+4,200,776, eighty times as many. Deep books with little churn favour the
+lazy policy; shallow books with heavy churn favour the indexed one. Neither
+choice is right in general, which is worth more than either number.
+
+## fleeting quotes, measured
+
+The third source brief recommends posting quotes "for extremely short
+duration (milliseconds)". On the real feed, of the orders that arrived at
+the best price on their side and ended inside the window:
+
+  within 100 us   2.71%      within 100 ms   32.09%
+  within 1 ms     9.94%      within 1 s      53.88%
+  within 10 ms   20.66%      mean            21.6 s
+
+So the advice describes a minority of real orders rather than the norm: one
+in ten lasts less than a millisecond, and the mean is twenty seconds because
+the tail is long. 78.08 percent of the orders that ended had arrived at the
+best price, which on a venue with a thin book counts an order that improves
+the quote as well as one that joins it. Lifetimes are from each message's
+own timestamp; orders still resting at the end of the window are excluded,
+and that exclusion is 0.97 percent of those tracked.
+
+## a measurement note worth carrying into the paper
+
+The array book's code did not change between the fifteenth and sixteenth
+runs, and its cost moved: 98.59 cycles per message above decoding in the
+first, 94.87 in the second, a drop of 3.8 percent, while within each run the
+bootstrap interval is about half a percent wide. The binary changed around
+it, so this is the code-layout sensitivity that H48's alignment build
+probed, showing up between two runs of the same experiment. It is why the
+quantity to quote is a ratio measured inside one run, not an absolute cycle
+count carried between them, and every ratio above is from a single run.
+
+## analysis output (scripts/analyze.py over the run's raw lines)
+
+
+## heap: msg_cycles, median over epochs [bootstrap 95% CI]
+design=none workload=none feed=20190730_BX_ITCH_50             n=10      21.64 [   21.61,    21.68] ns_per_msg=5.02 msg_instructions=52.4 msg_l1d_miss=0.488 msg_br_mispred=0.756 core_ghz=4.31
+design=none workload=none feed=synthetic_default               n=10      25.14 [   25.03,    25.22] ns_per_msg=5.84 msg_instructions=58.3 msg_l1d_miss=0.542 msg_br_mispred=0.936 core_ghz=4.3
+design=array workload=top feed=20190730_BX_ITCH_50             n=10     116.51 [  116.04,   117.16] ns_per_msg=27.7 msg_instructions=187 msg_l1d_miss=6.47 msg_br_mispred=1.74 core_ghz=4.2
+design=array workload=depth feed=20190730_BX_ITCH_50           n=10     116.56 [  115.96,   117.17] ns_per_msg=28 msg_instructions=187 msg_l1d_miss=6.5 msg_br_mispred=1.74 core_ghz=4.18
+design=heap_indexed workload=top feed=20190730_BX_ITCH_50      n=10     182.78 [  182.23,   183.30] ns_per_msg=43.5 msg_instructions=344 msg_l1d_miss=17.2 msg_br_mispred=1.72 core_ghz=4.22
+design=array workload=depth feed=synthetic_default             n=10     192.79 [  192.01,   193.92] ns_per_msg=44.2 msg_instructions=242 msg_l1d_miss=15.8 msg_br_mispred=1.32 core_ghz=4.38
+design=array workload=top feed=synthetic_default               n=10     192.95 [  191.62,   194.03] ns_per_msg=44.2 msg_instructions=242 msg_l1d_miss=15.9 msg_br_mispred=1.32 core_ghz=4.38
+design=heap_lazy workload=top feed=20190730_BX_ITCH_50         n=10     217.12 [  216.01,   218.52] ns_per_msg=51.8 msg_instructions=387 msg_l1d_miss=19.5 msg_br_mispred=1.91 core_ghz=4.17
+design=heap_lazy workload=top feed=synthetic_default           n=10     225.09 [  221.95,   226.56] ns_per_msg=52.2 msg_instructions=314 msg_l1d_miss=33.4 msg_br_mispred=1.54 core_ghz=4.3
+design=heap_indexed workload=depth feed=20190730_BX_ITCH_50    n=10     239.89 [  237.65,   241.43] ns_per_msg=57.8 msg_instructions=511 msg_l1d_miss=19.5 msg_br_mispred=2.5 core_ghz=4.13
+design=heap_lazy workload=depth feed=20190730_BX_ITCH_50       n=10     355.98 [  355.31,   356.29] ns_per_msg=86.4 msg_instructions=677 msg_l1d_miss=25.8 msg_br_mispred=4.34 core_ghz=4.11
+design=heap_indexed workload=top feed=synthetic_default        n=10     374.02 [  372.40,   376.10] ns_per_msg=85.2 msg_instructions=389 msg_l1d_miss=37 msg_br_mispred=1.84 core_ghz=4.39
+design=heap_lazy workload=depth feed=synthetic_default         n=10     382.17 [  381.17,   384.92] ns_per_msg=92.4 msg_instructions=606 msg_l1d_miss=46 msg_br_mispred=3.7 core_ghz=4.14
+design=heap_indexed workload=depth feed=synthetic_default      n=10     476.15 [  474.75,   480.36] ns_per_msg=110 msg_instructions=598 msg_l1d_miss=45.9 msg_br_mispred=2.45 core_ghz=4.33
+
+## contrasts: A vs B on the primary metric (lower is better)
+heap heap_indexed vs array, top (20190730_BX_ITCH_50)         A=   182.78 B=   116.51 A/B= 1.569 nA=10 nB=10 U=100.0 p=0.0002 (normal) cliffs_delta=+1.00
+heap heap_indexed vs array, depth (20190730_BX_ITCH_50)       A=   239.89 B=   116.56 A/B= 2.058 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+heap heap_lazy vs heap_indexed, depth (20190730_BX_ITCH_50)   A=   355.98 B=   239.89 A/B= 1.484 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+heap array depth vs array top, the same code (20190730_BX_ITCH_50) A=   116.56 B=   116.51 A/B= 1.000 nA=10 nB=10 U=50.0 p=1.0000 (normal) cliffs_delta=+0.00
+heap heap_indexed vs array, top (synthetic_default)           A=   374.02 B=   192.95 A/B= 1.938 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+heap heap_indexed vs array, depth (synthetic_default)         A=   476.15 B=   192.79 A/B= 2.470 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+heap heap_lazy vs heap_indexed, depth (synthetic_default)     A=   382.17 B=   476.15 A/B= 0.803 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+heap array depth vs array top, the same code (synthetic_default) A=   192.79 B=   192.95 A/B= 0.999 nA=10 nB=10 U=48.0 p=0.9118 (exact) cliffs_delta=-0.04
+
+## heap: book and query cycles per message above decoding alone, X [bootstrap 95% CI]
+heap 20190730_BX_ITCH_50: X(array, top) = 94.87 [94.39, 95.39]
+heap 20190730_BX_ITCH_50: X(array, depth) = 94.92 [94.32, 95.53]
+heap 20190730_BX_ITCH_50: X(heap_lazy, top) = 195.47 [194.36, 196.88]
+heap 20190730_BX_ITCH_50: X(heap_lazy, depth) = 334.33 [333.51, 334.63]
+heap 20190730_BX_ITCH_50: X(heap_indexed, top) = 161.13 [160.70, 161.66]
+heap 20190730_BX_ITCH_50: X(heap_indexed, depth) = 218.25 [216.00, 219.79]
+heap 20190730_BX_ITCH_50: X(heap_indexed,top) / X(array,top) = 1.699 [1.686, 1.709]
+heap 20190730_BX_ITCH_50: X(heap_indexed,depth) / X(array,depth) = 2.299 [2.271, 2.318]
+heap 20190730_BX_ITCH_50: X(heap_lazy,depth) / X(heap_indexed,depth) = 1.532 [1.521, 1.548]
+heap 20190730_BX_ITCH_50: array depth against array top, the same code, differ by 0.000 of the total
+heap synthetic_default: X(array, top) = 167.82 [166.50, 168.86]
+heap synthetic_default: X(array, depth) = 167.65 [166.90, 168.77]
+heap synthetic_default: X(heap_lazy, top) = 199.95 [196.80, 201.42]
+heap synthetic_default: X(heap_lazy, depth) = 357.03 [356.03, 359.80]
+heap synthetic_default: X(heap_indexed, top) = 348.88 [347.15, 350.98]
+heap synthetic_default: X(heap_indexed, depth) = 451.01 [449.59, 455.22]
+heap synthetic_default: X(heap_indexed,top) / X(array,top) = 2.079 [2.062, 2.100]
+heap synthetic_default: X(heap_indexed,depth) / X(array,depth) = 2.690 [2.669, 2.717]
+heap synthetic_default: X(heap_lazy,depth) / X(heap_indexed,depth) = 0.792 [0.784, 0.798]
+heap synthetic_default: array depth against array top, the same code, differ by 0.001 of the total
