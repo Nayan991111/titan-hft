@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Summarise the output of titan-pingpong ("pp"), titan-stream ("st"),
-titan-replay ("rp"), titan-t2t ("t2t"), titan-pipeline ("pl") and
-titan-fanout ("fo").
+titan-replay ("rp"), titan-t2t ("t2t"), titan-pipeline ("pl"),
+titan-fanout ("fo") and titan-agg ("agg").
 
 Reads one or more result files, groups epochs by configuration and reports,
 per configuration, the median of the per-epoch values with a bootstrap 95%
@@ -27,8 +27,9 @@ from functools import lru_cache
 RING_KEY = ("impl", "order", "pad", "cached", "wait", "qos")
 KEY_FIELDS = {"pp": RING_KEY, "st": RING_KEY, "rp": ("impl", "mix"), "t2t": ("stage", "feed", "build"),
               "pl": ("load", "wait", "path", "feed"), "pl_gap": ("load", "wait", "path", "feed", "gap"),
-              "pl_split": ("load", "wait", "path", "feed", "part"), "fo": ("work", "design", "readers", "feed")}
-METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles"}
+              "pl_split": ("load", "wait", "path", "feed", "part"), "fo": ("work", "design", "readers", "feed"),
+              "agg": ("design", "strategies")}
+METRIC = {"pp": "batch_rtt_ns", "st": "ns_per_msg", "rp": "ns_per_msg", "t2t": "ns_per_msg", "pl": "p99_ns", "pl_gap": "p50_ns", "pl_split": "p99_ns", "fo": "msg_cycles", "agg": "msg_cycles"}
 EXTRA = {
     "pp": ("rtt_cycles", "rtt_instructions", "rtt_l1d_miss", "core_ghz", "invol_switches"),
     "st": ("msg_cycles", "msg_instructions", "msg_l1d_miss", "core_ghz", "invol_switches"),
@@ -37,6 +38,7 @@ EXTRA = {
     "pl_split": ("p50_ns", "p90_ns", "p999_ns", "max_ns", "warm_units_per_msg", "saturated"),
     "pl_gap": ("messages", "p90_ns", "p99_ns", "p999_ns", "max_ns", "saturated"),
     "fo": ("writer_ns_per_msg", "msg_instructions", "quote_rate", "full_waits", "conflated_frac", "stale_p50_ns", "stale_p99_ns", "worst_reader_p99_ns", "core_ghz", "invol_switches"),
+    "agg": ("ns_per_order", "msg_instructions", "msg_l1d_miss", "cas_retries_s0", "cas_retries_per_order", "min_other_orders", "core_ghz", "invol_switches"),
     "pl": ("p50_ns", "p999_ns", "p9999_ns", "max_ns", "achieved_mps", "saturated", "feed_late_over_1us", "invol_switches", "allocations"),
 }
 PAIR = re.compile(r"(\w+)=(\S+)")
@@ -55,6 +57,8 @@ def load(paths):
                     continue
                 if kind == "pl" and rec.get("udp_dropped", "0") != "0":
                     continue  # gap-detection check runs, not measurements
+                if kind == "agg" and rec.get("starved") == "1":
+                    continue  # another strategy completed under ops/100 orders: excluded, as pre-registered
                 if kind in ("pp", "st"):
                     rec.setdefault("qos", "ui")
                 key = (kind,) + tuple(rec.get(f, "na") for f in KEY_FIELDS[kind])
@@ -127,7 +131,7 @@ def values(groups, key, field):
 
 
 def summary(groups):
-    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo"):
+    for kind in ("pp", "st", "rp", "t2t", "pl", "pl_gap", "pl_split", "fo", "agg"):
         keys = sorted(k for k in groups if k[0] == kind)
         if not keys:
             continue
@@ -194,6 +198,14 @@ def contrasts(groups):
         if b != "na" and b != "base":
             for stage in ("decode", "book", "full"):
                 extra.append(("t2t", f"build {b} vs base, {stage} ({feed})", (stage, feed, b), (stage, feed, "base")))
+    if any(k[0] == "agg" for k in groups):
+        def ag(d, n):
+            return (d, str(n))
+        extra.append(("agg", "faa1 vs local1, one uncontended atomic add", ag("faa", 1), ag("local", 1)))
+        extra.append(("agg", "faa3 vs faa1, contention on one shared total", ag("faa", 3), ag("faa", 1)))
+        extra.append(("agg", "cas3 vs faa3, exact limit vs two-step check", ag("cas", 3), ag("faa", 3)))
+        extra.append(("agg", "shard3 vs faa3, per-strategy totals vs one shared total", ag("shard", 3), ag("faa", 3)))
+        extra.append(("agg", "shard3 vs shard1, cost of the other strategies writing their totals", ag("shard", 3), ag("shard", 1)))
     for work, feed in sorted({(k[1], k[4]) for k in groups if k[0] == "fo"}):
         def fo(d, n):
             return (work, d, str(n), feed)
@@ -305,7 +317,7 @@ def main(argv):
     if "na" in builds and len(builds) > 1:
         print("WARNING: t2t lines with and without build= are mixed; unlabelled lines are grouped as build=na")
     if not groups:
-        print("no pp/st/rp/t2t/pl/fo records found")
+        print("no pp/st/rp/t2t/pl/fo/agg records found")
         return 1
     summary(groups)
     contrasts(groups)
