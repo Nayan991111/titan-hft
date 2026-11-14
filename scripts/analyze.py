@@ -219,6 +219,7 @@ def contrasts(groups):
     for feed in sorted({k[2] for k in groups if k[0] == "wire"}):
         extra.append(("wire", f"fix vs bin, decode ({feed})", ("fix", feed), ("bin", feed)))
         extra.append(("wire", f"json_serde vs json_fixed, JSON decode ({feed})", ("json_serde", feed), ("json_fixed", feed)))
+        extra.append(("wire", f"fix_simd vs fix, NEON scan and checksum ({feed})", ("fix_simd", feed), ("fix", feed)))
         extra.append(("wire", f"json_fixed vs fix ({feed})", ("json_fixed", feed), ("fix", feed)))
     for work, feed in sorted({(k[1], k[4]) for k in groups if k[0] == "fo"}):
         def fo(d, n):
@@ -327,7 +328,7 @@ def wire_derived(groups, reps=2000, seed=1):
     feeds = sorted({k[2] for k in groups if k[0] == "wire"})
     if not feeds:
         return
-    floor_of = {"bin": "floor_bin", "fix": "floor_fix", "json_fixed": "floor_json", "json_serde": "floor_json"}
+    floor_of = {"bin": "floor_bin", "fix": "floor_fix", "fix_simd": "floor_fix", "json_fixed": "floor_json", "json_serde": "floor_json"}
     print("\n## wire: decode cycles per update above the floor of its format, X [bootstrap 95% CI]")
     for feed in feeds:
         v = {st: values(groups, ("wire", st, feed), "msg_cycles") for st in list(floor_of) + sorted(set(floor_of.values()))}
@@ -345,7 +346,7 @@ def wire_derived(groups, reps=2000, seed=1):
             bs = sorted(bs)
             ci[st] = (bs[int(0.025 * reps)], bs[int(0.975 * reps) - 1])
             print(f"wire {feed}: X({st}) = {x[st]:.2f} [{ci[st][0]:.2f}, {ci[st][1]:.2f}]")
-        for a, b in (("fix", "bin"), ("json_serde", "json_fixed"), ("json_fixed", "fix")):
+        for a, b in (("fix", "bin"), ("json_serde", "json_fixed"), ("json_fixed", "fix"), ("fix_simd", "fix"), ("fix_simd", "bin")):
             if ci[b][0] <= 0:
                 print(f"wire {feed}: X({a}) / X({b}) undefined (interval of X({b}) reaches 0 or below)")
                 continue

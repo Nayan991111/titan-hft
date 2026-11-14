@@ -81,6 +81,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H49 | One exposure limit shared by several strategy threads (`titan-agg`, strategy 0's PMU cycles per order): (a) a shared total costs more than a private one without contention, faa1 above local1; (b) contention on one shared total, faa3 above faa1; (c) an exact limit (compare-and-swap loop) costs more than the two-step check under contention, cas3 above faa3; (d) per-strategy totals cost less than one shared total under contention, shard3 below faa3 | (a) supported; (b) supported; (c) refuted; (d) supported | Strategy 0's PMU cycles per order, medians over 10 epochs, no epoch starved. (a) faa1 14.28 vs local1 8.21 (1.74x, p = 1e-5). (b) faa3 217.88 vs faa1 14.28 (15.3x, p = 1e-5). (c) cas3 221.23 vs faa3 217.88, p = 1.0: no difference; strategy 0's failed compare-and-swap attempts 0.535 per order (`cas_retries_s0`; 0.58 over all strategies). (d) shard3 19.72 vs faa3 217.88 (0.09x, p = 1e-5). Census: faa compiles to `ldadd`, cas to one LSE `cas`, no exclusive pairs, no barriers. Exploratory, not tested: with 2 strategies cas cost about half of faa (51.55 vs 103.38 cycles) |
 | H50 | Inbound wire format, per price-level update (`titan-wire`, PMU cycles): (a) above the floor of each format, the validated FIX 4.4 decode costs at least 5x the fixed binary decode; (b) above the JSON floor, `serde_json` costs at least 2x a scanner specialised to the key order of the documented example; (c) in total cycles, that specialised JSON scanner costs less than the validated FIX decode; both feeds; thresholds set after development-machine runs (see the tenth run) | supported (both feeds) | X(fix)/X(bin) 55.5 BX, 44.3 synthetic; X(serde)/X(fixed) 4.57 BX, 4.33 synthetic; json_fixed below fix p=0.0000 both feeds; serde allocates 1.0 per update, the others 0; results/2026-11-14_m4_wire_arb.txt |
 | H51 | A/B line arbitration (`titan-arb`, PMU cycles per delivered message): (a) above the floor, taking the same stream from two lossless lines costs at most 1.5x one line (the duplicate line costs less than half the delivery itself; 1.5x is the registered rule); (b) 3% independent packet loss per line (registered as 1%, raised before any timed run; see the eleventh run), recovered from the other line and the re-request server, costs at most 2x the lossless two-line cost; (c) delivery is exact (every message once, in order) in every condition on both feeds, by assertion; thresholds set before any run of the program anywhere | (a) partly supported, (b) supported, (c) supported | (a) X(two0)/X(one0) 1.429 BX (interval reaches 1.586), 1.670 synthetic, so BX only; (b) 0.892 BX, 0.851 synthetic, but a weak test: loss removes arrivals, so the lossy conditions are cheaper than lossless two-line; (c) one delivery checksum across all conditions and epochs of each feed, 50 and 47 requests, 2,236 and 2,351 resent, 0 partial, 0 foreign, allocations_pass 0 throughout; results/2026-11-14_m4_wire_arb.txt |
+| H52 | Best-effort FIX decode (`titan-wire` stage `fix_simd`: the NEON delimiter search of `soh_neon` and a NEON checksum, validating identically to `fix`): (a) it costs less than the byte-at-a-time `fix`, both feeds; (b) X(fix_simd)/X(fix) lies between 0.5 and 0.9, both feeds; (c) X(fix_simd)/X(bin) is at least 10, both feeds | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -649,6 +650,48 @@ ppm about 40 to 50 packets are lost on both lines (the audit run counted
 50 requests). The thresholds and every other rule are unchanged; no timing
 was seen before this amendment (the aborted and audit runs printed counts,
 not times).
+
+## Pre-registered 2026-11-14, twelfth run
+
+**H52 (best-effort FIX decode).** Why this exists: H50 compared a fixed
+binary record against a FIX decoder that finds delimiters and sums the
+checksum one byte at a time, while this repository already showed that a
+NEON delimiter search cuts a validated FIX 4.2 NewOrderSingle parse from 465
+to 301 cycles (0.647; results/2026-11-12_m4_ac2.txt). The binary decoder has
+no such loop to accelerate, so H50's ratio is partly a statement about an
+unoptimised text parser, and the honest headline needs the best effort on
+both sides. `fix_simd` is added for that: the same validation code as `fix`
+(one const-generic function; only the delimiter search and the checksum
+differ), the NEON scan of `soh_neon`, and a checksum accumulated in `u8`
+lanes, where the lane adds and the horizontal add are already modulo 256.
+`both_fix_decoders_agree` requires the two decoders to return the same value
+on a valid message, on every single-bit change of it, at every truncated
+length, with 0 to 39 extra fields and on filler of every length to one step;
+on a machine without NEON the scan falls back to the scalar one, so that
+test only compares the two implementations on the measurement machine. The
+harness also asserts that `fix_simd` returns the original record for all
+2,000,000 updates before timing. Same feeds, floors, epochs, rotation and X
+definition as H50 (`fix_simd` is measured above `floor_fix`). Decision
+rules: (a) two-sided Mann-Whitney U on the per-epoch `msg_cycles` of
+`fix_simd` and `fix`, p < 0.05 with the medians in the stated direction;
+(b) and (c) ratios of the X values with bootstrap 95% intervals, read on the
+ratio of the medians; both feeds supported, one partly. Disclosure: (b)'s
+interval is centred on this repository's own earlier 0.647 for a different
+FIX message on the same machine, and (c) is set knowing H50 measured 44.3
+and 55.5 for the scalar decoder; (b) can fail in either direction and is the
+part of this hypothesis that carries information. No NEON timing for this
+decoder exists anywhere: on the development machine (x86) `soh_neon` falls
+back to the scalar scan, so the stage there is the same code as `fix` and
+tells nothing about the M4. Symmetry, so that the correction does not
+simply reverse the bias: the binary decoder reads fixed offsets and has no
+whole-message loop to vectorise; the specialised JSON scanner already walks
+the documented key order once and computes no checksum; `serde_json` is a
+library taken as it ships, and replacing it is a different question from
+format cost. FIX is the one format whose rules impose two whole-message
+passes, a delimiter index and a checksum over every byte, which is why it is
+the one with a loop to accelerate. That those passes are inherent to the
+protocol, not to our implementation, is itself part of what H50 and H52
+measure.
 
 ## Note on the 2026-11-14 run
 
