@@ -84,6 +84,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H52 | Best-effort FIX decode (`titan-wire` stage `fix_simd`: the NEON delimiter search of `soh_neon` and a NEON checksum, validating identically to `fix`): (a) it costs less than the byte-at-a-time `fix`, both feeds; (b) X(fix_simd)/X(fix) lies between 0.5 and 0.9, both feeds; (c) X(fix_simd)/X(bin) is at least 10, both feeds | supported (both feeds) | X(fix_simd)/X(fix) 0.723 BX, 0.732 synthetic, inside the registered 0.5 to 0.9; X(fix_simd)/X(bin) 40.3 BX, 32.6 synthetic; instructions per update 3026.7 to 2517.2 on BX while cycles fall 27.3%, so IPC rises 5.77 to 6.61. The FIX figure to quote is now 372.8 cycles above the FIX floor on BX, not H50's 514.1; results/2026-11-14_m4_fix_cross.txt |
 | H53 | Consolidated book across BX and PSX (`titan-cross`, 2019-07-30, PMU cycles per merged message): (a) keeping a consolidated top incrementally costs at most 0.5x the two venue books alone; (b) re-reading every venue's top for every shared instrument every 1,000 messages costs at least 2x the incremental design, above that floor; (c) the two venues' displayed books lock and cross during continuous trading, both at least once; (d) at least half of the crossed episodes begin and end between two rebuilds, so the periodic design never sees them | (a), (b), (c) supported, (d) refuted | (a) X(incr) 23.45 against a floor of 153.33, so 0.153; (b) X(rebuild)/X(incr) 4.70 at a rebuild every 1,000 messages, with 782.4 instructions and 37.6 L1D misses per message against 253.4 and 7.1; (c) 360 locked and 33 crossed episodes over 17 instruments inside the window; (d) 15 of 33 invisible, 0.4545, just under the registered 0.5. The episodes are long (mean 18.2 s crossed) and are a statement about every displayed order, odd lots included, not about protected quotations: see H54; results/2026-11-14_m4_fix_cross.txt |
 | H54 | The same day over round-lot-sized levels (`titan-cross min_lot=100`, a level holding at least 100 shares, as a proxy for a protected quotation): (a) crossed episodes fall to at most half of the all-orders count of 33; (b) locked episodes fall to at most half of 360; (c) replicated over the whole day rather than the first 4,000,000 merged messages, H53(a) and H53(b) keep their outcomes | supported | (a) 2 crossed episodes against 33, (b) 82 locked against 360; the longest cross falls from 212.8 s to 0.110 ms and the longest lock from 1,208 s to 43.8 ms, so the long episodes were odd lots resting inside the other venue's quote; (c) over the whole day X(incr) 22.50 against a floor of 157.71 (0.143) and X(rebuild)/X(incr) 5.305, both outcomes replicated. Reported: the periodic design missed both round-lot crossings (share 1.000), being 224 ms behind on average against episodes of 110 us; results/2026-11-14_m4_roundlot.txt |
+| H55 | The third brief's order book against this one (`titan-heap`, cycles per message above decoding alone, X): (a) X(heap_indexed, top) / X(array, top) is at least 1.2; (b) X(heap_indexed, depth) / X(array, depth) is at least 2; (c) the lazy heap costs more than the indexed one for depth; (d) harness check: the two array stages, which run identical code, differ by at most 0.10 of the total; both feeds | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -788,6 +789,61 @@ so that a partial fall, which would mean round-lot quotes also cross, is
 recorded as a refutation rather than argued about afterwards. If the
 counts barely move, the episodes are between protected quotations and are
 a far more interesting result than if they vanish.
+
+## Pre-registered 2026-11-14, fifteenth run
+
+**H55 (the order book the third brief specifies).** Part 2.1 of the third
+source brief gives the order book as a priority queue per side, "ordered by
+price (highest first), then time", with "Insert quote: O(log n)", "Remove
+quote: O(log n)" and "Match order: O(1)", and its pseudocode pushes orders,
+not aggregated price levels. `titan_itch::book::L3Book` instead keeps one
+sorted array of price levels per instrument and side, where the best level
+is the last element and the orders at a price are already summed into it.
+`titan_itch::heapbook`, new in this batch, is the brief's structure: a
+binary heap of orders per instrument and side, price then time, over an
+order table that is deliberately the same open-addressed, linearly probed,
+backward-shift-deleting table as the array book's, so that what is compared
+is the priority structure and not the hash table around it.
+
+A heap of orders cannot reach an arbitrary order, and every ITCH cancel,
+execution and delete names one, so both ways out are implemented and both
+are measured rather than one being assumed: `heap_lazy` drops the order from
+the table and leaves the entry to be skipped when it reaches the top, and
+`heap_indexed` keeps every order's heap position up to date through every
+sift so a delete is a true O(log n) removal. Workloads: `top`, the best
+price on both sides of the instrument a message touched, which is what a
+market maker reads continuously, and `depth`, the best price and every share
+resting at it, which the brief's own success criteria require ("Quote Depth:
+Shares available at best bid/ask"). The array book answers both with one
+operation, because a level is the sum of its orders; the heaps must visit
+every order at the best price. That asymmetry is the structural claim under
+test, not a handicap applied to the heap: a heap that cached the total at
+each price would be the array book.
+
+Floor: `none` decodes each message and keeps no book, so X(design, workload)
+= median `msg_cycles` of that stage minus the median of `none`. Feeds: the
+synthetic feed and the public NASDAQ BX sample of 2019-07-30, the first
+10,000,000 messages of each, 10 epochs, stage order rotated, PMU on. Before
+any timing, all three books are driven through the same messages and
+required to report the same best price after every one, and the heaps the
+same depth as the array book; the three must also end with the same number
+of live orders. Decision rules: (a), (b) and (d) are ratios of medians with
+bootstrap 95% intervals, undefined if the denominator's interval reaches
+zero; (c) is a two-sided Mann-Whitney U on the per-epoch `msg_cycles`,
+p < 0.05 with the medians in the stated direction; both feeds supported, one
+partly. Reported, not tested: instructions and L1D load misses per message,
+the mean number of shares resting at the best price (which is what the depth
+scan walks), and how many stale entries the lazy heap pops.
+
+Disclosure: these thresholds were set after development-machine runs (x86, a
+virtual machine, 200,000 synthetic messages, 4 epochs, nanoseconds in place
+of cycles, not evidence) gave 1.375 [1.170, 1.561] for (a), 2.329 [1.832,
+2.867] for (b) and 1.652 for (c). Both thresholds sit inside those
+intervals, so both can fail. The harness check (d) is the one place a
+development number is not the basis: that machine showed 0.141, which is
+noise it has shown throughout, and 0.10 is written because every M4 run so
+far has held its stage medians within about one percent. If (d) fails on the
+M4, the rest of this run is not to be read.
 
 ## Note on the 2026-11-14 run
 
