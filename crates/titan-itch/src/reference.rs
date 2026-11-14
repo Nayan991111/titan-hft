@@ -26,6 +26,32 @@ impl RefBook {
         self.levels.get(&(locate, side == Side::Buy)).and_then(|l| l.get(&price)).map_or(0, |e| e.0)
     }
 
+    /// Naive equivalent of `L3Book::walk`: the cost of filling `shares`
+    /// against one side, with the levels visited, built by sorting the whole
+    /// side rather than by walking a maintained order.
+    pub fn walk(&self, locate: u16, side: Side, shares: u64) -> Option<(u64, u32, u32)> {
+        if shares == 0 {
+            return Some((0, 0, 0));
+        }
+        let l = self.levels.get(&(locate, side == Side::Buy))?;
+        let mut v: Vec<(u32, u64)> = l.iter().map(|(&p, &(s, _))| (p, s)).collect();
+        // Bids are consumed from the highest price down, asks from the lowest up.
+        if side == Side::Buy {
+            v.reverse();
+        }
+        let (mut left, mut cost, mut n) = (shares, 0u64, 0u32);
+        for (p, s) in v {
+            let take = s.min(left);
+            cost += take * p as u64;
+            n += 1;
+            left -= take;
+            if left == 0 {
+                return Some((cost, n, p));
+            }
+        }
+        None
+    }
+
     /// Instrument, side and price of a live order.
     pub fn order_level(&self, order: u64) -> Option<(u16, Side, u32)> {
         self.orders.get(&order).map(|o| (o.locate, o.side, o.price))

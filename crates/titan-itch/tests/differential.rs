@@ -145,3 +145,96 @@ fn order_table_near_capacity() {
     assert_eq!(fast.unknown, 0, "orders lost in the hash table");
     assert_eq!(fast.live_orders(), slow.live_orders());
 }
+
+/// Queue position is the shares resting at a price when an order arrives, so
+/// the lookup must agree with the reference book at the price every message
+/// touches, at prices where no order rests, and at both extremes of the range.
+#[test]
+fn level_shares_matches_the_reference_book() {
+    let instruments: u16 = 24;
+    let buf = feed(0x5157, instruments, 200_000, Mix::default());
+    let mut fast = L3Book::new(20, instruments as usize + 1);
+    let mut slow = RefBook::default();
+    let mut r = Reader::new(&buf);
+    let mut checks = 0usize;
+    let mut nonzero = 0usize;
+    while let Some(m) = r.next_msg() {
+        let m = m.expect("well-formed feed");
+        let touched = match m {
+            Msg::Add { locate, side, price, .. } => Some((locate, side, price)),
+            // The replacement price is in the message; its side comes from the
+            // order being replaced, which is still live before `apply`.
+            Msg::Replace { old, price, .. } => slow.order_level(old).map(|(l, s, _)| (l, s, price)),
+            _ => None,
+        };
+        fast.apply(&m);
+        slow.apply(&m);
+        if let Some(loc) = locate_of(&m) {
+            for side in [Side::Buy, Side::Sell] {
+                for price in [1u32, 100, 10_000, u32::MAX] {
+                    assert_eq!(
+                        fast.level_shares(loc, side, price),
+                        slow.level_shares(loc, side, price),
+                        "level shares differ for locate {loc} {side:?} at price {price}"
+                    );
+                    checks += 1;
+                }
+            }
+        }
+        if let Some((loc, side, price)) = touched {
+            let got = fast.level_shares(loc, side, price);
+            assert_eq!(got, slow.level_shares(loc, side, price), "level shares differ at the touched price {price}");
+            if got > 0 {
+                nonzero += 1;
+            }
+            checks += 1;
+        }
+    }
+    assert!(checks > 400_000, "too few comparisons: {checks}");
+    assert!(nonzero > 10_000, "test never saw a populated level: {nonzero}");
+    // A locate past the end of the feed has no levels and must read as empty.
+    assert_eq!(fast.level_shares(instruments + 5, Side::Buy, 100), 0);
+}
+
+/// The cost of filling a given size must match a reference that sorts the
+/// whole side, at sizes that stop inside the first level, cross several
+/// levels, and exceed the depth available.
+#[test]
+fn walk_matches_the_reference_book() {
+    let instruments: u16 = 16;
+    let buf = feed(0x7A1C, instruments, 200_000, Mix::default());
+    let mut fast = L3Book::new(20, instruments as usize + 1);
+    let mut slow = RefBook::default();
+    let mut r = Reader::new(&buf);
+    let (mut checks, mut filled, mut short) = (0usize, 0usize, 0usize);
+    while let Some(m) = r.next_msg() {
+        let m = m.expect("well-formed feed");
+        fast.apply(&m);
+        slow.apply(&m);
+        let Some(loc) = locate_of(&m) else { continue };
+        for side in [Side::Buy, Side::Sell] {
+            for shares in [0u64, 1, 100, 1_000, 10_000, 1_000_000_000] {
+                let a = fast.walk(loc, side, shares);
+                let b = slow.walk(loc, side, shares);
+                assert_eq!(a, b, "walk differs for locate {loc} {side:?} size {shares}");
+                match a {
+                    Some(_) => filled += 1,
+                    None => short += 1,
+                }
+                checks += 1;
+            }
+        }
+    }
+    assert!(checks > 500_000, "too few comparisons: {checks}");
+    assert!(filled > 10_000, "no size was ever fillable: {filled}");
+    assert!(short > 10_000, "no size ever exceeded the depth: {short}");
+    // A walk that stops inside one level costs that level's price exactly.
+    for loc in 0..instruments {
+        for side in [Side::Buy, Side::Sell] {
+            if let (Some((price, shares)), Some((cost, levels, last))) = (fast.best(loc, side), fast.walk(loc, side, 1)) {
+                assert!(shares > 0);
+                assert_eq!((cost, levels, last), (price as u64, 1, price), "one share must cost the best price once");
+            }
+        }
+    }
+}

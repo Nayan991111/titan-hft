@@ -86,6 +86,8 @@ are added afterwards and are never edited away when a prediction fails.
 | H54 | The same day over round-lot-sized levels (`titan-cross min_lot=100`, a level holding at least 100 shares, as a proxy for a protected quotation): (a) crossed episodes fall to at most half of the all-orders count of 33; (b) locked episodes fall to at most half of 360; (c) replicated over the whole day rather than the first 4,000,000 merged messages, H53(a) and H53(b) keep their outcomes | supported | (a) 2 crossed episodes against 33, (b) 82 locked against 360; the longest cross falls from 212.8 s to 0.110 ms and the longest lock from 1,208 s to 43.8 ms, so the long episodes were odd lots resting inside the other venue's quote; (c) over the whole day X(incr) 22.50 against a floor of 157.71 (0.143) and X(rebuild)/X(incr) 5.305, both outcomes replicated. Reported: the periodic design missed both round-lot crossings (share 1.000), being 224 ms behind on average against episodes of 110 us; results/2026-11-14_m4_roundlot.txt |
 | H55 | The third brief's order book against this one (`titan-heap`, cycles per message above decoding alone, X): (a) X(heap_indexed, top) / X(array, top) is at least 1.2; (b) X(heap_indexed, depth) / X(array, depth) is at least 2; (c) the lazy heap costs more than the indexed one for depth; (d) harness check: the two array stages, which run identical code, differ by at most 0.10 of the total; both feeds | supported (all four parts, both feeds; (b) and (c) superseded) | (d) the harness check passed first: the two array stages differ by 0.007 BX and 0.010 synthetic against a bound of 0.10; (a) 1.654 BX, 2.023 synthetic; (b) 2.253 BX, 11.563 synthetic; (c) lazy above indexed for depth, p=0.0000 both feeds. L1D misses per message 6.45 array, 17.3 indexed heap at the top, 158 lazy heap at depth. (b) and (c) were measured against a depth query that scanned the whole heap instead of pruning at the first smaller key; the sixteenth run re-measured them at 2.299 BX and 2.690 synthetic, and those are the figures to quote for depth. (a) and (d) never scan and stand as measured; results/2026-11-14_m4_heap.txt |
 | H56 | The heap's depth query given its best form (`HeapBook::best_depth` pruned at the first smaller key) and the fleeting quotes the third brief recommends: (a) X(heap_indexed, depth) / X(array, depth) is still at least 1.5 on both feeds; (b) on the synthetic feed that ratio falls to at most half of H55's 11.563, so at most 5.78; (c) on BX it stays within a quarter of H55's 2.253, between 1.69 and 2.82; (d) on the real feed at least half of the orders that arrive at the best price are gone within one second | supported (all four parts) | (a) 2.299 BX, 2.690 synthetic; (b) the synthetic ratio fell from 11.563 to 2.690, 23% of it; (c) BX moved 2.0%, from 2.253 to 2.299, so the explanation held on both sides; (d) 0.5388 of orders arriving at the best price gone within 1 s, and 0.5321 even if every still-resting order would have outlived a second. With the query at its best the array book is 1.70x cheaper for the best price and 2.30x for depth on BX, and the two array stages differ by 0.000. New finding: with the pruned query the lazy and indexed delete policies reverse between feeds (lazy/indexed depth 1.532 BX, 0.792 synthetic), because the indexed policy pays per sift step and the lazy one per stale pop: 4,200,776 stale pops on BX against 50,547 on the synthetic feed; results/2026-11-14_m4_heap_pruned.txt |
+| H57 | Queue position, which the fourth brief makes a headline task, and the cancellation rate it states: on the real feed (a) the share of orders that see any execution is non-increasing across the five queue-position buckets (0, 1 to 99, 100 to 999, 1000 to 9999, 10000 or more shares ahead on arrival); (b) an order arriving with nothing ahead of it sees an execution at least twice as often as one arriving with 10000 or more shares ahead; (c) more than half of the orders that end inside the window end without any execution, which is the brief's stated 50% cancellation rate or more; (d) knowing the queue position of every arriving order costs less than 1.35x the book alone above the decode floor | pending (seventeenth run) | |
+| H58 | The fourth brief's claim that the change in price grows as size raised to a power above one, and its worked example of a tidy ladder of depth, tested on displayed depth: on the real feed (a) the quote move needed to fill a size, per share, rises across 100, 500, 1000, 5000 and 10000 shares; (b) the average price paid per share, in basis points from the best price, also rises across those sizes; (c) at least 1 in 100 attempts to fill 10000 shares cannot be filled from the displayed side at all; (d) walking the book to fill 10000 shares costs at least 1.5x the best-price query above the decode floor | pending (seventeenth run) | |
 
 ## Notes on `titan-t2t`
 
@@ -890,6 +892,97 @@ on this development machine over a 400,000-message synthetic prefix without
 the PMU, which produced the lifetime figures used to check the output format
 and no cycle counts at all. (d) is set from nothing measured: this
 repository has never measured an order lifetime.
+
+## Pre-registered 2026-11-14, seventeenth run
+
+**H57 (queue position, and the cancellation rate the brief states).** The
+fourth source brief makes queue position one of its three headline tasks and
+states the mechanism plainly: price priority first, then time priority, so
+an order arriving earlier at the same price is filled first, and speed
+therefore buys position. It separately asserts that high frequency firms
+cancel half of the orders they send. Neither is measured anywhere in it.
+
+Queue position, for an order arriving at a price, is the number of shares
+already resting at that price on that side, since under price-time priority
+every one of them is filled before any of the arriving order. The arriving
+order joins the back of its level, so the count is the level's total after
+the add less the order's own size. `L3Book::level_shares` reads it with the
+same binary search an add already performs, and is tested against the
+reference book at the price every message touches, at prices where nothing
+rests, and at both ends of the range. The untimed pass follows every order
+from arrival to end and records which of the two ways it ended: some of it
+executed, or none of it did. A replacement is a new arrival, because ITCH
+gives it a new reference and it loses its place, which is the brief's own
+rule.
+
+Parts (a) and (b) are not surprising in direction and are not registered as
+if they were: under first in, first out some gradient is mechanical, since
+the shares ahead must execute before the arriving order can. What is not
+known is the size of it on a real venue, and whether it survives at all once
+real order flow, which cancels most of what it sends, is doing the arriving.
+The same measurement on the synthetic feed is reported beside it as a
+contrast, where order flow is random by construction, with no threshold set
+for the difference, because the generator's parameters are arbitrary and a
+threshold on them would mean nothing.
+
+Part (c) is a weaker test of the brief's claim than it looks, and is
+recorded as such before it is run. The brief's fifty percent is about high
+frequency firms; an ITCH feed names every order but no firm, so what is
+measured is the venue aggregate across all participants. A venue number
+above fifty percent is consistent with the brief's claim without
+establishing it, and a number below it would refute the claim for the venue
+as a whole but not for the firms the brief means.
+
+Part (d) is the cost of knowing. It is a ceiling rather than a working cost:
+the query runs on every arriving order, where a participant needs the
+position of its own orders only. The queue design also pays one order lookup
+per replacement, because the side of a replacement is not in the message.
+
+**H58 (what immediacy costs, and the brief's power above one).** The same
+brief states that the change in price grows as a constant times size raised
+to a power above one, and works an example in which a large order is filled
+down a tidy ladder of depth. Both are testable from displayed depth without
+any model: at every moment the book holds what is actually resting, so the
+cost of filling a size immediately is the sum over levels of price times the
+shares taken there, until the size is covered or the side runs out.
+
+Two distances from the best price are reported, because a claim about price
+impact is a claim about one of them and not both: the average price paid,
+which is what the trader pays, and the price of the last level consumed,
+which is how far the quote has to move. Both in basis points of the best
+price, so instruments of different price are comparable. `L3Book::walk`
+returns all three numbers from one traversal and is tested against a
+reference that sorts the whole side, at sizes that stop inside the first
+level, cross several levels, and exceed the depth available.
+
+This measures the instantaneous cost of consuming displayed depth. It is not
+the realised impact of a trade, which would need a model of what the price
+would otherwise have done, and this feed cannot identify that. The brief's
+claim is tested in the only form the data can answer.
+
+Parts (a) and (b) are registered in the brief's direction deliberately, and
+not because it is the direction expected. A 300,000 message synthetic smoke
+run on this development machine, without the PMU, produced both series
+falling rather than rising, which is a power below one. Registering the
+brief's direction makes the run a test of the brief rather than of a guess,
+and if the real feed falls as well then both parts are refuted and reported
+refuted.
+
+Decision rules: the two cost parts are ratios of medians across epochs with
+bootstrap 95% intervals, undefined if the denominator's interval reaches
+zero. The shares and rates in the remaining parts are exact counts over the
+whole window rather than samples, so they carry no interval; a part claiming
+a direction across five sizes or buckets is refuted by a single reversal,
+with the reversal named. Both feeds are run; the verdicts are set by the
+real feed, with the synthetic feed reported as contrast.
+
+Disclosure: the two cost thresholds, and the one in third part of H58, are
+informed by that same 300,000 message synthetic smoke run on this
+development machine, which showed the queue query near 1.2x the book, the
+10000 share walk near 1.6x the best-price query, and 3.1% of 10000 share
+fills unavailable. Nothing from either real feed has been seen: neither
+binary has run on a real file, on any machine, and neither has run with the
+PMU at all. Every other part is set from nothing measured.
 
 ## Note on the 2026-11-14 run
 
