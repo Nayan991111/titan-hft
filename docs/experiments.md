@@ -78,6 +78,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H46 | At the pace of the feed (`work=book`), the median staleness of the updates readers take differs between the designs by at most 42 ns (one counter step) at 1, 2 and 3 readers, both feeds | pending | |
 | H47 | At the pace of the feed (`work=book`, 1 reader), a snapshot reader misses at least 1% of the versions published on the real feed and under 1% on the synthetic feed | pending | |
 | H48 | Profile-guided optimisation of `titan-t2t`, stage `full`: (a) a profile from the same feed lowers cycles per message by at least 3% against the default build; (b) a profile from the other feed gives at least half of that reduction; (c) the same-feed profile changes cycles more than aligning functions and non-fall-through blocks to 64 bytes (the H17 layout) does; both feeds | pending | |
+| H49 | One exposure limit shared by several strategy threads (`titan-agg`, strategy 0's PMU cycles per order): (a) a shared total costs more than a private one without contention, faa1 above local1; (b) contention on one shared total, faa3 above faa1; (c) an exact limit (compare-and-swap loop) costs more than the two-step check under contention, cas3 above faa3; (d) per-strategy totals cost less than one shared total under contention, shard3 below faa3 | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -468,3 +469,69 @@ synthetic feed and on BX from 09:30:00: every 1,000th datagram held back,
 so 100 per run. Passes if each receiver reports exactly 100 missing
 (`udp_missing`), with no receive timeout; any excess is real loopback loss
 and is printed.
+
+## Pre-registered 2026-11-14, ninth run
+
+**H49 (one exposure limit shared by several strategies).** The aggregate
+risk item of the first source brief (Day 13: combined exposure across
+strategies). Checked on 2026-11-14 against published work, the cost of
+contended atomics between CPU cores has not been reported for Apple
+silicon in these sources: Khayet and Morrison (ASPLOS 2026) study the
+Apple M1 and M4 and leave the evaluation of TSO mode's impact on the
+performance of atomic read-modify-write and memory barrier operations to
+future work; Beischl et al. (DaMoN 2026, M4 Pro and M3 Ultra) measure CPU
+to GPU coherence, not contended atomics between CPU cores; Schweizer,
+Besta and Hoefler (PACT 2015, pp. 445-456) measure atomics on x86 only; a
+2026 Lund University master's thesis (Bratthall, carried out at Nasdaq)
+measures single-producer multi-reader queues, some built on `fetch_add`,
+on Intel Sapphire Rapids and NVIDIA Grace, without Apple silicon and
+without isolating the cost of contended atomics.
+`titan-agg`, new in this batch: S strategy threads (S = 1, 2, 3; the main
+thread is strategy 0; QoS USER_INTERACTIVE) each check the next order's
+notional against the exposure limit, reserve it, keep it open for 16
+orders and release it, so every order does one reservation and one
+release. Designs: `local` (each strategy checks only its own total: the
+floor); `faa` (one shared total, check with a load, reserve with
+`fetch_add`: two steps, so concurrent reservations can pass the limit
+together); `cas` (one shared total, check and reserve in one
+`compare_exchange_weak` loop: the limit is exact); `shard` (one total per
+strategy in its own 128-byte line; the check sums all S totals, the
+strategy updates its own with a load and a store; the sum of S separate
+loads is not a snapshot, so, as with `faa`, concurrent reservations can
+pass the limit together). Releases use `fetch_sub` (faa, cas) or the
+strategy's own total. All accesses `Relaxed`. Each strategy's open orders
+sit in their own 128-byte lines. Notionals come from a fixed
+pseudo-random sequence (the cost of these instructions does not depend on
+the values) and the limit never binds, so every order is accepted in
+every design; the harness aborts if any order is rejected or if any total
+does not return to zero after every strategy releases its open orders
+(mutation tests on the development machine: a wrong release amount and a
+binding limit both abort). Strategy 0 runs 5,000,000 orders, measured with
+its own PMU cycles; strategies 1 to S-1 run the same loop from before
+strategy 0 starts until it is done. They can still be descheduled or run
+on an efficiency core (macOS offers no thread pinning), so each one's
+order count is reported, and an epoch in which any of them completed
+fewer than 50,000 orders (ops/100) is marked `starved=1` and excluded from
+the verdicts; the number excluded is reported. `invol_switches` counts
+the whole process. Retries: `cas_retries_s0` is strategy 0's failed
+compare-and-swap attempts per measured order; `cas_retries_per_order` is
+all strategies' failed attempts over the whole run divided by all their
+orders. Configs per epoch, order rotated: local1, faa1, cas1, shard1,
+local2, faa2, cas2, shard2, local3, faa3, cas3, shard3; 10 epochs in one
+process (preliminary, as for H42 to H48). Decision rule for each part:
+two-sided Mann-Whitney U on the per-epoch `msg_cycles` of strategy 0
+(10 against 10, fewer if epochs are excluded), p < 0.05 with the medians
+in the stated direction; each part is supported or refuted on its own.
+Not evaluated without the PMU. Reported, not tested: shard3 against
+shard1 (what the other strategies' writes cost the check), `shard` and
+`local` differ in their instruction count as well as their sharing.
+`scripts/fanout_census.sh` also disassembles the eight `titan-agg` loops
+and counts LSE atomics (`ldadd`, `stadd`, `swp` and their ordering
+variants), `cas`, exclusive pairs (`ldxr`, `stxr`) and barriers per loop,
+so the instructions behind each design are reported, not assumed.
+Since the eighth-run text, each measured loop of both binaries is one
+named function per design (`write_pass_snap`, `measured_faa` and so on,
+each inlining the same generic loop as before), so the census labels name
+the design under either symbol-mangling scheme; the loop source is
+unchanged (the generated code is not guaranteed byte-identical to the
+earlier build, which was never measured).
