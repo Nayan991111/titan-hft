@@ -1,0 +1,168 @@
+# Summaries of the 2026-11-14 best-effort FIX and consolidated book run
+# (statistics only; raw epoch lines stay on the measurement machine; no
+# NASDAQ data is reproduced).
+#
+# Code:      commit bab372d, pushed by this run's script before measuring
+#            (GitHub confirmed at bab372d; 68 tests passed on macOS).
+# Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt
+# Toolchain: rustc 1.92.0 (ded5c06cf 2025-12-08), release, target-cpu=native
+# Power:     wall power throughout (AC attached, 85%); Low Power Mode off;
+#            no thermal limit reported at any checkpoint; 23 GB free, 73% of
+#            memory free before the run.
+# Data:      the public NASDAQ BX (837,472,908 bytes) and PSX (918,015,732
+#            bytes) TotalView-ITCH 5.0 samples of 2019-07-30, and the
+#            synthetic feed. The two venues list 8,850 instruments each and
+#            share 8,849 symbols.
+# Run:       18:53 to 18:58 local time, PMU on, order rotated, 10 epochs.
+#
+# Pre-registration: docs/experiments.md, "Pre-registered 2026-11-14,
+# twelfth run" (H52) and "thirteenth run" (H53).
+
+## configuration and market statistics (from the run)
+wire_config feed=synthetic_default messages_read=1822767 updates=2000000 deletes=69016 instruments=501 epochs=10 pmu=true bytes_bin=32.00 bytes_fix=129.45 bytes_json=98.13
+wire_config feed=20190730_BX_ITCH_50 messages_read=2334841 updates=2000000 deletes=744635 instruments=8850 epochs=10 pmu=true bytes_bin=32.00 bytes_fix=124.90 bytes_json=95.95
+cross_config a=20190730_BX_ITCH_50 b=20190730_PSX_ITCH_50 bytes_a=837472908 bytes_b=918015732 locates_a=8850 locates_b=8850 shared=8849 limit=4000000 every=1000 from=34200000000000 to=57600000000000 epochs=10 pmu=true
+cross_market msgs=59202007 in_window=58016228 span_s=57522.0 changes=17276104 locked_episodes=360 crossed_episodes=33 locked_s=6156.237 crossed_s=602.116 max_locked_ms=1207974.914 max_crossed_ms=212828.266 crossed_depth_mean_units=430.30 instruments_crossed=17 open_at_end=0
+cross_stale every=1000 rebuilds=59202 stale_changes=10085386 stale_mean_us=282782.915 max_stale_ms=2971070.097 invisible_crossed=15 invisible_share=0.4545
+cross_setup seconds=3.0
+
+## verdicts under the pre-registered rules
+
+H52 (best-effort FIX decode), supported on both feeds, all three parts.
+  (a) fix_simd below fix: BX 381.20 against 524.08 cycles, synthetic 383.27
+      against 520.40, both p = 0.0000 (exact Mann-Whitney, n = 10 a side).
+      Supported.
+  (b) X(fix_simd) / X(fix) between 0.5 and 0.9: BX 0.723 [0.721, 0.726],
+      synthetic 0.732 [0.729, 0.736]. Supported. The pre-registered interval
+      was centred on this repository's own 0.647 for a FIX 4.2
+      NewOrderSingle; the market-data message lands a little above that.
+  (c) X(fix_simd) / X(bin) at least 10: BX 40.34 [40.20, 40.50], synthetic
+      32.60 [32.43, 32.73]. Supported.
+  What the NEON scan removes: instructions per update fall from 3,026.7 to
+  2,517.2 on BX (16.8%) while cycles fall 27.3%, so instructions per cycle
+  rise from 5.77 to 6.61; L1D load misses per update fall from 4.8 to 3.8.
+  Correction to the record this makes necessary: the figure to quote for a
+  validated FIX 4.4 decode is now 372.8 cycles per update above the FIX
+  floor on BX, not the 514.1 of results/2026-11-14_m4_wire_arb.txt, and the
+  ratio against the binary record is 40.3, not 55.5. The earlier number was
+  measured against a decoder that found delimiters and summed the checksum
+  one byte at a time; that file carries the qualification, and this is the
+  measurement it pointed to. H50's own verdicts are unchanged: every part
+  was supported with margin, and it is supported again here.
+
+H53 (consolidated book across BX and PSX): (a), (b) and (c) supported,
+(d) refuted.
+  (a) The incremental consolidated top costs at most 0.5x the two venue
+      books alone: X(incr) = 23.45 [22.65, 24.76] cycles per merged message
+      against a floor median of 153.33, so 0.153. Supported.
+  (b) X(rebuild) / X(incr) at least 2 at a rebuild every 1,000 messages:
+      110.27 / 23.45 = 4.70 [4.47, 4.85]. Supported. The cost is where the
+      counting said it would be: 782.4 instructions per message against
+      253.4, and 37.6 L1D load misses against 7.1, from reading two venues'
+      tops for all 8,849 shared instruments.
+  (c) The two venues' displayed books lock and cross during continuous
+      trading: 360 locked episodes and 33 crossed episodes inside 09:30:00
+      to 16:00:00, over 17 instruments. Supported.
+  (d) At least half of the crossed episodes invisible to the periodic
+      design: 15 of 33, a share of 0.4545. Refuted, narrowly and in the
+      predicted direction.
+
+## the crossed and locked episodes need a second measurement before use
+
+The episodes are long: a mean of 18.2 seconds crossed and 17.1 seconds
+locked, with a longest lock of 20.1 minutes and a longest cross of 3.5
+minutes, at a mean of 430 price units (about 4.3 cents) crossed. Displayed
+protected quotations on two exchanges do not lock for twenty minutes under
+Rule 610(d), which requires an exchange to avoid displaying a quotation that
+locks or crosses a protected quotation of another. The likely reconciliation
+is that TotalView-ITCH carries every displayed order including odd lots, and
+an odd lot is not a protected quotation, so an odd-lot order may sit inside
+another venue's round-lot quote for as long as it rests there.
+
+Correction to the thirteenth-run pre-registration: its limitation paragraph
+describes these feeds as "without odd lots, hidden liquidity or the SIP's
+processing". That is wrong about odd lots and right about the rest.
+TotalView-ITCH includes odd-lot orders; it is the official NBBO that was
+computed from round lots. The pre-registration text is left as written, as
+every pre-registration here is, and this is its correction.
+
+H54 (fourteenth run) therefore measures the same day again over round-lot
+sized levels, and until that is run the numbers above are a statement about
+every displayed order, not about protected quotations, and no claim is made
+here that any of these episodes was tradable.
+
+Two further limits of this run, both fixed for the next one:
+  * The staleness figures below cover the whole file, including the quiet
+    hours before and after continuous trading, where a thousand messages can
+    span tens of minutes. That is why the mean is 282.8 ms and the longest
+    49.5 minutes. From the next run the staleness accounting is restricted
+    to the window, as the episode accounting already was.
+  * The timed passes covered the first 4,000,000 merged messages, which are
+    the quiet open rather than a representative day. From the next run they
+    cover the whole file, which is 59,202,007 merged messages.
+
+## analysis output (scripts/analyze.py over the run's raw lines)
+
+
+## wire: msg_cycles, median over epochs [bootstrap 95% CI]
+stage=floor_bin feed=synthetic_default                         n=10       3.11 [    3.10,     3.12] ns_per_update=0.772 msg_instructions=22 msg_l1d_miss=0.326 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.02
+stage=floor_bin feed=20190730_BX_ITCH_50                       n=10       3.11 [    3.11,     3.11] ns_per_update=0.774 msg_instructions=22 msg_l1d_miss=0.325 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.02
+stage=floor_json feed=20190730_BX_ITCH_50                      n=10       6.90 [    6.61,     7.05] ns_per_update=1.7 msg_instructions=22 msg_l1d_miss=1.93 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.08
+stage=floor_json feed=synthetic_default                        n=10       7.08 [    6.82,     7.22] ns_per_update=1.74 msg_instructions=22 msg_l1d_miss=2.03 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.08
+stage=floor_fix feed=20190730_BX_ITCH_50                       n=10       8.36 [    8.28,     8.42] ns_per_update=1.9 msg_instructions=22 msg_l1d_miss=3 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.39
+stage=floor_fix feed=synthetic_default                         n=10       8.71 [    8.65,     8.72] ns_per_update=1.98 msg_instructions=22 msg_l1d_miss=3.09 msg_br_mispred=0 allocations_per_update=0 core_ghz=4.37
+stage=bin feed=20190730_BX_ITCH_50                             n=10      12.35 [   12.33,    12.38] ns_per_update=2.97 msg_instructions=32.6 msg_l1d_miss=0.566 msg_br_mispred=0.383 allocations_per_update=0 core_ghz=4.17
+stage=bin feed=synthetic_default                               n=10      14.60 [   14.54,    14.64] ns_per_update=3.47 msg_instructions=32.6 msg_l1d_miss=0.57 msg_br_mispred=0.485 allocations_per_update=0 core_ghz=4.2
+stage=json_fixed feed=20190730_BX_ITCH_50                      n=10     158.86 [  158.59,   160.22] ns_per_update=37.1 msg_instructions=840 msg_l1d_miss=2.82 msg_br_mispred=1.77 allocations_per_update=0 core_ghz=4.28
+stage=json_fixed feed=synthetic_default                        n=10     162.79 [  162.12,   163.41] ns_per_update=38.1 msg_instructions=874 msg_l1d_miss=2.64 msg_br_mispred=1.64 allocations_per_update=0 core_ghz=4.27
+stage=fix_simd feed=20190730_BX_ITCH_50                        n=10     381.20 [  380.58,   382.35] ns_per_update=92.2 msg_instructions=2.52e+03 msg_l1d_miss=3.84 msg_br_mispred=2.19 allocations_per_update=0 core_ghz=4.15
+stage=fix_simd feed=synthetic_default                          n=10     383.27 [  382.43,   384.20] ns_per_update=92.9 msg_instructions=2.6e+03 msg_l1d_miss=3.53 msg_br_mispred=1.98 allocations_per_update=0 core_ghz=4.13
+stage=fix feed=synthetic_default                               n=10     520.40 [  517.97,   522.31] ns_per_update=122 msg_instructions=3.14e+03 msg_l1d_miss=7.37 msg_br_mispred=2.05 allocations_per_update=0 core_ghz=4.24
+stage=fix feed=20190730_BX_ITCH_50                             n=10     524.08 [  522.55,   525.56] ns_per_update=123 msg_instructions=3.03e+03 msg_l1d_miss=4.82 msg_br_mispred=2.66 allocations_per_update=0 core_ghz=4.26
+stage=json_serde feed=synthetic_default                        n=10     724.60 [  721.82,   726.76] ns_per_update=175 msg_instructions=3.69e+03 msg_l1d_miss=2.61 msg_br_mispred=2.98 allocations_per_update=1 core_ghz=4.13
+stage=json_serde feed=20190730_BX_ITCH_50                      n=10     733.58 [  732.10,   736.01] ns_per_update=178 msg_instructions=3.64e+03 msg_l1d_miss=3.57 msg_br_mispred=3.68 allocations_per_update=1 core_ghz=4.12
+
+## cross: msg_cycles, median over epochs [bootstrap 95% CI]
+design=floor                                                   n=10     153.33 [  152.58,   154.00] ns_per_msg=35.5 msg_instructions=209 msg_l1d_miss=4.99 msg_br_mispred=1.71 core_ghz=4.36
+design=incr                                                    n=10     176.78 [  176.20,   177.78] ns_per_msg=40.8 msg_instructions=253 msg_l1d_miss=7.12 msg_br_mispred=1.93 core_ghz=4.33
+design=rebuild                                                 n=10     263.60 [  263.19,   264.63] ns_per_msg=63.4 msg_instructions=782 msg_l1d_miss=37.4 msg_br_mispred=1.89 core_ghz=4.15
+
+## contrasts: A vs B on the primary metric (lower is better)
+cross incr vs floor, keeping a consolidated top                A=   176.78 B=   153.33 A/B= 1.153 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+cross rebuild vs incr, re-reading every venue                  A=   263.60 B=   176.78 A/B= 1.491 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire fix vs bin, decode (20190730_BX_ITCH_50)                 A=   524.08 B=    12.35 A/B=42.424 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire json_serde vs json_fixed, JSON decode (20190730_BX_ITCH_50) A=   733.58 B=   158.86 A/B= 4.618 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire fix_simd vs fix, NEON scan and checksum (20190730_BX_ITCH_50) A=   381.20 B=   524.08 A/B= 0.727 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+wire json_fixed vs fix (20190730_BX_ITCH_50)                  A=   158.86 B=   524.08 A/B= 0.303 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+wire fix vs bin, decode (synthetic_default)                   A=   520.40 B=    14.60 A/B=35.647 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire json_serde vs json_fixed, JSON decode (synthetic_default) A=   724.60 B=   162.79 A/B= 4.451 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+wire fix_simd vs fix, NEON scan and checksum (synthetic_default) A=   383.27 B=   520.40 A/B= 0.736 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+wire json_fixed vs fix (synthetic_default)                    A=   162.79 B=   520.40 A/B= 0.313 nA=10 nB=10 U=0.0 p=0.0000 (exact) cliffs_delta=-1.00
+
+## wire: decode cycles per update above the floor of its format, X [bootstrap 95% CI]
+wire 20190730_BX_ITCH_50: X(bin) = 9.24 [9.22, 9.27]
+wire 20190730_BX_ITCH_50: X(fix) = 515.72 [514.17, 517.20]
+wire 20190730_BX_ITCH_50: X(fix_simd) = 372.83 [372.32, 374.00]
+wire 20190730_BX_ITCH_50: X(json_fixed) = 151.96 [151.61, 153.39]
+wire 20190730_BX_ITCH_50: X(json_serde) = 726.67 [725.14, 729.12]
+wire 20190730_BX_ITCH_50: X(fix) / X(bin) = 55.793 [55.557, 56.039]
+wire 20190730_BX_ITCH_50: X(json_serde) / X(json_fixed) = 4.782 [4.736, 4.803]
+wire 20190730_BX_ITCH_50: X(json_fixed) / X(fix) = 0.295 [0.293, 0.298]
+wire 20190730_BX_ITCH_50: X(fix_simd) / X(fix) = 0.723 [0.721, 0.726]
+wire 20190730_BX_ITCH_50: X(fix_simd) / X(bin) = 40.335 [40.203, 40.497]
+wire synthetic_default: X(bin) = 11.49 [11.44, 11.54]
+wire synthetic_default: X(fix) = 511.69 [509.25, 513.64]
+wire synthetic_default: X(fix_simd) = 374.56 [373.77, 375.49]
+wire synthetic_default: X(json_fixed) = 155.71 [155.04, 156.35]
+wire synthetic_default: X(json_serde) = 717.52 [714.65, 719.75]
+wire synthetic_default: X(fix) / X(bin) = 44.528 [44.264, 44.742]
+wire synthetic_default: X(json_serde) / X(json_fixed) = 4.608 [4.583, 4.634]
+wire synthetic_default: X(json_fixed) / X(fix) = 0.304 [0.303, 0.306]
+wire synthetic_default: X(fix_simd) / X(fix) = 0.732 [0.729, 0.736]
+wire synthetic_default: X(fix_simd) / X(bin) = 32.595 [32.426, 32.731]
+
+## cross: cycles per merged message above the venue books alone, X [bootstrap 95% CI]
+cross: X(incr) = 23.45 [22.65, 24.76]
+cross: X(rebuild) = 110.27 [109.43, 111.48]
+cross: incr / floor on the totals = 1.153
+cross: X(rebuild) / X(incr) = 4.702 [4.472, 4.846]
