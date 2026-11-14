@@ -86,6 +86,8 @@ pub struct HeapBook {
     heaps: Vec<[Vec<Entry>; 2]>,
     policy: Policy,
     seq: u64,
+    /// Reusable traversal stack, so a depth query allocates nothing.
+    scan: Vec<usize>,
     /// Entries skipped at the top because their order is gone (lazy only).
     pub stale_popped: u64,
     /// Orders named by a message that the book does not hold.
@@ -109,6 +111,7 @@ impl HeapBook {
             heaps,
             policy,
             seq: 0,
+            scan: Vec::with_capacity(64),
             stale_popped: 0,
             unknown: 0,
         }
@@ -337,8 +340,16 @@ impl HeapBook {
         Some((if side == Side::Buy { e.key } else { u32::MAX - e.key }, shares))
     }
 
-    /// Best price and every live share resting at it, which a heap of orders
-    /// can only find by visiting all of them.
+    /// Best price and every live share resting at it.
+    ///
+    /// The heap property makes keys non-increasing from the root down, so
+    /// every entry holding the best key is reachable from the root through
+    /// entries that also hold it. A traversal that stops descending at the
+    /// first smaller key therefore visits exactly those entries and at most
+    /// their immediate children, which is the number of orders at the best
+    /// price rather than the size of the heap. This is the best a heap of
+    /// orders can do; keeping a running total per price would make it the
+    /// array book.
     #[inline(always)]
     pub fn best_depth(&mut self, locate: u16, side: Side) -> Top {
         let s = usize::from(side != Side::Buy);
@@ -349,11 +360,25 @@ impl HeapBook {
         let key = self.heaps[locate as usize][s].first()?.key;
         let mut shares = 0u64;
         let h = std::mem::take(&mut self.heaps[locate as usize][s]);
-        for e in h.iter().filter(|e| e.key == key) {
-            if let Some(i) = self.find(e.order) {
+        let mut stack = std::mem::take(&mut self.scan);
+        stack.clear();
+        stack.push(0);
+        while let Some(p) = stack.pop() {
+            if h[p].key != key {
+                continue;
+            }
+            if let Some(i) = self.find(h[p].order) {
                 shares += self.slot(i).shares as u64;
             }
+            let (l, r) = (2 * p + 1, 2 * p + 2);
+            if l < h.len() {
+                stack.push(l);
+            }
+            if r < h.len() {
+                stack.push(r);
+            }
         }
+        self.scan = stack;
         self.heaps[locate as usize][s] = h;
         Some((if side == Side::Buy { key } else { u32::MAX - key }, shares))
     }
@@ -478,6 +503,34 @@ mod tests {
     #[test]
     fn indexed_policy_agrees_with_the_array_book() {
         agrees_with_the_array_book(Policy::Indexed);
+    }
+
+    /// The pruned depth traversal must find every order at the best price,
+    /// whether they are all at it or only the root is.
+    #[test]
+    fn depth_finds_every_order_at_the_best_price() {
+        for policy in [Policy::Lazy, Policy::Indexed] {
+            // All at one price: the traversal has to walk the whole heap.
+            let mut b = HeapBook::new(12, 2, policy);
+            for order in 1..=500u64 {
+                b.apply(&Msg::Add { locate: 1, ts: order, order, side: Side::Buy, shares: 3, price: 700 });
+            }
+            assert_eq!(b.best_depth(1, Side::Buy), Some((700, 1500)), "{policy:?} all equal");
+            // One order above a crowd: the traversal must stop at the root.
+            let mut b = HeapBook::new(12, 2, policy);
+            for order in 1..=500u64 {
+                b.apply(&Msg::Add { locate: 1, ts: order, order, side: Side::Buy, shares: 3, price: 700 });
+            }
+            b.apply(&Msg::Add { locate: 1, ts: 999, order: 9_999, side: Side::Buy, shares: 7, price: 701 });
+            assert_eq!(b.best_depth(1, Side::Buy), Some((701, 7)), "{policy:?} one above");
+            // Asks invert the key, so the same must hold on the other side.
+            let mut b = HeapBook::new(12, 2, policy);
+            for order in 1..=300u64 {
+                b.apply(&Msg::Add { locate: 1, ts: order, order, side: Side::Sell, shares: 5, price: 900 });
+            }
+            b.apply(&Msg::Add { locate: 1, ts: 999, order: 9_999, side: Side::Sell, shares: 11, price: 899 });
+            assert_eq!(b.best_depth(1, Side::Sell), Some((899, 11)), "{policy:?} ask side");
+        }
     }
 
     /// Price-time priority: at one price the earlier order is on top.

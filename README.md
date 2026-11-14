@@ -73,6 +73,7 @@ run.
 | Inbound wire format, per price-level update, above the floor of each format | binary 9.3 cycles; a JSON scanner specialised to the documented key order 156; validated FIX 4.4 373 with a NEON delimiter search and checksum, 40x the binary record (514, or 55x, when both are found one byte at a time); `serde_json` 714 (4.6x the specialised scanner, and one allocation per update) | [`results/2026-11-14_m4_wire_arb.txt`](results/2026-11-14_m4_wire_arb.txt) |
 | A/B feed lines and gap recovery over MoldUDP64, per delivered message above the floor | one line 7.5 cycles; a second lossless line 10.7 (1.43x, 1.67x on the synthetic feed); with 3% loss on each line, recovery through the other line and the re-request server costs no more, since lost packets never arrive. Delivery stayed exact in every epoch (one checksum across all conditions), 47 requests and 2,351 resent messages on the real feed | same |
 | One book consolidated across two exchanges (BX and PSX, 2019-07-30, 8,849 shared symbols, 59.2 million messages merged by timestamp) | keeping the consolidated top as messages arrive costs 23.5 cycles per message on top of the two venue books (15% of them); re-reading both venues for every instrument every 1,000 messages costs 110, a 4.7x difference that is 3.1x the instructions and 5.3x the L1D misses. Counting every displayed order the two venues locked 360 times and crossed 33 times inside continuous trading; counting only levels of at least 100 shares, 82 and 2, with the longest cross falling from 212.8 s to 0.110 ms. The apparent cross-venue arbitrage is almost entirely odd lots, which are not protected quotations. A view rebuilt every 1,000 messages missed both round-lot crossings; the incremental view, 5.3x cheaper per message, saw both | [`results/2026-11-14_m4_fix_cross.txt`](results/2026-11-14_m4_fix_cross.txt) |
+| The order book as a heap of orders, per message above decoding alone (real BX feed, 10 million messages) | sorted price levels 98.6 cycles for the best price and 97.7 for the best price with its depth, the same operation; a binary heap of orders with an index 163.0 and 220.2, and with lazy deletion 196.8 and 583.0. L1D load misses per message 6.45 against 17.3 and 158: a heap touches a line per order where an array of levels touches one per level | [`results/2026-11-14_m4_heap.txt`](results/2026-11-14_m4_heap.txt) |
 
 <p align="center">
   <img src="docs/figures/t2t-stages.svg" alt="Grouped bar chart of CPU cycles per message for the stages ring, decode, book, direct and full, on a synthetic feed and on real NASDAQ BX data." width="100%">
@@ -168,7 +169,8 @@ reader's light or dark theme.
 - [x] Best-effort FIX decode with a NEON delimiter search and checksum (H52, measured on the M4)
 - [x] Consolidated book across NASDAQ BX and PSX, locked and crossed markets (H53, measured on the M4)
 - [x] The same day over round-lot-sized levels, and the cost over a whole day (H54, measured on the M4)
-- [ ] A binary heap of orders against sorted price levels, best price and depth (H55, pre-registered)
+- [x] A binary heap of orders against sorted price levels, best price and depth (H55, measured on the M4)
+- [ ] The heap's depth query pruned, and how long real orders rest at the best price (H56, pre-registered)
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
@@ -183,7 +185,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 73 tests (72 on macOS), including hostile input
+cargo test --release -- --test-threads=1      # 74 tests (73 on macOS), including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 
