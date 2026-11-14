@@ -66,6 +66,10 @@ run.
 | Order-flow toxicity: VPIN update per signed execution, exact signs from the L3 book | 22 cycles (real, whole day, 681,693 executions) | same |
 | Trade classification against exact ITCH signs (replication) | bulk volume classification misclassifies 36.7% of volume per 1-minute bar, the tick rule 28.3%; BVC worse in 1,153 of 1,440 instruments | same |
 | Order encoding at the gateway, per order | OUCH 4.2 Enter Order 28.7 cycles (7.1 ns); FIX 4.2 NewOrderSingle 125 cycles (30.8 ns), 4.3x, on 1.94 million real orders | [`results/2026-11-12_m4_ac2.txt`](results/2026-11-12_m4_ac2.txt) |
+| One book shared with 3 strategy threads, updates published back to back: writer cost per update above the floor | seqlock snapshot per instrument 101 cycles vs a ring copy per reader 251 (real), 85 vs 277 (synthetic); copies queue, so their p99 staleness reaches 64 to 135 us against 84 ns | [`results/2026-11-14_m4.txt`](results/2026-11-14_m4.txt) |
+| Same, at the pace of the real feed (2.9% of messages change a subscribed top of book), 3 readers | snapshot 114.8 vs copies 116.0 cycles per feed message (p = 0.002); median staleness 42 vs 125 ns; snapshot readers miss 0.34% of versions (0.2% with one reader) | same |
+| One exposure limit shared by 3 strategy threads, per order | one shared atomic total 218 cycles (15x the uncontended 14.3); exact compare-and-swap 221, no difference; a total per strategy 19.7 (11x cheaper) | same |
+| Profile-guided optimisation of the trading path | no gain near the predicted 3%: the full path moved by at most 1.1%, significant in one of four build and feed pairs (0.7% lower); it moves cost between stages (decode 8 to 9% slower on synthetic, book about 2% faster on real) | same |
 
 <p align="center">
   <img src="docs/figures/t2t-stages.svg" alt="Grouped bar chart of CPU cycles per message for the stages ring, decode, book, direct and full, on a synthetic feed and on real NASDAQ BX data." width="100%">
@@ -149,13 +153,13 @@ reader's light or dark theme.
 - [x] Order encoding at the gateway: FIX 4.2 NewOrderSingle versus OUCH 4.2 Enter Order (H31)
 - [x] Mechanism of the low-rate tail, first cut: not the hand-off or wake-up (H33); not visible in mean L1D or branch counts (H32)
 - [x] Service time versus delay to pop, and keep-warm interventions on the book and on memory (H34 to H36): loads to memory while idle remove most of it; memory versus core activity not yet separated
-- [x] Network receive path: MoldUDP64 over UDP loopback, blocking vs polling receive (H37); sequence-gap detection validated on the development machine only, M4 check pending
+- [x] Network receive path: MoldUDP64 over UDP loopback, blocking vs polling receive (H37); sequence-gap detection validated on the M4 (100 of 100 held-back datagrams found on each feed)
 - [x] Inbound FIX parsing: full validation vs selective vs NEON delimiter scan (H38)
 - [x] Audit trail cost per order: binary record vs formatted text (H39)
 - [x] Order-flow toxicity: VPIN update cost per execution with exact ITCH trade signs (H40); trade classification accuracy, replication (H41)
-- [ ] One writer, several strategy readers of book state: seqlock vs per-reader copies (H42 to H47, `titan-fanout`, pre-registered)
-- [ ] Profile-guided optimisation of the trading path against a pure layout change (H48, pre-registered)
-- [ ] One exposure limit shared by several strategies: atomic add vs compare-and-swap vs per-strategy totals (H49, pre-registered)
+- [x] One writer, several strategy readers of book state: seqlock vs per-reader copies (H42 to H47, `titan-fanout`)
+- [x] Profile-guided optimisation of the trading path against a pure layout change (H48)
+- [x] One exposure limit shared by several strategies: atomic add vs compare-and-swap vs per-strategy totals (H49)
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
