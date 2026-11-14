@@ -197,8 +197,10 @@ fn publish<const D: u8>(q: Quote, tx: &mut [Tx], slots: &[Slot], w: &mut Waits) 
     }
 }
 
-/// The timed writer loop of `work=book` for design `D`.
-#[inline(never)]
+/// The timed writer loop of `work=book` for design `D`. Inlined into one
+/// named function per design (below), so every loop has a readable symbol
+/// under either name-mangling scheme.
+#[inline(always)]
 fn write_pass<const D: u8>(c: &Ctx, book: &mut L3Book, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
     let mut w = Waits::default();
     for &d in c.descs {
@@ -229,7 +231,7 @@ fn write_pass<const D: u8>(c: &Ctx, book: &mut L3Book, p: &mut Published, tx: &m
 
 /// The timed writer loop of `work=replay`: no feed and no book, only the
 /// recorded updates published back to back.
-#[inline(never)]
+#[inline(always)]
 fn replay_pass<const D: u8>(c: &Ctx, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
     let mut w = Waits::default();
     for _ in 0..c.reps {
@@ -243,6 +245,31 @@ fn replay_pass<const D: u8>(c: &Ctx, p: &mut Published, tx: &mut [Tx], slots: &[
         }
     }
     w
+}
+
+#[inline(never)]
+fn write_pass_none(c: &Ctx, book: &mut L3Book, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
+    write_pass::<NONE>(c, book, p, tx, slots)
+}
+#[inline(never)]
+fn write_pass_copy(c: &Ctx, book: &mut L3Book, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
+    write_pass::<COPY>(c, book, p, tx, slots)
+}
+#[inline(never)]
+fn write_pass_snap(c: &Ctx, book: &mut L3Book, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
+    write_pass::<SNAP>(c, book, p, tx, slots)
+}
+#[inline(never)]
+fn replay_pass_none(c: &Ctx, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
+    replay_pass::<NONE>(c, p, tx, slots)
+}
+#[inline(never)]
+fn replay_pass_copy(c: &Ctx, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
+    replay_pass::<COPY>(c, p, tx, slots)
+}
+#[inline(never)]
+fn replay_pass_snap(c: &Ctx, p: &mut Published, tx: &mut [Tx], slots: &[Slot]) -> Waits {
+    replay_pass::<SNAP>(c, p, tx, slots)
 }
 
 /// Untimed: every update the writer publishes in `work=book`, in order.
@@ -395,12 +422,12 @@ fn run(c: &Ctx, design: u8, readers: usize, book: &mut L3Book, check: Option<&Ta
         let p0 = c.pmu.map(|s| s.read());
         let t0 = clock::counter();
         out.waits = match (design, c.recs.is_empty()) {
-            (NONE, true) => write_pass::<NONE>(c, book, pp, &mut txs, &slots),
-            (COPY, true) => write_pass::<COPY>(c, book, pp, &mut txs, &slots),
-            (_, true) => write_pass::<SNAP>(c, book, pp, &mut txs, &slots),
-            (NONE, false) => replay_pass::<NONE>(c, pp, &mut txs, &slots),
-            (COPY, false) => replay_pass::<COPY>(c, pp, &mut txs, &slots),
-            (_, false) => replay_pass::<SNAP>(c, pp, &mut txs, &slots),
+            (NONE, true) => write_pass_none(c, book, pp, &mut txs, &slots),
+            (COPY, true) => write_pass_copy(c, book, pp, &mut txs, &slots),
+            (_, true) => write_pass_snap(c, book, pp, &mut txs, &slots),
+            (NONE, false) => replay_pass_none(c, pp, &mut txs, &slots),
+            (COPY, false) => replay_pass_copy(c, pp, &mut txs, &slots),
+            (_, false) => replay_pass_snap(c, pp, &mut txs, &slots),
         };
         let t1 = clock::counter();
         if let (Some(s), Some(a)) = (c.pmu, p0) {
