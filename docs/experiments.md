@@ -79,6 +79,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H47 | At the pace of the feed (`work=book`, 1 reader), a snapshot reader misses at least 1% of the versions published on the real feed and under 1% on the synthetic feed | partly supported | work=book, 1 reader, median conflated_frac: BX 0.00205 (range 0.00172 to 0.00290 over 10 epochs), below the predicted 1%; synthetic 0 (8 of 10 epochs 0, 2 at 0.00092), under 1% as predicted |
 | H48 | Profile-guided optimisation of `titan-t2t`, stage `full`: (a) a profile from the same feed lowers cycles per message by at least 3% against the default build; (b) a profile from the other feed gives at least half of that reduction; (c) the same-feed profile changes cycles more than aligning functions and non-fall-through blocks to 64 bytes (the H17 layout) does; both feeds | (a) refuted; (b) not evaluated; (c) supported by the rule as written, not interpreted | Stage full, medians of msg_cycles over 10 epochs. Same-feed profile against base: synthetic 188.84 vs 190.87 (gain 1.06%, p = 0.35), BX 134.66 vs 134.31 (gain -0.26%, p = 0.80); both below the 3% threshold, so (b) is not evaluated. (c): |same-feed - base| 2.03 vs |align64 - base| 1.45 cycles synthetic, 0.35 vs 0.04 BX, but no one of these four differences is significant. Exploratory: both profiles slowed stage decode on synthetic by 8 to 9% (p = 0.0002) and sped up stage book on BX by 1.7% and 2.1% (p < 0.0001); on BX, stage decode was 1.0% slower with the synthetic profile (p = 0.0002) and 0.5% faster with the BX profile (p = 0.025); stage full changed significantly in one of the four build and feed pairs only: the synthetic profile on BX, 133.34 vs 134.31 cycles (0.7% lower, p = 0.009). Training printed the LLVM warning that value-profile counters ran out (20 times); branch and block counts are not affected |
 | H49 | One exposure limit shared by several strategy threads (`titan-agg`, strategy 0's PMU cycles per order): (a) a shared total costs more than a private one without contention, faa1 above local1; (b) contention on one shared total, faa3 above faa1; (c) an exact limit (compare-and-swap loop) costs more than the two-step check under contention, cas3 above faa3; (d) per-strategy totals cost less than one shared total under contention, shard3 below faa3 | (a) supported; (b) supported; (c) refuted; (d) supported | Strategy 0's PMU cycles per order, medians over 10 epochs, no epoch starved. (a) faa1 14.28 vs local1 8.21 (1.74x, p = 1e-5). (b) faa3 217.88 vs faa1 14.28 (15.3x, p = 1e-5). (c) cas3 221.23 vs faa3 217.88, p = 1.0: no difference; strategy 0's failed compare-and-swap attempts 0.535 per order (`cas_retries_s0`; 0.58 over all strategies). (d) shard3 19.72 vs faa3 217.88 (0.09x, p = 1e-5). Census: faa compiles to `ldadd`, cas to one LSE `cas`, no exclusive pairs, no barriers. Exploratory, not tested: with 2 strategies cas cost about half of faa (51.55 vs 103.38 cycles) |
+| H50 | Inbound wire format, per price-level update (`titan-wire`, PMU cycles): (a) above the floor of each format, the validated FIX 4.4 decode costs at least 5x the fixed binary decode; (b) above the JSON floor, `serde_json` costs at least 2x a scanner specialised to the key order of the documented example; (c) in total cycles, that specialised JSON scanner costs less than the validated FIX decode; both feeds; thresholds set after development-machine runs (see the tenth run) | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -535,6 +536,56 @@ each inlining the same generic loop as before), so the census labels name
 the design under either symbol-mangling scheme; the loop source is
 unchanged (the generated code is not guaranteed byte-identical to the
 earlier build, which was never measured).
+
+## Pre-registered 2026-11-14, tenth run
+
+**H50 (inbound wire format).** The market-data normalisation item of the
+second source brief (Part 2: a unified layer normalising order book data
+from exchanges with different formats; lines 9, 319 and 379 of that brief).
+`titan-wire`, new in this batch. Updates: the feed is replayed through the
+reference book and every change of a price level's total quantity becomes
+one update (an add, execution, cancel or delete touches one level, a replace
+up to two); the first 2,000,000 updates of each feed are used (BX 2019-07-30
+from its first message; the synthetic feed of 5,000,000 messages, 500
+instruments). Each update is encoded three ways (`titan_itch::wire`): a
+fixed 32-byte big-endian binary record; a FIX 4.4 MarketDataIncrementalRefresh
+(35=X) with the required standard header (8, 9, 35, 49 SenderCompID,
+56 TargetCompID, 34 MsgSeqNum, 52 SendingTime to the millisecond) and one
+entry (268=1, then 279, 269, 55, 270, 271, size omitted on delete), with
+BodyLength and CheckSum; and a JSON event in the shape of Binance's spot diff
+depth stream (field set, string prices and quantities, quantity 0 removing
+the level, as in Binance's spot WebSocket streams documentation; one level
+per event, compact output). Decoders: `bin`; `fix` (BeginString, BodyLength,
+CheckSum, 35 as the third field, every field at most once and every
+required one present, header before body, SendingTime in millisecond form
+with seconds 00 to 59, any other tag rejected; symbol to locate through an open-addressed table); `json_fixed` (a
+scanner specialised to the key order of the documented example and compact
+output, rejecting anything else, so a reordered stream fails safe; that page
+shows the order in an example and does not promise it); `json_serde`
+(`serde_json` into a typed struct that borrows its strings).
+Before timing, the harness aborts unless every decoder returns exactly the
+original record for every update. Floors: `floor_bin`, `floor_fix` and
+`floor_json` fold the first and last byte and the length of every message of
+that format. X(stage) = median `msg_cycles` of the stage minus the median of
+the floor of its format. Decision rules: (a) and (b) are ratios of these X
+values (undefined if the bootstrap 95% interval of the denominator reaches
+zero); (c) compares total decoder cycles, because the two formats have
+different floors: a two-sided Mann-Whitney U on the per-epoch `msg_cycles`
+of `json_fixed` and `fix`, p < 0.05 with the medians in the stated direction;
+both feeds supported, one partly. 10 epochs in one process per feed, stage order
+rotated (preliminary). Reported, not tested: allocations per update (one
+`Vec` per event is expected from `serde_json`, none from the others),
+bytes per update. The formats do not carry identical content: JSON also
+carries an event time and two update ids, FIX a SendingTime and two
+CompIDs, and the binary decoder skips its time field. Disclosure: the thresholds
+of (a) and (b) and the direction of (c) were set after development-machine
+runs (x86, a virtual machine, nanoseconds, synthetic feed only, not
+evidence) gave, over several runs, 26x to 32x for (a), 3.8x to 4x for (b)
+and about 0.5x for (c) with the shorter FIX header used then, and 28x to
+49x, 3.4x to 3.9x and 0.3x to 0.4x with the full header; the ratio (a)
+varies most because X(bin) there was only about 5 ns. They are
+therefore not discoveries: they test whether the order of magnitude seen
+there carries over to the M4 and to the real BX feed.
 
 ## Note on the 2026-11-14 run
 

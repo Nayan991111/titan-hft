@@ -209,7 +209,7 @@ pub fn fix_symbol(symbol: &[u8; 8]) -> [u8; 8] {
 }
 
 #[inline(always)]
-fn uint(v: &[u8]) -> Option<u64> {
+pub(crate) fn uint(v: &[u8]) -> Option<u64> {
     if v.is_empty() || v.len() > 19 {
         return None;
     }
@@ -226,7 +226,7 @@ fn uint(v: &[u8]) -> Option<u64> {
 
 /// "123.4500" to 1,234,500 (up to 4 decimals).
 #[inline(always)]
-fn price4(v: &[u8]) -> Option<u32> {
+pub(crate) fn price4(v: &[u8]) -> Option<u32> {
     let dot = v.iter().position(|&c| c == b'.').unwrap_or(v.len());
     let int = uint(&v[..dot])?;
     let mut frac = 0u64;
@@ -245,7 +245,7 @@ fn price4(v: &[u8]) -> Option<u32> {
 }
 
 #[inline(always)]
-fn symbol8(v: &[u8]) -> Option<[u8; 8]> {
+pub(crate) fn symbol8(v: &[u8]) -> Option<[u8; 8]> {
     if v.is_empty() || v.len() > 8 {
         return None;
     }
