@@ -1,0 +1,102 @@
+# Summaries of the 2026-11-14 round-lot and whole-day consolidated book run
+# (statistics only; raw epoch lines stay on the measurement machine; no
+# NASDAQ data is reproduced).
+#
+# Code:      commit fd3b3c6, pushed by this run's script before measuring
+#            (GitHub confirmed at fd3b3c6; 68 tests passed on macOS).
+# Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt
+# Toolchain: rustc 1.92.0 (ded5c06cf 2025-12-08), release, target-cpu=native
+# Power:     wall power throughout (AC attached, 84%, charging); Low Power
+#            Mode off; macOS recorded no thermal and no performance warning
+#            at any checkpoint; 23 GB free, 71% of memory free.
+# Data:      the public NASDAQ BX and PSX TotalView-ITCH 5.0 samples of
+#            2019-07-30; 8,849 shared symbols; 59,202,007 messages merged by
+#            timestamp, 58,016,228 of them inside 09:30:00 to 16:00:00.
+# Run:       19:22 to 19:27 local time, PMU on, order rotated, 10 epochs over
+#            the whole day (not a prefix of it).
+#
+# Pre-registration: docs/experiments.md, "Pre-registered 2026-11-14,
+# fourteenth run" (H54).
+
+## configuration and market statistics (from the run)
+cross_config a=20190730_BX_ITCH_50 b=20190730_PSX_ITCH_50 bytes_a=837472908 bytes_b=918015732 locates_a=8850 locates_b=8850 shared=8849 limit=18446744073709551615 every=1000 from=34200000000000 to=57600000000000 epochs=10 pmu=true
+cross_market lots=all min_shares=1 msgs=59202007 in_window=58016228 span_s=57522.0 changes=17276104 locked_episodes=360 crossed_episodes=33 locked_s=6156.237 crossed_s=602.116 max_locked_ms=1207974.914 max_crossed_ms=212828.266 crossed_depth_mean_units=430.30 instruments_crossed=17 open_at_end=0
+cross_stale lots=all every=1000 rebuilds=59202 stale_changes=9995196 stale_mean_us=223958.168 max_stale_ms=1703.391 invisible_crossed=15 invisible_share=0.4545
+cross_market lots=round min_shares=100 msgs=59202007 in_window=58016228 span_s=57522.0 changes=16887485 locked_episodes=82 crossed_episodes=2 locked_s=0.047 crossed_s=0.000 max_locked_ms=43.823 max_crossed_ms=0.110 crossed_depth_mean_units=2750.00 instruments_crossed=2 open_at_end=0
+cross_stale lots=round every=1000 rebuilds=59202 stale_changes=9792588 stale_mean_us=224125.819 max_stale_ms=1703.391 invisible_crossed=2 invisible_share=1.0000
+cross_setup seconds=6.3
+
+## verdicts under the pre-registered rules
+
+H54, supported, all three parts.
+  (a) Crossed episodes at most 16 over round-lot-sized levels: 2, against 33
+      over every displayed order. Supported.
+  (b) Locked episodes at most 180: 82, against 360. Supported.
+  (c) With the timed passes over all 59,202,007 merged messages rather than
+      the first 4,000,000, H53(a) and H53(b) keep their outcomes: X(incr) =
+      22.50 [21.91, 23.09] cycles against a floor median of 157.71, so 0.143,
+      at most 0.5; X(rebuild) / X(incr) = 5.305 [5.185, 5.436], at least 2.
+      Supported. Measuring the whole day instead of its opening moved the
+      numbers little: X(incr) 23.45 to 22.50 and the ratio 4.70 to 5.31.
+
+## what the round-lot view changes
+
+The episodes do not merely become fewer; they become a different phenomenon.
+
+                               every displayed order    round-lot levels
+  crossed episodes                       33                     2
+  instruments ever crossed               17                     2
+  total crossed time                602.1 s                 0.000 s
+  longest crossed episode           212.8 s                0.110 ms
+  locked episodes                       360                    82
+  total locked time               6,156.2 s                0.047 s
+  longest locked episode          1,208.0 s               43.8 ms
+
+So the twenty-minute lock and the three-minute cross of the previous run
+were odd-lot orders resting inside the other venue's quote, exactly as the
+fourteenth run's pre-registration proposed and the thirteenth run's results
+file warned. Between round-lot-sized levels the two venues of 2019-07-30
+crossed twice in a trading day, for 110 microseconds at most, and locked for
+44 milliseconds at most. That is the behaviour Rule 610(d) describes, and
+the residual durations are of the order of the time it takes one venue to
+react to the other rather than of the order of a tradable opportunity.
+
+Stated plainly, because the first version of this measurement said
+otherwise: the apparent cross-venue arbitrage in a consolidated BX and PSX
+book is almost entirely an artifact of counting odd lots, which are not
+protected quotations. No claim is made here that either remaining episode
+was tradable; the replay still uses each venue's own clock and models no
+propagation delay between them.
+
+Reported, not tested, and the reason the two halves of this experiment
+belong in one paper: a consolidated view rebuilt every 1,000 messages missed
+both of the round-lot crossed episodes, a share of 1.000, because at 110
+microseconds they are far shorter than the 224 millisecond mean interval
+between rebuilds inside the window. The incremental view, which costs 22.5
+cycles per message against the 157.7 of the two venue books alone, sees
+every one of them. The design that is 5.3 times cheaper per message is also
+the only one that observes the event at all.
+
+The staleness accounting is now restricted to the window, as the fourteenth
+run said it would be: the longest a change waited for its rebuild falls from
+49.5 minutes to 1.703 seconds, and the mean is 224.0 ms, which is half the
+400 ms that 1,000 messages take at the 2,478 messages a second this day
+averaged inside the window, as a uniform arrival rate would give.
+
+## analysis output (scripts/analyze.py over the run's raw lines)
+
+
+## cross: msg_cycles, median over epochs [bootstrap 95% CI]
+design=floor                                                   n=10     157.71 [  157.20,   158.20] ns_per_msg=38.3 msg_instructions=212 msg_l1d_miss=6.33 msg_br_mispred=1.76 core_ghz=4.12
+design=incr                                                    n=10     180.21 [  179.87,   180.59] ns_per_msg=43.7 msg_instructions=258 msg_l1d_miss=9.32 msg_br_mispred=1.98 core_ghz=4.12
+design=rebuild                                                 n=10     277.11 [  276.92,   277.35] ns_per_msg=68.5 msg_instructions=795 msg_l1d_miss=44 msg_br_mispred=1.89 core_ghz=4.04
+
+## contrasts: A vs B on the primary metric (lower is better)
+cross incr vs floor, keeping a consolidated top                A=   180.21 B=   157.71 A/B= 1.143 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+cross rebuild vs incr, re-reading every venue                  A=   277.11 B=   180.21 A/B= 1.538 nA=10 nB=10 U=100.0 p=0.0000 (exact) cliffs_delta=+1.00
+
+## cross: cycles per merged message above the venue books alone, X [bootstrap 95% CI]
+cross: X(incr) = 22.50 [21.91, 23.09]
+cross: X(rebuild) = 119.40 [118.92, 119.95]
+cross: incr / floor on the totals = 1.143
+cross: X(rebuild) / X(incr) = 5.305 [5.185, 5.436]
