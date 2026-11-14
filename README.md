@@ -70,8 +70,9 @@ run.
 | Same, at the pace of the real feed (2.9% of messages change a subscribed top of book), 3 readers | snapshot 114.8 vs copies 116.0 cycles per feed message (p = 0.002); median staleness 42 vs 125 ns; snapshot readers miss 0.34% of versions (0.2% with one reader) | same |
 | One exposure limit shared by 3 strategy threads, per order | one shared atomic total 218 cycles (15x the uncontended 14.3); exact compare-and-swap 221, no difference; a total per strategy 19.7 (11x cheaper) | same |
 | Profile-guided optimisation of the trading path | no gain near the predicted 3%: the full path moved by at most 1.1%, significant in one of four build and feed pairs (0.7% lower); it moves cost between stages (decode 8 to 9% slower on synthetic, book about 2% faster on real) | same |
-| Inbound wire format, per price-level update, above the floor of each format | binary 9.3 cycles; a JSON scanner specialised to the documented key order 156; validated FIX 4.4 514 (55x the binary record); `serde_json` 714 (4.6x the specialised scanner, and one allocation per update) | [`results/2026-11-14_m4_wire_arb.txt`](results/2026-11-14_m4_wire_arb.txt) |
+| Inbound wire format, per price-level update, above the floor of each format | binary 9.3 cycles; a JSON scanner specialised to the documented key order 156; validated FIX 4.4 373 with a NEON delimiter search and checksum, 40x the binary record (514, or 55x, when both are found one byte at a time); `serde_json` 714 (4.6x the specialised scanner, and one allocation per update) | [`results/2026-11-14_m4_wire_arb.txt`](results/2026-11-14_m4_wire_arb.txt) |
 | A/B feed lines and gap recovery over MoldUDP64, per delivered message above the floor | one line 7.5 cycles; a second lossless line 10.7 (1.43x, 1.67x on the synthetic feed); with 3% loss on each line, recovery through the other line and the re-request server costs no more, since lost packets never arrive. Delivery stayed exact in every epoch (one checksum across all conditions), 47 requests and 2,351 resent messages on the real feed | same |
+| One book consolidated across two exchanges (BX and PSX, 2019-07-30, 8,849 shared symbols, 59.2 million messages merged by timestamp) | keeping the consolidated top as messages arrive costs 23.5 cycles per message on top of the two venue books (15% of them); re-reading both venues for every instrument every 1,000 messages costs 110, a 4.7x difference that is 3.1x the instructions and 5.3x the L1D misses. The two venues' displayed books locked 360 times and crossed 33 times inside continuous trading, over 17 instruments; whether that survives restricting to round lots is the next measurement | [`results/2026-11-14_m4_fix_cross.txt`](results/2026-11-14_m4_fix_cross.txt) |
 
 <p align="center">
   <img src="docs/figures/t2t-stages.svg" alt="Grouped bar chart of CPU cycles per message for the stages ring, decode, book, direct and full, on a synthetic feed and on real NASDAQ BX data." width="100%">
@@ -164,8 +165,9 @@ reader's light or dark theme.
 - [x] One exposure limit shared by several strategies: atomic add vs compare-and-swap vs per-strategy totals (H49)
 - [x] Inbound wire format: binary vs FIX 4.4 vs JSON decode of the same updates (H50, measured on the M4)
 - [x] A/B line arbitration and gap recovery over MoldUDP64 (H51, measured on the M4)
-- [ ] Best-effort FIX decode with a NEON delimiter search and checksum (H52, pre-registered)
-- [ ] Consolidated book across NASDAQ BX and PSX, locked and crossed markets (H53, pre-registered blind)
+- [x] Best-effort FIX decode with a NEON delimiter search and checksum (H52, measured on the M4)
+- [x] Consolidated book across NASDAQ BX and PSX, locked and crossed markets (H53, measured on the M4)
+- [ ] The same day over round-lot-sized levels, and the cost over a whole day (H54, pre-registered)
 - [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
 - [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
 - [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)

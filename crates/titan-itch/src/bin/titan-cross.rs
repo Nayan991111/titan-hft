@@ -78,6 +78,15 @@ fn quote(b: &L3Book, loc: u16) -> Quote {
     Quote { bid: b.best(loc, Side::Buy).map_or(0, |t| t.0), ask: b.best(loc, Side::Sell).map_or(u32::MAX, |t| t.0) }
 }
 
+/// As [`quote`], counting only levels that hold at least `min` shares.
+#[inline(always)]
+fn quote_sized(b: &L3Book, loc: u16, min: u64) -> Quote {
+    Quote {
+        bid: b.best_sized(loc, Side::Buy, min).map_or(0, |t| t.0),
+        ask: b.best_sized(loc, Side::Sell, min).map_or(u32::MAX, |t| t.0),
+    }
+}
+
 /// Symbol of every Stock Directory ('R') message, and the highest locate.
 fn directory(src: &[u8]) -> (HashMap<[u8; 8], u16>, usize) {
     let mut map = HashMap::new();
@@ -197,7 +206,8 @@ struct Stats {
 
 /// The untimed pass: the incremental view, the locked and crossed episodes
 /// inside the window, and what the periodic design would have missed.
-fn measure(src: [&[u8]; VENUES], map: &Map, st: &mut State, limit: u64, every: u64, from: u64, to: u64) -> (Stats, CrossWatch) {
+#[allow(clippy::too_many_arguments)]
+fn measure(src: [&[u8]; VENUES], map: &Map, st: &mut State, limit: u64, every: u64, from: u64, to: u64, min_lot: u64) -> (Stats, CrossWatch) {
     let shared = map.symbols.len();
     let mut watch = CrossWatch::new(shared);
     let mut s = Stats::default();
@@ -244,15 +254,15 @@ fn measure(src: [&[u8]; VENUES], map: &Map, st: &mut State, limit: u64, every: u
             if gid != NONE {
                 let gid = gid as usize;
                 let before = st.cons.top(gid);
-                let q = quote(&st.books[which], loc);
+                let q = if min_lot > 1 { quote_sized(&st.books[which], loc, min_lot) } else { quote(&st.books[which], loc) };
                 if st.cons.set(gid, which, q) && st.cons.top(gid) != before {
                     s.changes += 1;
-                    if pending_since[gid] == 0 {
-                        pending_since[gid] = ts.max(1);
-                        pending.push(gid);
-                        s.stale_changes += 1;
-                    }
                     if window {
+                        if pending_since[gid] == 0 {
+                            pending_since[gid] = ts.max(1);
+                            pending.push(gid);
+                            s.stale_changes += 1;
+                        }
                         let now = st.cons.top(gid).market();
                         if state[gid] != now {
                             if state[gid] == Market::Crossed && cross_at[gid] == rebuild_idx {
@@ -303,7 +313,8 @@ fn main() {
         std::process::exit(2);
     };
     let epochs: usize = num(&args, "epochs", 10);
-    let limit: u64 = num(&args, "limit", 4_000_000);
+    let limit: u64 = num(&args, "limit", u64::MAX);
+    let min_lot: u64 = num(&args, "min_lot", 100);
     let stats_limit: u64 = num(&args, "stats_limit", u64::MAX);
     let every: u64 = num(&args, "every", 1_000);
     let from: u64 = num::<u64>(&args, "from", 34_200) * 1_000_000_000;
@@ -362,12 +373,14 @@ fn main() {
     // Untimed: the market statistics and what the periodic design misses.
     let mut st = State::new(log2, instruments, shared);
     let t_setup = clock::counter();
-    let (s, watch) = measure(src, &map, &mut st, stats_limit, every, from, to);
+    for (lots, min) in [("all", 1u64), ("round", min_lot)] {
+    st.reset();
+    let (s, watch) = measure(src, &map, &mut st, stats_limit, every, from, to, min);
     assert_eq!(st.cons.refolded(), (0..shared).map(|g| st.cons.top(g)).collect::<Vec<_>>(), "incremental view drifted");
     let c = watch.stats;
     let secs = (s.last_ts.saturating_sub(s.first_ts)) as f64 / 1e9;
     println!(
-        "cross_market msgs={} in_window={} span_s={secs:.1} changes={} locked_episodes={} crossed_episodes={} locked_s={:.3} crossed_s={:.3} max_locked_ms={:.3} max_crossed_ms={:.3} crossed_depth_mean_units={:.2} instruments_crossed={} open_at_end={}",
+        "cross_market lots={lots} min_shares={min} msgs={} in_window={} span_s={secs:.1} changes={} locked_episodes={} crossed_episodes={} locked_s={:.3} crossed_s={:.3} max_locked_ms={:.3} max_crossed_ms={:.3} crossed_depth_mean_units={:.2} instruments_crossed={} open_at_end={}",
         s.msgs,
         s.in_window,
         s.changes,
@@ -382,7 +395,7 @@ fn main() {
         c.open_at_end,
     );
     println!(
-        "cross_stale every={every} rebuilds={} stale_changes={} stale_mean_us={:.3} max_stale_ms={:.3} invisible_crossed={} invisible_share={:.4}",
+        "cross_stale lots={lots} every={every} rebuilds={} stale_changes={} stale_mean_us={:.3} max_stale_ms={:.3} invisible_crossed={} invisible_share={:.4}",
         s.rebuilds,
         s.stale_changes,
         if s.stale_changes > 0 { s.stale_ns as f64 / s.stale_changes as f64 / 1e3 } else { 0.0 },
@@ -390,6 +403,7 @@ fn main() {
         s.invisible_crossed,
         if c.crossed_episodes > 0 { s.invisible_crossed as f64 / c.crossed_episodes as f64 } else { 0.0 },
     );
+    }
     let freq = clock::counter_frequency() as f64;
     println!("cross_setup seconds={:.1}", (clock::counter() - t_setup) as f64 / freq);
 

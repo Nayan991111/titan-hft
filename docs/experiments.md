@@ -81,8 +81,9 @@ are added afterwards and are never edited away when a prediction fails.
 | H49 | One exposure limit shared by several strategy threads (`titan-agg`, strategy 0's PMU cycles per order): (a) a shared total costs more than a private one without contention, faa1 above local1; (b) contention on one shared total, faa3 above faa1; (c) an exact limit (compare-and-swap loop) costs more than the two-step check under contention, cas3 above faa3; (d) per-strategy totals cost less than one shared total under contention, shard3 below faa3 | (a) supported; (b) supported; (c) refuted; (d) supported | Strategy 0's PMU cycles per order, medians over 10 epochs, no epoch starved. (a) faa1 14.28 vs local1 8.21 (1.74x, p = 1e-5). (b) faa3 217.88 vs faa1 14.28 (15.3x, p = 1e-5). (c) cas3 221.23 vs faa3 217.88, p = 1.0: no difference; strategy 0's failed compare-and-swap attempts 0.535 per order (`cas_retries_s0`; 0.58 over all strategies). (d) shard3 19.72 vs faa3 217.88 (0.09x, p = 1e-5). Census: faa compiles to `ldadd`, cas to one LSE `cas`, no exclusive pairs, no barriers. Exploratory, not tested: with 2 strategies cas cost about half of faa (51.55 vs 103.38 cycles) |
 | H50 | Inbound wire format, per price-level update (`titan-wire`, PMU cycles): (a) above the floor of each format, the validated FIX 4.4 decode costs at least 5x the fixed binary decode; (b) above the JSON floor, `serde_json` costs at least 2x a scanner specialised to the key order of the documented example; (c) in total cycles, that specialised JSON scanner costs less than the validated FIX decode; both feeds; thresholds set after development-machine runs (see the tenth run) | supported (both feeds) | X(fix)/X(bin) 55.5 BX, 44.3 synthetic; X(serde)/X(fixed) 4.57 BX, 4.33 synthetic; json_fixed below fix p=0.0000 both feeds; serde allocates 1.0 per update, the others 0; results/2026-11-14_m4_wire_arb.txt |
 | H51 | A/B line arbitration (`titan-arb`, PMU cycles per delivered message): (a) above the floor, taking the same stream from two lossless lines costs at most 1.5x one line (the duplicate line costs less than half the delivery itself; 1.5x is the registered rule); (b) 3% independent packet loss per line (registered as 1%, raised before any timed run; see the eleventh run), recovered from the other line and the re-request server, costs at most 2x the lossless two-line cost; (c) delivery is exact (every message once, in order) in every condition on both feeds, by assertion; thresholds set before any run of the program anywhere | (a) partly supported, (b) supported, (c) supported | (a) X(two0)/X(one0) 1.429 BX (interval reaches 1.586), 1.670 synthetic, so BX only; (b) 0.892 BX, 0.851 synthetic, but a weak test: loss removes arrivals, so the lossy conditions are cheaper than lossless two-line; (c) one delivery checksum across all conditions and epochs of each feed, 50 and 47 requests, 2,236 and 2,351 resent, 0 partial, 0 foreign, allocations_pass 0 throughout; results/2026-11-14_m4_wire_arb.txt |
-| H52 | Best-effort FIX decode (`titan-wire` stage `fix_simd`: the NEON delimiter search of `soh_neon` and a NEON checksum, validating identically to `fix`): (a) it costs less than the byte-at-a-time `fix`, both feeds; (b) X(fix_simd)/X(fix) lies between 0.5 and 0.9, both feeds; (c) X(fix_simd)/X(bin) is at least 10, both feeds | pending | |
-| H53 | Consolidated book across BX and PSX (`titan-cross`, 2019-07-30, PMU cycles per merged message): (a) keeping a consolidated top incrementally costs at most 0.5x the two venue books alone; (b) re-reading every venue's top for every shared instrument every 1,000 messages costs at least 2x the incremental design, above that floor; (c) the two venues' displayed books lock and cross during continuous trading, both at least once; (d) at least half of the crossed episodes begin and end between two rebuilds, so the periodic design never sees them | pending | |
+| H52 | Best-effort FIX decode (`titan-wire` stage `fix_simd`: the NEON delimiter search of `soh_neon` and a NEON checksum, validating identically to `fix`): (a) it costs less than the byte-at-a-time `fix`, both feeds; (b) X(fix_simd)/X(fix) lies between 0.5 and 0.9, both feeds; (c) X(fix_simd)/X(bin) is at least 10, both feeds | supported (both feeds) | X(fix_simd)/X(fix) 0.723 BX, 0.732 synthetic, inside the registered 0.5 to 0.9; X(fix_simd)/X(bin) 40.3 BX, 32.6 synthetic; instructions per update 3026.7 to 2517.2 on BX while cycles fall 27.3%, so IPC rises 5.77 to 6.61. The FIX figure to quote is now 372.8 cycles above the FIX floor on BX, not H50's 514.1; results/2026-11-14_m4_fix_cross.txt |
+| H53 | Consolidated book across BX and PSX (`titan-cross`, 2019-07-30, PMU cycles per merged message): (a) keeping a consolidated top incrementally costs at most 0.5x the two venue books alone; (b) re-reading every venue's top for every shared instrument every 1,000 messages costs at least 2x the incremental design, above that floor; (c) the two venues' displayed books lock and cross during continuous trading, both at least once; (d) at least half of the crossed episodes begin and end between two rebuilds, so the periodic design never sees them | (a), (b), (c) supported, (d) refuted | (a) X(incr) 23.45 against a floor of 153.33, so 0.153; (b) X(rebuild)/X(incr) 4.70 at a rebuild every 1,000 messages, with 782.4 instructions and 37.6 L1D misses per message against 253.4 and 7.1; (c) 360 locked and 33 crossed episodes over 17 instruments inside the window; (d) 15 of 33 invisible, 0.4545, just under the registered 0.5. The episodes are long (mean 18.2 s crossed) and are a statement about every displayed order, odd lots included, not about protected quotations: see H54; results/2026-11-14_m4_fix_cross.txt |
+| H54 | The same day over round-lot-sized levels (`titan-cross min_lot=100`, a level holding at least 100 shares, as a proxy for a protected quotation): (a) crossed episodes fall to at most half of the all-orders count of 33; (b) locked episodes fall to at most half of 360; (c) replicated over the whole day rather than the first 4,000,000 merged messages, H53(a) and H53(b) keep their outcomes | pending | |
 
 ## Notes on `titan-t2t`
 
@@ -747,6 +748,46 @@ repository has not measured. No part of this has been run on the real BX and
 PSX data, on any machine: the only run so far is the end-to-end check on two
 hand-built feeds of fourteen messages whose expected episode durations were
 computed by hand first.
+
+## Pre-registered 2026-11-14, fourteenth run
+
+**H54 (round lots, and the cost over a whole day).** Why this exists: the
+thirteenth run found 33 crossed and 360 locked episodes between BX and PSX
+inside continuous trading, but they last a mean of 18.2 and 17.1 seconds,
+with a longest lock of 20.1 minutes. Displayed protected quotations do not
+behave that way under Rule 610(d), which requires an exchange to avoid
+displaying a quotation that locks or crosses another's protected quotation.
+TotalView-ITCH carries every displayed order, odd lots included, and an odd
+lot is not a protected quotation, so the obvious candidate is that these
+episodes are mostly odd-lot orders resting inside the other venue's quote.
+`L3Book::best_sized` and `titan-cross min_lot=100` test that: the top of a
+side becomes the best price whose level holds at least 100 shares, skipping
+thinner levels nearer the top. This is a proxy and not the rule itself,
+because a level of 100 shares may be two 50-share orders that the venue
+would still display as a round lot, and because the round lot of a few
+instruments was not 100 shares; it is stated as a proxy wherever it is used.
+The run reports both views of the same day, `lots=all` and `lots=round`,
+from the same replay code. Decision rules: (a) crossed episodes under
+`lots=round` at most 16, which is half of 33; (b) locked episodes at most
+180, half of 360; (c) with the timed passes over all 59,202,007 merged
+messages rather than the first 4,000,000, X(incr) at most 0.5 times the
+floor median and X(rebuild)/X(incr) at least 2, as in H53. Also changed for
+this run, and reported rather than tested: the staleness accounting is
+restricted to 09:30:00 to 16:00:00, as the episode accounting already was,
+because the thirteenth run's figures were inflated by the quiet hours where
+a thousand messages span tens of minutes.
+
+Disclosure: (a) and (b) are set from the mechanism above and from the
+all-orders counts, which are known (33 and 360); the round-lot counts are
+not known on any machine, and the end-to-end check uses two hand-built
+feeds in which one crossed episode is caused by a 50-share order and
+disappears under `lots=round` while a 100-share lock survives both views.
+A fall to at most half is a weak prediction if the odd-lot explanation is
+right, since it would predict a fall to near zero; it is written at a half
+so that a partial fall, which would mean round-lot quotes also cross, is
+recorded as a refutation rather than argued about afterwards. If the
+counts barely move, the episodes are between protected quotations and are
+a far more interesting result than if they vanish.
 
 ## Note on the 2026-11-14 run
 

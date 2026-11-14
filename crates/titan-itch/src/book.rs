@@ -81,6 +81,17 @@ impl L3Book {
         }
     }
 
+    /// Best price on one side whose level holds at least `min_shares`,
+    /// with that level's shares. Thinner levels nearer the top are skipped.
+    /// At `min_shares` of 1 this is `best`; at 100 it is a proxy for a
+    /// protected quotation, since an odd lot is not one.
+    #[inline(always)]
+    pub fn best_sized(&self, locate: u16, side: Side, min_shares: u64) -> Top {
+        let buy = side == Side::Buy;
+        let levels = self.levels.get(locate as usize)?;
+        levels[(!buy) as usize].iter().rev().find(|l| l.shares >= min_shares).map(|l| (l.price(buy), l.shares))
+    }
+
     /// Remove all orders and levels, keeping every allocation.
     pub fn clear(&mut self) {
         unsafe { std::ptr::write_bytes(self.slots, 0, self.mask + 1) };
