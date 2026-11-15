@@ -88,6 +88,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H56 | The heap's depth query given its best form (`HeapBook::best_depth` pruned at the first smaller key) and the fleeting quotes the third brief recommends: (a) X(heap_indexed, depth) / X(array, depth) is still at least 1.5 on both feeds; (b) on the synthetic feed that ratio falls to at most half of H55's 11.563, so at most 5.78; (c) on BX it stays within a quarter of H55's 2.253, between 1.69 and 2.82; (d) on the real feed at least half of the orders that arrive at the best price are gone within one second | supported (all four parts) | (a) 2.299 BX, 2.690 synthetic; (b) the synthetic ratio fell from 11.563 to 2.690, 23% of it; (c) BX moved 2.0%, from 2.253 to 2.299, so the explanation held on both sides; (d) 0.5388 of orders arriving at the best price gone within 1 s, and 0.5321 even if every still-resting order would have outlived a second. With the query at its best the array book is 1.70x cheaper for the best price and 2.30x for depth on BX, and the two array stages differ by 0.000. New finding: with the pruned query the lazy and indexed delete policies reverse between feeds (lazy/indexed depth 1.532 BX, 0.792 synthetic), because the indexed policy pays per sift step and the lazy one per stale pop: 4,200,776 stale pops on BX against 50,547 on the synthetic feed; results/2026-11-14_m4_heap_pruned.txt |
 | H57 | Queue position, which the fourth brief makes a headline task, and the cancellation rate it states: on the real feed (a) the share of orders that see any execution is non-increasing across the five queue-position buckets (0, 1 to 99, 100 to 999, 1000 to 9999, 10000 or more shares ahead on arrival); (b) an order arriving with nothing ahead of it sees an execution at least twice as often as one arriving with 10000 or more shares ahead; (c) more than half of the orders that end inside the window end without any execution, which is the brief's stated 50% cancellation rate or more; (d) knowing the queue position of every arriving order costs less than 1.35x the book alone above the decode floor | (a) refuted, (b), (c), (d) supported | (a) refuted by a reversal at the first step: orders arriving with nothing ahead execute at 0.0266 against 0.0961 for orders with 1 to 99 shares ahead, 3.61x higher; from the second bucket on the series is monotone (0.0961, 0.0158, 0.0046, 0.0030), and the synthetic feed shows no reversal at all (0.1950, 0.1878, 0.1858, 0.1493, 0.0802). Shares ahead conflates queue position with whether the price has a queue: 71.6% of BX arrivals opened a level rather than joined one, and being alone at a price the market is not trading beats nothing. (b) 0.0266 against 0.0030, a ratio of 8.87 against a threshold of 2. (c) 4,284,968 of 4,386,147 ended orders never executed, 0.9769, against the brief's 50%; only 0.0210 filled in full. (d) X(queue)/X(book) = 1.092 [1.082, 1.101] BX, 1.205 synthetic, against a ceiling of 1.35; instructions rose 168.73 to 187.30 while cycles rose 9.2% and IPC rose 1.486 to 1.545. results/2026-11-14_m4_queue_walk.txt |
 | H58 | The fourth brief's claim that the change in price grows as size raised to a power above one, and its worked example of a tidy ladder of depth, tested on displayed depth: on the real feed (a) the quote move needed to fill a size, per share, rises across 100, 500, 1000, 5000 and 10000 shares; (b) the average price paid per share, in basis points from the best price, also rises across those sizes; (c) at least 1 in 100 attempts to fill 10000 shares cannot be filled from the displayed side at all; (d) walking the book to fill 10000 shares costs at least 1.5x the best-price query above the decode floor | (a), (b) refuted (confounded, see note), (c), (d) supported | (a) and (b) refuted on the measured numbers: move per 100 shares 4.188, 31.538, 17.026, 1.666, 1.258 and cost per 100 shares 2.402, 11.314, 3.844, 0.525, 0.591, each rising once then falling. Confound recorded, not argued away: a size the side cannot fill is excluded, and the exclusion runs 0.08%, 18.50%, 38.86%, 78.89%, 87.01%, so the mean at 10000 shares is taken over a far more liquid population than the mean at 100; this refutes the registered statement, not the brief's exponent, and the conditioned test is the open item. What survives: at 100 shares, fillable 99.92% of the time, immediacy costs 2.40 bps and the quote moves 4.19 bps over 15,618,175 sides. (c) 13,600,453 of 15,630,442 attempts to fill 10000 shares could not be filled at all, 0.8701 against a threshold of 0.01, and 1000 shares fails 38.86% of the time; the synthetic feed fails only 2.36%. (d) X(walk_10000)/X(top) = 1.667 [1.663, 1.683] BX against a floor of 1.5. New finding: the walk is cheaper on the real feed than the synthetic one (1.667 against 2.140) because it visits 4.512 levels against 10.772; on a real venue the walk is cheap because there is little to walk, which is the same thinness that refutes the brief's ladder. results/2026-11-14_m4_queue_walk.txt |
+| H59 | The three defects in how H57 and H58 were measured, corrected: the window was the first 10,000,000 of the session's 28,734,686 messages, and a replacement was counted as a new order. On the whole session, counting order chains rather than instances: (a) more than half of chains that end never execute at all, so the earlier figure is not an artifact of counting replacements; (b) the chain rate is below the instance rate on the same data by less than 8 percentage points; (c) the displayed side cannot fill 10000 shares in more than half of attempts; (d) every headline rate in (a) and (c) moves by less than 5 percentage points between the first 10,000,000 messages and the whole session, so the earlier window was representative | pending (eighteenth run) | |
 
 ## Notes on `titan-t2t`
 
@@ -983,6 +984,51 @@ development machine, which showed the queue query near 1.2x the book, the
 fills unavailable. Nothing from either real feed has been seen: neither
 binary has run on a real file, on any machine, and neither has run with the
 PMU at all. Every other part is set from nothing measured.
+
+## Pre-registered 2026-11-15, eighteenth run
+
+**H59 (the three defects in the seventeenth run, corrected).** H57 and H58
+measured what they said they measured, and their verdicts stand for that. But
+three things about how they were measured would not survive review, and all
+three were found by re-reading the method rather than by anything in the data.
+
+First, the window. Both ran on the first 10,000,000 messages of the BX session,
+which holds 28,734,686. That is 34.8% of the day and it is the opening third.
+Cancellation, fill and depth behaviour at the open are not the same as at
+midday, so a figure quoted for the session cannot come from the morning alone.
+The corrected run uses the whole file.
+
+Second, replacements. ITCH gives a replaced order a new reference, and the
+seventeenth run therefore treated it as a new order that ended without
+executing. On BX, 1,014,952 of 4,386,147 endings were replacements, so as much
+as 23.7% of the orders counted as never executed may have been orders being
+repriced rather than abandoned. The corrected run follows the chain: an order
+repriced ten times counts once, with its executions summed across every
+instance. Both numbers are reported, because they answer different questions,
+and the instance figure is kept so the seventeenth run stays reproducible.
+
+Third, wording. "Orders that ended" does not say what it counts. Everything
+reported from this run names the population: order instances or order chains,
+over the whole session, that both arrived and ended inside it.
+
+Part (d) is the test that matters. It asks whether the first defect changed any
+answer. If it passes, the seventeenth run's rates can be quoted for the session
+and the window was harmless. If it fails, the window biased the result, the
+seventeenth run's rates are quotable only for the opening third, and that is
+what will be written.
+
+Decision rules: every quantity here is an exact count over the stated
+population, not a sample, so none carries an interval; a part is refuted by
+failing its stated threshold, and part (d) is refuted if any one of the rates it
+covers moves by 5 percentage points or more.
+
+Disclosure: the threshold in (c) is informed by the seventeenth run's figure of
+0.8701 on the opening third of the same file, and the gap in (b) by a 2.88
+percentage point gap seen on a 300,000 message synthetic smoke run on the
+development machine. Nothing from the whole session has been measured for any
+of these quantities on any machine. Parts (a) and (d) are set from nothing
+measured: (a) from the fourth brief's own figure of fifty percent, and (d) from
+the question itself.
 
 ## Note on the 2026-11-14 run
 

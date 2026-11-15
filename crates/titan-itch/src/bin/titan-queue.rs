@@ -49,6 +49,19 @@ const STAGES: [&str; 3] = ["none", "book", "queue"];
 const EDGES: [u64; 4] = [1, 100, 1_000, 10_000];
 const BUCKETS: usize = EDGES.len() + 1;
 
+/// One live order as the untimed pass follows it. `done` is what this
+/// instance has executed; `chain_done` is what earlier instances of the same
+/// order executed before it was replaced, and `chain_len` counts the
+/// instances so far. A replacement is a new instance of the same chain.
+#[derive(Clone, Copy)]
+struct Instance {
+    bucket: usize,
+    size: u32,
+    done: u32,
+    chain_done: u32,
+    chain_len: u32,
+}
+
 #[inline(always)]
 fn bucket(ahead: u64) -> usize {
     EDGES.iter().position(|&e| ahead < e).unwrap_or(EDGES.len())
@@ -170,14 +183,17 @@ fn main() {
 
     // Untimed: every order followed from arrival to end.
     let mut book = L3Book::new(log2, instruments);
-    // order reference -> queue position bucket, size on arrival, shares executed
-    let mut live: HashMap<u64, (usize, u32, u32)> = HashMap::with_capacity(1 << 20);
+    let mut live: HashMap<u64, Instance> = HashMap::with_capacity(1 << 20);
     let mut ended = [0u64; BUCKETS];
     let mut any_fill = [0u64; BUCKETS];
     let mut full_fill = [0u64; BUCKETS];
     let mut ahead_sum = [0u128; BUCKETS];
     let mut arrivals = [0u64; BUCKETS];
     let (mut adds, mut replaces, mut front) = (0u64, 0u64, 0u64);
+    // Chain level, which treats a replacement as the same order continuing
+    // rather than as a new one, since ITCH only renames it.
+    let (mut chains_ended, mut chains_any_fill, mut chains_full_fill) = (0u64, 0u64, 0u64);
+    let (mut chain_len_sum, mut chain_len_max, mut chains_replaced_once) = (0u128, 0u32, 0u64);
     let mut r = Reader::new(&src);
     let mut n = 0u64;
     while n < limit {
@@ -189,9 +205,16 @@ fn main() {
         // execution messages count.
         if let Msg::Executed { order, shares, .. } | Msg::ExecutedWithPrice { order, shares, .. } = m {
             if let Some(e) = live.get_mut(&order) {
-                e.2 += shares;
+                e.done += shares;
             }
         }
+        // A replacement inherits what the chain has already executed and how
+        // many instances it has had, read while the replaced order is still
+        // in the table.
+        let carry = match m {
+            Msg::Replace { old, .. } => live.get(&old).map(|e| (e.done + e.chain_done, e.chain_len)),
+            _ => None,
+        };
         // The side of a replacement comes from the order it replaces, which
         // is still live until the message is applied.
         let old_side = match m {
@@ -225,13 +248,31 @@ fn main() {
             if ahead == 0 {
                 front += 1;
             }
-            live.insert(order, (b, shares, 0));
+            let (chain_done, prev_len) = carry.unwrap_or((0, 0));
+            live.insert(order, Instance { bucket: b, size: shares, done: 0, chain_done, chain_len: prev_len + 1 });
         }
+        // An instance that ends because it was replaced is not a chain end:
+        // the chain carries on under the new reference.
+        let replaced = matches!(m, Msg::Replace { .. });
         for o in ending {
             if o == 0 || book.order_info(o).is_some() {
                 continue;
             }
-            let Some((b, size, done)) = live.remove(&o) else { continue };
+            let Some(Instance { bucket: b, size, done, chain_done, chain_len }) = live.remove(&o) else { continue };
+            if !replaced {
+                chains_ended += 1;
+                chain_len_sum += chain_len as u128;
+                chain_len_max = chain_len_max.max(chain_len);
+                if chain_len > 1 {
+                    chains_replaced_once += 1;
+                }
+                if done + chain_done > 0 {
+                    chains_any_fill += 1;
+                }
+                if done >= size {
+                    chains_full_fill += 1;
+                }
+            }
             ended[b] += 1;
             if done > 0 {
                 any_fill[b] += 1;
@@ -270,6 +311,17 @@ fn main() {
         (total_ended - total_any) as f64 / total_ended.max(1) as f64,
         total_any as f64 / total_ended.max(1) as f64,
         total_full as f64 / total_ended.max(1) as f64,
+    );
+    // The same question asked of order chains rather than order instances, so
+    // that an order repriced ten times counts once and not eleven times.
+    println!(
+        "queue_chain feed={name} chains_ended={chains_ended} never_executed={} never_executed_rate={:.4} any_fill_rate={:.4} full_fill_rate={:.4} mean_instances={:.4} max_instances={chain_len_max} chains_replaced_at_least_once={chains_replaced_once} replaced_share={:.4}",
+        chains_ended - chains_any_fill,
+        (chains_ended - chains_any_fill) as f64 / chains_ended.max(1) as f64,
+        chains_any_fill as f64 / chains_ended.max(1) as f64,
+        chains_full_fill as f64 / chains_ended.max(1) as f64,
+        chain_len_sum as f64 / chains_ended.max(1) as f64,
+        chains_replaced_once as f64 / chains_ended.max(1) as f64,
     );
     drop(live);
 
