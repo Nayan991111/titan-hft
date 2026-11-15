@@ -130,6 +130,26 @@ impl L3Book {
         None
     }
 
+    /// Shares resting at each of the first `out.len()` price levels on one
+    /// side, nearest the best price first, written into `out`. Returns how
+    /// many levels were written, which is fewer than `out.len()` when the
+    /// side holds fewer levels than that.
+    ///
+    /// This is the shape of the side rather than its total: whether depth
+    /// thins or thickens with distance from the touch decides whether the
+    /// cost of filling a size grows faster or slower than the size.
+    #[inline(always)]
+    pub fn depth_profile(&self, locate: u16, side: Side, out: &mut [u64]) -> usize {
+        let buy = side == Side::Buy;
+        let Some(levels) = self.levels.get(locate as usize) else { return 0 };
+        let mut n = 0;
+        for (slot, l) in out.iter_mut().zip(levels[(!buy) as usize].iter().rev()) {
+            *slot = l.shares;
+            n += 1;
+        }
+        n
+    }
+
     /// Best price on one side whose level holds at least `min_shares`,
     /// with that level's shares. Thinner levels nearer the top are skipped.
     /// At `min_shares` of 1 this is `best`; at 100 it is a proxy for a

@@ -52,6 +52,23 @@ impl RefBook {
         None
     }
 
+    /// Naive equivalent of `L3Book::depth_profile`, built by sorting the
+    /// whole side rather than by walking a maintained order.
+    pub fn depth_profile(&self, locate: u16, side: Side, out: &mut [u64]) -> usize {
+        let Some(l) = self.levels.get(&(locate, side == Side::Buy)) else { return 0 };
+        let mut v: Vec<(u32, u64)> = l.iter().map(|(&p, &(s, _))| (p, s)).collect();
+        // Bids run from the highest price down, asks from the lowest up.
+        if side == Side::Buy {
+            v.reverse();
+        }
+        let mut n = 0;
+        for (slot, (_, s)) in out.iter_mut().zip(v) {
+            *slot = s;
+            n += 1;
+        }
+        n
+    }
+
     /// Instrument, side and price of a live order.
     pub fn order_level(&self, order: u64) -> Option<(u16, Side, u32)> {
         self.orders.get(&order).map(|o| (o.locate, o.side, o.price))

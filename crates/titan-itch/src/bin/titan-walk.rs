@@ -45,6 +45,9 @@ const STAGES: [&str; 5] = ["none", "top", "walk_100", "walk_1000", "walk_10000"]
 /// Sizes measured in the untimed pass, in shares. 100 is one round lot.
 const SIZES: [u64; 5] = [100, 500, 1_000, 5_000, 10_000];
 
+/// Levels from the touch whose depth is reported.
+const PROFILE: usize = 8;
+
 #[inline(always)]
 fn size_of_stage(design: &str) -> u64 {
     match design {
@@ -192,6 +195,21 @@ fn main() {
     let mut levels_sum = [0u64; SIZES.len()];
     let mut worst_bps = [0f64; SIZES.len()];
     let (mut opportunities, mut one_sided) = (0u64, 0u64);
+    // The same costs over one fixed population: the sides that can fill every
+    // size. Fillability rises with the side's total, so a side that fills the
+    // largest size fills all of them, and conditioning on the largest gives
+    // all five series the same denominator. Without this, each size is
+    // averaged over a different and progressively more liquid set of books.
+    let mut cond_bps = [0f64; SIZES.len()];
+    let mut cond_move = [0f64; SIZES.len()];
+    let mut cond_levels = [0u64; SIZES.len()];
+    let mut cond_sides = 0u64;
+    // Mean shares per level by distance from the touch, which is the shape
+    // that decides whether cost grows faster or slower than size.
+    let mut prof_all = [0u128; PROFILE];
+    let mut prof_all_n = [0u64; PROFILE];
+    let mut prof_cond = [0u128; PROFILE];
+    let mut prof_cond_n = [0u64; PROFILE];
     let mut r = Reader::new(&src);
     let mut n = 0u64;
     while n < limit {
@@ -206,6 +224,21 @@ fn main() {
                 continue;
             };
             opportunities += 1;
+            let mut lvl = [0u64; PROFILE];
+            let seen = book.depth_profile(loc, side, &mut lvl);
+            for k in 0..seen {
+                prof_all[k] += lvl[k] as u128;
+                prof_all_n[k] += 1;
+            }
+            // The largest size decides the fixed population.
+            let deep = book.walk(loc, side, SIZES[SIZES.len() - 1]).is_some();
+            if deep {
+                cond_sides += 1;
+                for k in 0..seen {
+                    prof_cond[k] += lvl[k] as u128;
+                    prof_cond_n[k] += 1;
+                }
+            }
             for (i, &size) in SIZES.iter().enumerate() {
                 match book.walk(loc, side, size) {
                     Some((cost, levels, last)) => {
@@ -225,6 +258,11 @@ fn main() {
                         levels_sum[i] += levels as u64;
                         if bps > worst_bps[i] {
                             worst_bps[i] = bps;
+                        }
+                        if deep {
+                            cond_bps[i] += bps;
+                            cond_move[i] += moved;
+                            cond_levels[i] += levels as u64;
                         }
                     }
                     None => unfillable[i] += 1,
@@ -253,6 +291,29 @@ fn main() {
         join(&|i| format!("{:.6}", 100.0 * move_sum[i] / quoted[i].max(1) as f64 / SIZES[i] as f64)),
         join(&|i| format!("{:.3}", levels_sum[i] as f64 / quoted[i].max(1) as f64)),
         join(&|i| format!("{:.2}", worst_bps[i])),
+    );
+    // The same costs over the one population that can fill every size, so
+    // the five series share a denominator and can be compared across sizes.
+    println!(
+        "walk_cond feed={name} sizes={} sides={cond_sides} share_of_quotable={:.4} bps_mean={} bps_per_100_shares={} move_bps_mean={} move_bps_per_100_shares={} levels_mean={}",
+        SIZES.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(","),
+        cond_sides as f64 / opportunities.max(1) as f64,
+        join(&|i| format!("{:.4}", cond_bps[i] / cond_sides.max(1) as f64)),
+        join(&|i| format!("{:.6}", 100.0 * cond_bps[i] / cond_sides.max(1) as f64 / SIZES[i] as f64)),
+        join(&|i| format!("{:.4}", cond_move[i] / cond_sides.max(1) as f64)),
+        join(&|i| format!("{:.6}", 100.0 * cond_move[i] / cond_sides.max(1) as f64 / SIZES[i] as f64)),
+        join(&|i| format!("{:.3}", cond_levels[i] as f64 / cond_sides.max(1) as f64)),
+    );
+    let prof = |s: &[u128; PROFILE], c: &[u64; PROFILE]| {
+        (0..PROFILE).map(|k| format!("{:.1}", s[k] as f64 / c[k].max(1) as f64)).collect::<Vec<_>>().join(",")
+    };
+    let cnt = |c: &[u64; PROFILE]| c.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",");
+    println!(
+        "walk_depth feed={name} levels_from_touch=1,2,3,4,5,6,7,8 all_mean_shares={} all_sides={} deep_mean_shares={} deep_sides={}",
+        prof(&prof_all, &prof_all_n),
+        cnt(&prof_all_n),
+        prof(&prof_cond, &prof_cond_n),
+        cnt(&prof_cond_n),
     );
 
     let freq = clock::counter_frequency() as f64;

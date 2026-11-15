@@ -238,3 +238,47 @@ fn walk_matches_the_reference_book() {
         }
     }
 }
+
+/// The shape of a side must match a reference that sorts it, at every
+/// message, for buffers shorter than, equal to, and longer than the side.
+#[test]
+fn depth_profile_matches_the_reference_book() {
+    let instruments: u16 = 12;
+    let buf = feed(0xD3E7, instruments, 150_000, Mix::default());
+    let mut fast = L3Book::new(20, instruments as usize + 1);
+    let mut slow = RefBook::default();
+    let mut r = Reader::new(&buf);
+    let (mut checks, mut deep) = (0usize, 0usize);
+    while let Some(m) = r.next_msg() {
+        let m = m.expect("well-formed feed");
+        fast.apply(&m);
+        slow.apply(&m);
+        let Some(loc) = locate_of(&m) else { continue };
+        for side in [Side::Buy, Side::Sell] {
+            for cap in [1usize, 3, 8, 64] {
+                let (mut a, mut b) = (vec![0u64; cap], vec![0u64; cap]);
+                let (na, nb) = (fast.depth_profile(loc, side, &mut a), slow.depth_profile(loc, side, &mut b));
+                assert_eq!(na, nb, "level count differs for locate {loc} {side:?} cap {cap}");
+                assert_eq!(a[..na], b[..nb], "level shares differ for locate {loc} {side:?} cap {cap}");
+                if na > 2 {
+                    deep += 1;
+                }
+                checks += 1;
+            }
+        }
+        // The nearest level must be the one `best` reports, and the profile
+        // must sum to no more than the whole side.
+        for side in [Side::Buy, Side::Sell] {
+            let mut p = [0u64; 64];
+            let n = fast.depth_profile(loc, side, &mut p);
+            if let Some((_, shares)) = fast.best(loc, side) {
+                assert!(n > 0, "best exists but the profile is empty");
+                assert_eq!(p[0], shares, "nearest level disagrees with best");
+            } else {
+                assert_eq!(n, 0, "no best but the profile is not empty");
+            }
+        }
+    }
+    assert!(checks > 500_000, "too few comparisons: {checks}");
+    assert!(deep > 10_000, "the feed never built a side past two levels: {deep}");
+}

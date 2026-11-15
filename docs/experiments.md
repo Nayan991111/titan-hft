@@ -89,6 +89,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H57 | Queue position, which the fourth brief makes a headline task, and the cancellation rate it states: on the real feed (a) the share of orders that see any execution is non-increasing across the five queue-position buckets (0, 1 to 99, 100 to 999, 1000 to 9999, 10000 or more shares ahead on arrival); (b) an order arriving with nothing ahead of it sees an execution at least twice as often as one arriving with 10000 or more shares ahead; (c) more than half of the orders that end inside the window end without any execution, which is the brief's stated 50% cancellation rate or more; (d) knowing the queue position of every arriving order costs less than 1.35x the book alone above the decode floor | (a) refuted, (b), (c), (d) supported | (a) refuted by a reversal at the first step: orders arriving with nothing ahead execute at 0.0266 against 0.0961 for orders with 1 to 99 shares ahead, 3.61x higher; from the second bucket on the series is monotone (0.0961, 0.0158, 0.0046, 0.0030), and the synthetic feed shows no reversal at all (0.1950, 0.1878, 0.1858, 0.1493, 0.0802). Shares ahead conflates queue position with whether the price has a queue: 71.6% of BX arrivals opened a level rather than joined one, and being alone at a price the market is not trading beats nothing. (b) 0.0266 against 0.0030, a ratio of 8.87 against a threshold of 2. (c) 4,284,968 of 4,386,147 ended orders never executed, 0.9769, against the brief's 50%; only 0.0210 filled in full. (d) X(queue)/X(book) = 1.092 [1.082, 1.101] BX, 1.205 synthetic, against a ceiling of 1.35; instructions rose 168.73 to 187.30 while cycles rose 9.2% and IPC rose 1.486 to 1.545. results/2026-11-14_m4_queue_walk.txt |
 | H58 | The fourth brief's claim that the change in price grows as size raised to a power above one, and its worked example of a tidy ladder of depth, tested on displayed depth: on the real feed (a) the quote move needed to fill a size, per share, rises across 100, 500, 1000, 5000 and 10000 shares; (b) the average price paid per share, in basis points from the best price, also rises across those sizes; (c) at least 1 in 100 attempts to fill 10000 shares cannot be filled from the displayed side at all; (d) walking the book to fill 10000 shares costs at least 1.5x the best-price query above the decode floor | (a), (b) refuted (confounded, see note), (c), (d) supported | (a) and (b) refuted on the measured numbers: move per 100 shares 4.188, 31.538, 17.026, 1.666, 1.258 and cost per 100 shares 2.402, 11.314, 3.844, 0.525, 0.591, each rising once then falling. Confound recorded, not argued away: a size the side cannot fill is excluded, and the exclusion runs 0.08%, 18.50%, 38.86%, 78.89%, 87.01%, so the mean at 10000 shares is taken over a far more liquid population than the mean at 100; this refutes the registered statement, not the brief's exponent, and the conditioned test is the open item. What survives: at 100 shares, fillable 99.92% of the time, immediacy costs 2.40 bps and the quote moves 4.19 bps over 15,618,175 sides. (c) 13,600,453 of 15,630,442 attempts to fill 10000 shares could not be filled at all, 0.8701 against a threshold of 0.01, and 1000 shares fails 38.86% of the time; the synthetic feed fails only 2.36%. (d) X(walk_10000)/X(top) = 1.667 [1.663, 1.683] BX against a floor of 1.5. New finding: the walk is cheaper on the real feed than the synthetic one (1.667 against 2.140) because it visits 4.512 levels against 10.772; on a real venue the walk is cheap because there is little to walk, which is the same thinness that refutes the brief's ladder. results/2026-11-14_m4_queue_walk.txt |
 | H59 | The three defects in how H57 and H58 were measured, corrected: the window was the first 10,000,000 of the session's 28,734,686 messages, and a replacement was counted as a new order. On the whole session, counting order chains rather than instances: (a) more than half of chains that end never execute at all, so the earlier figure is not an artifact of counting replacements; (b) the chain rate is below the instance rate on the same data by less than 8 percentage points; (c) the displayed side cannot fill 10000 shares in more than half of attempts; (d) every headline rate in (a) and (c) moves by less than 5 percentage points between the first 10,000,000 messages and the whole session, so the earlier window was representative | all four supported | (a) 10,110,283 of 10,629,593 chains that began and ended within the session never executed a share, 0.9511, against a threshold of 0.50. (b) chain 0.9511 against instance 0.9590, a gap of 0.79 points inside the 8 point ceiling; the accounting closes exactly, 12,676,036 instances minus 10,629,593 chains equals the 2,046,443 replacements; mean chain 1.1925 instances, only 3.21% ever replaced, longest chain 13,248 instances. (c) 40,367,075 of 46,884,746 attempts to fill 10000 shares could not be filled at all, 0.8610 against 0.50; 1000 shares fails 0.4390. (d) every rate moved under the 5 point threshold between the opening 10,000,000 messages and the whole session: chain 0.9700 to 0.9511 (1.89), instance 0.9769 to 0.9590 (1.79), unfillable at 10000 0.8701 to 0.8610 (0.91), so the earlier window was representative and the seventeenth run was not biased by it. still_resting=0: every order that arrived in the session also ended in it, so the population is complete with no truncation at either edge. H57's first-step reversal survives and grows: 0.1514 for 1 to 99 shares ahead against 0.0462 for nothing ahead, 3.28x, with the extremes 7.00x apart and the synthetic feed still showing no reversal. Cost ratios replicate on a feed 2.87x larger: queue/book 1.093 [1.076, 1.122] against 1.092, walk_10000/top 1.715 [1.699, 1.724] against 1.667. H58's survivorship confound is larger here, not smaller, and stays open. Supersedes the H57 and H58 rates for quotation. results/2026-11-15_m4_wholeday_chains.txt |
+| H60 | The survivorship confound H58 recorded, closed by conditioning on one fixed population: the sides that can fill every size, which by monotonicity are the sides that can fill the largest. On the real feed, over that population: (a) the quote move per share rises across 100, 500, 1000, 5000 and 10000 shares, which is the fourth brief's power above one; (b) the average price paid per share rises across those sizes; (c) mean shares per level does not fall with distance from the touch, that being the shape which makes cost per share fall rather than rise; (d) conditioning changes the shape of the per-share series against the unconditioned one, so the confound was material; if the shapes match, H58's refutation stands as measured rather than as confounded | pending (nineteenth run) | |
 
 ## Notes on `titan-t2t`
 
@@ -1029,6 +1030,60 @@ development machine. Nothing from the whole session has been measured for any
 of these quantities on any machine. Parts (a) and (d) are set from nothing
 measured: (a) from the fourth brief's own figure of fifty percent, and (d) from
 the question itself.
+
+## Pre-registered 2026-11-15, nineteenth run
+
+**H60 (the confound closed, and the shape that explains it).** H58 reported
+its two impact series refuted and recorded the refutation as confounded. The
+confound was real and was named before the verdict was written: a size the
+displayed side cannot fill is excluded from the cost at that size, and on the
+whole BX session the exclusion runs from 0.11% at 100 shares to 86.10% at
+10000. The mean at the largest size is therefore taken over the deepest and
+tightest books in the sample, and the mean at the smallest over nearly all of
+them. Comparing those means across sizes compares different populations, so it
+cannot test a claim about how cost grows with size.
+
+The fix needs no new theory. Fillability rises with the side's total, so a side
+that can fill 10000 shares can fill every smaller size; conditioning on the
+largest size gives all five series one denominator and one population.
+`L3Book::walk` already answers whether a side can fill a size, so the
+conditioned measurement is the same traversal restricted to the sides that
+pass, and it is reported beside the unconditioned one rather than replacing it.
+
+Part (c) is the mechanism rather than another rate. If depth thins with
+distance from the touch, filling a larger size reaches progressively emptier
+levels and the cost per share rises, which is a power above one. If depth
+thickens, the cost per share falls, which is a power below one. `depth_profile`
+reports mean shares at each of the first eight levels from the touch, over all
+quotable sides and over the conditioned population separately, and is checked
+against the reference book at every message for buffers shorter than, equal to
+and longer than the side, with the nearest level asserted equal to what `best`
+reports.
+
+Part (d) is a test of my own earlier caveat, and it can go against me. If the
+conditioned series has the same pattern of rises and falls as the unconditioned
+one, then conditioning changed nothing, the confound was immaterial, and H58's
+refutation should be restated as a plain refutation rather than a confounded
+one. That correction would be recorded.
+
+Decision rules: every quantity here is an exact count or mean over the stated
+population, not a sample, so none carries an interval. A part claiming a
+direction across five sizes or eight levels is refuted by a single reversal,
+with the reversal named. Both feeds are run; the verdicts are set by the real
+feed, with the synthetic feed reported as contrast.
+
+Disclosure: a 400,000 message synthetic smoke run on this development machine
+was observed while building the measurement. On that feed, depth thickened from
+494 shares at the first level to 1791 at the eighth, conditioning changed
+almost nothing because 98.23% of sides could already fill the largest size, and
+both per-share series fell. That is the opposite of the direction registered in
+(a) and (b), which are again registered in the brief's direction deliberately,
+so that the run tests the brief and not my expectation. The size of the
+conditioned population on the real feed is also roughly known in advance, since
+H59 measured that 13.90% of BX sides can fill 10000 shares; part (d) is
+therefore about the shape of the series and not about how many sides qualify.
+Nothing about the real feed's conditioned costs or its depth profile has been
+measured, on any machine.
 
 ## Note on the 2026-11-14 run
 
