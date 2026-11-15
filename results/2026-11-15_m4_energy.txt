@@ -1,0 +1,106 @@
+What waiting costs in energy on a fanless chip (H63)
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 6692228, 2026-11-15 20:52 IST.
+AC power, Low Power Mode off, Docker quit, no thermal or performance warning recorded at any
+point across all three launches. No PMU in the binary at all: powermetrics seizes the Apple
+Silicon counters, so the pipeline ran without kperf and power was measured from outside the
+process. One powermetrics process per arm at 200 ms, stopped when the arm ended, so each raw
+file holds only that arm's samples; first and last sample of each arm dropped. 21 arms over 3
+launches: idle, then wfe, spin and isb at 13,271 msg/s and at 20,000,000 msg/s offered.
+53 to 177 samples per arm, 10.9 to 36.3 s per window.
+
+This is the first energy measurement anywhere in this work. No wait-strategy result before it
+reported power, only latency and its tail.
+
+H63 (a) SUPPORTED. At 13,271 msg/s, wfe draws less CPU power than both spin and isb in all 3
+    launches, measured above that launch's own idle baseline:
+        launch 1   wfe 2734.4   spin 6572.5   isb 4655.4   mW above idle
+        launch 2   wfe 1859.0   spin 5275.3   isb 3667.6
+        launch 3   wfe 2702.2   spin 6194.7   isb 4601.9
+    The ordering also holds on the raw figures with no subtraction at all, which matters
+    because the baseline is unreliable (see (e)).
+
+(b) SUPPORTED. Median of the per-launch spin to wfe ratios is 2.404 against a registered
+    threshold of 2 (2.403, 2.838, 2.292 by launch). Robust to how the statistic is formed:
+    the ratio of medians is 2.292 and the ratio of raw unsubtracted means is 2.232. All three
+    clear 2.
+
+(c) SUPPORTED, and by a wide margin. At 20,000,000 msg/s offered, the three waits fall within
+    1.0021x, 1.0225x and 1.0153x of each other by launch on the raw figures, and within
+    1.0021x, 1.0307x and 1.0158x above idle, against a registered 1.25x. So the difference in
+    (a) belongs to waiting and not to the work. Means across launches: wfe 4003.8, spin
+    4015.5, isb 4048.1 mW.
+
+(d) REFUTED. P-cluster active residency at 13,271 msg/s is not lower for wfe in all 3
+    launches: launch 2 has wfe at 90.6% against spin 90.1% and isb 90.2%, so wfe is the
+    highest of the three there. Launches 1 and 3 pass (89.0 against 90.4 and 90.5; 90.3
+    against 90.4 and 90.6).
+
+    The refutation understates what the numbers say, and the real result is this. Mean
+    P-cluster active residency at 13,271 msg/s is 90.0% for wfe, 90.3% for spin and 90.4% for
+    isb. They are the same to within half a percentage point, while the power differs by
+    2.26x. Mean P-cluster active frequency is 3965.2 MHz for wfe, 3730.3 for spin and 3977.2
+    for isb, so wfe draws less than half the power of spin while running at a HIGHER clock
+    than spin.
+
+    Parking the core on the exclusive monitor therefore saves energy without the core
+    becoming idle in any sense macOS reports, and without clocking down. The saving is in
+    what the core executes while waiting, not in whether it is awake: spin and isb retire
+    load instructions continuously, wfe issues one and stalls on the monitor. Residency is
+    the wrong proxy for energy on this core, and anyone profiling Apple Silicon wait
+    strategies through residency alone would conclude the three are equivalent when one of
+    them costs less than half as much.
+
+    This is the third proposed mechanism in three days that measured true and explained
+    nothing, or measured nothing while the effect was large: the depth profile in H60 (c),
+    the L1D load misses in H61 (d), and residency here. All three are recorded as such. On
+    this core the intuitive counter-visible proxy repeatedly fails to account for the
+    measured effect, and that pattern is itself a methodological finding.
+
+(e) REFUTED, by the baseline arm and by no other. Launch-to-launch spread per arm against the
+    registered 1.25x:
+        idle      40.4 to 1052.9 mW    26.062x   FAIL
+        low wfe  2774.8 to 2911.9       1.049x   pass
+        low spin 6328.2 to 6612.9       1.045x   pass
+        low isb  4695.8 to 4735.4       1.008x   pass
+        sat wfe  3947.4 to 4114.2       1.042x   pass
+        sat spin 3940.1 to 4105.8       1.042x   pass
+        sat isb  4000.3 to 4105.6       1.026x   pass
+    Every arm that carries a comparison is stable to within 4.9%. The idle arm is not, and
+    the cause is identifiable: the script warned that Google Chrome was running and it was
+    not quit. Launch 2's idle window shows P-cluster residency of 8.9% and E-cluster 29.6%
+    against launch 1's 0.0% and 5.3%, so that window caught background work rather than a
+    machine at rest.
+
+    Why the verdicts survive it. The measurement arms draw 2.8 to 6.6 W while the baseline is
+    0.04 to 1.05 W, so the baseline is a correction of 1% to 16% rather than the signal, and
+    every verdict above was checked both with and without subtraction and does not change.
+    The figure that cannot be trusted from this run is absolute energy per message, which
+    depends on the baseline; the figures that can are the ratios between waits at the same
+    load, which do not.
+
+Energy per message, reported as an upper bound and not as a measurement. Each arm's window
+includes the binary's own setup, chiefly reading an 837 MB feed file, so some of the measured
+energy is not attributable to message processing. Above each launch's own idle baseline:
+        13,271 msg/s      wfe 165.9 to 248.4 uJ   spin 470.8 to 596.9   isb 327.3 to 422.8
+        20,000,000 msg/s  wfe 0.317 to 0.446 uJ   spin 0.319 to 0.445   isb 0.323 to 0.446
+Taking medians, a message costs about 581 times more energy under wfe at feed rate than at
+saturation, and about 1,335 times more under spin. The overhead inside the window is
+proportionally larger in the saturating arm, roughly half of a 10.95 s window for about 5 s of
+work at the achieved rate, so these multiples are understated rather than overstated.
+
+Two limitations recorded rather than left for a reviewer to find. First, the saturation flag
+could not be extracted from the run output because the pattern used to pull it matched an
+empty string, so saturation is not directly confirmed; the achieved rate was 19.42 to 20.00
+million messages per second against 20.00 offered, which places the harness at or very near
+its limit, and the near-identical power across the three waits is itself the evidence that
+waiting is not differentiating them there. Second, P-cluster residency in the saturating arms
+is 69.3% against about 90% in the low-rate arms, which is the opposite of what the load
+implies and is attributable to the same setup time sitting inside the window; it is a reason
+to treat the saturating arm's absolute figures with care and not its comparisons.
+
+The usable result for the paper. At the real feed's rate on a fanless MacBook Air, the
+trading core draws 2.84 W waiting on the exclusive monitor, 4.72 W spinning with a pipeline
+hint, and 6.42 W spinning bare. The pipeline hint recovers 26.6% of the gap between bare
+spinning and wfe, and wfe costs 2.26x less than bare spinning. At saturation the three are
+indistinguishable within 3%. None of this is visible in P-cluster residency, which reads
+about 90% in all three cases.
