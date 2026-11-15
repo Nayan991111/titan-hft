@@ -92,6 +92,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H60 | The survivorship confound H58 recorded, closed by conditioning on one fixed population: the sides that can fill every size, which by monotonicity are the sides that can fill the largest. On the real feed, over that population: (a) the quote move per share rises across 100, 500, 1000, 5000 and 10000 shares, which is the fourth brief's power above one; (b) the average price paid per share rises across those sizes; (c) mean shares per level does not fall with distance from the touch, that being the shape which makes cost per share fall rather than rise; (d) conditioning changes the shape of the per-share series against the unconditioned one, so the confound was material; if the shapes match, H58's refutation stands as measured rather than as confounded | (a), (b), (c) refuted, (d) supported | Fixed population 6,517,671 sides, 13.90% of quotable. (a) quote move per 100 shares 0.0743, 1.0391, 1.3571, 0.6732, 0.9337: reversal at 1000 to 5000. (b) paid per 100 shares 0.0488, 0.5252, 0.6100, 0.3922, 0.3673: reversals at 1000 to 5000 and 5000 to 10000. This refutes the brief's functional form, not just its exponent: under a power law the cost per share is monotone in size for every exponent, so a series that rises then falls admits no exponent at all. Peak near 1000 shares. (c) mean shares per level from the touch 5103.6, 6297.5, 5809.0, 4799.1, 3554.6, 2668.1, 1990.1, 1671.8: depth peaks at the second level then thins at every further level, down 73.45% to the eighth, a factor of 3.767; the registered claim was that it does not fall. The synthetic feed is inverted, thickening 502.5 to 1789.7, a factor of 3.562, and a 10000 share walk visits 4.344 levels on the real feed against 10.772 on the synthetic one, so a synthetic generator of this kind does not reproduce real depth shape. Second correction against my own registered reasoning: a mean profile does not fix the cost shape, since mean first-level depth is 5103.6 shares yet filling 1000 still takes 1.478 levels, so the distribution of depth at the touch governs it, not the average; the non-monotone cost is left unexplained rather than attributed. (d) supported: unconditioned series peak at 500 and fall thereafter, conditioned peak at 1000 and rise twice first, so the confound was material and H58's caveat was warranted. H58 (a) and (b) keep their refuted and confounded verdicts and are superseded for quotation by H60 (a) and (b); the open item H58 created is closed. results/2026-11-15_m4_conditioned_impact.txt |
 | H61 | The padding question H3b and H14 left unsettled, under the independent-launch protocol: 30 launches of `titan-stream`, AC power, PMU, paired within each launch so code layout and allocator placement cancel. Index placement is already controlled in the code (`Indices` is 128-byte aligned, so pad=64 puts both cells in one line and pad=128 does not, verified at run time by `same_line`). On the M4: (a) in uncached AcqRel streaming, pad=64 is cheaper in cycles per message than pad=128 in at least 21 of 30 launches (two-sided sign test p = 0.0428 at that count); (b) the same for cached AcqRel streaming; (c) the median paired difference in the uncached AcqRel case is at least 10% of the median pad=128 cycles per message; (d) L1D load misses per message are lower for pad=64 in at least 21 of 30 launches, uncached AcqRel, which would be the mechanism: one 128-byte line touched instead of two | (a), (b), (c) refuted, (d) supported | Placement verified in output: pad=64 reported same_line=1 and pad=128 same_line=0 in every case. (a) uncached AcqRel, pad=64 cheaper in 16 of 30 launches, p = 0.8555, median paired difference +0.055 cycles [-0.495, +0.625]: no effect. (b) cached AcqRel, 14 of 30, p = 0.8555, -0.090 cycles [-0.480, +0.355]: no effect. (c) 0.055 against a pad=128 median of 24.630 cycles is 0.22%, not the registered 10%. (d) uncached AcqRel L1D load misses lower for pad=64 in 30 of 30 launches, p < 0.0001, +0.311 [+0.239, +0.387]. BUT (d) is confirmed as a fact and REJECTED AS THE EXPLANATION for (a) to (c): the two are decoupled in both directions. Where the miss difference is cleanest (AcqRel) there is no cycle difference; where the cycle difference is largest (SeqCst) there is no miss difference (+0.042, 17 of 30, p = 0.5847). Second mechanism in two days that measured true and explained nothing, after H60 (c). THE UNREGISTERED RESULT: the padding answer depends on the memory ordering, uncached cycles per message, pad=128 against pad=64, paired over 30 launches: acqrel 24.630 vs 24.790 (+0.055, 0.2%, 16 of 30, p = 0.8555); fenced 89.110 vs 86.485 (+4.335, 4.9%, 23 of 30, p = 0.0052); seqcst 167.280 vs 93.920 (+71.215, 42.6%, 29 of 30, p < 0.0001). Cached, the Fenced sign flips to pad=128 (8 of 30, p = 0.0161). So padding to the coherence granule is correct for some orderings and inverted for others on this core. Coherence traffic rather than cache fills is offered as a candidate explanation and not claimed, since testing it needs a snoop event rather than L1D_LOAD_MISS. results/2026-11-15_m4_launch_protocol.txt |
 | H62 | H30b repeated under controlled conditions, since its own record says the run was noisy and the direction not established: `titan-pipeline file=BX from=34200 limit=100000`, once `rates=13271` and once `speed=1`, waits wfe, spin and isb, 5 epochs, 5 independent launches, AC power, nothing else running. (a) the p99 under the real timestamps is within 1.5x the p99 at a constant 13,271 msg/s for all three waits, as H30b found; (b) for each wait the real-timestamp p99 varies by less than 1.25x between the highest and lowest launch, so the run-to-run instability that weakened H30b is absent; (c) the constant-rate arm varies by less than 1.25x across launches for each wait, so any instability found in (b) belongs to the burst structure and not to the harness | (a) supported but uninformative, (b), (c) refuted | (a) median p99 over 5 launches, real timestamps against constant 13,271 msg/s: isb 2,083 vs 1,889 ns (1.103x), spin 2,088 vs 1,913 (1.091x), wfe 2,018 vs 1,870 (1.079x), all inside 1.5x. (b) refuted: real-timestamp isb spans 1,843 to 2,514 ns, 1.364x, above the 1.25x registered for all three waits (spin 1.135x and wfe 1.103x pass). (c) refuted too, and in a different wait: constant-rate spin spans 1,877 to 2,521 ns, 1.343x (isb 1.150x, wfe 1.019x pass). Both failing in different waits rules out the burst structure as the cause, which is what (c) was written to detect, and locates the instability in the machine and harness at this latency scale. CONSEQUENCE, as pre-registered: the arrival-structure effect (1.079x to 1.103x) is smaller than the launch-to-launch noise floor on the same quantity (1.364x), so the direction cannot be established on this machine and H30b is weakened accordingly. (a) is recorded as supported because its threshold was met, while noting a 1.5x threshold cannot discriminate against a 1.364x noise floor. Gained instead, measured rather than assumed: at a p99 near 2 us on this fanless machine, five independent launches of identical work differ by up to 1.36x. No later claim in this work about a smaller effect is admissible without more launches. results/2026-11-15_m4_launch_protocol.txt |
+| H63 | What waiting costs in energy on a fanless chip, the half of the wait-strategy question no counter in this work has touched. `titan-pipeline` with no PMU, so `powermetrics` can own the counters, 3 independent launches of 7 arms each: idle, then wfe, spin and isb at 13,271 msg/s and at a saturating offered load. (a) at 13,271 msg/s, mean CPU power above the idle baseline is lower for wfe than for both spin and isb, in all 3 launches; (b) the median ratio of spin to wfe power above idle is at least 2; (c) at saturating load, where the trading thread never waits, the three waits fall within 1.25x of each other, so any difference in (a) belongs to waiting and not to the work; (d) P-cluster active residency at 13,271 msg/s is lower for wfe than for spin and isb in all 3 launches, which would be the mechanism the OS can see; (e) each arm's power varies by less than 1.25x across the 3 launches, so the comparison sits above the launch-to-launch noise floor H62 measured | pending (twenty-first run) | |
 
 ## Notes on `titan-t2t`
 
@@ -1188,6 +1189,69 @@ its numbers are not evidence about the M4. Nothing has been measured on the M4
 for either hypothesis under this protocol. The 10% threshold in (c) is informed
 by the two earlier M4 battery runs, which showed 185 against 219 and 169
 against 220 cycles per message, differences of 15.5% and 23.2%.
+
+## Pre-registered 2026-11-15, twenty-first run
+
+**H63 (what waiting costs in energy).** Every wait-strategy result in this
+work so far reports latency and its tail. None reports energy, and on a
+fanless machine energy is not a secondary concern: a core that spins burns
+power and heats a chip with no fan to move the heat, which is the mechanism
+behind every thermal result here. The research note driving this work states
+that no Apple Silicon latency-and-energy data for wait strategies has been
+published, and a search of this log confirms the figure does not exist in it
+either.
+
+`wfe` parks the core on the exclusive monitor until the watched address is
+written. `spin` reloads the index continuously and `isb` does the same with a
+pipeline hint, so both keep retiring instructions. At 13,271 msg/s the gap
+between messages is about 75 us and the work per message is around a tenth of
+a microsecond, so more than 99.8% of the time is spent waiting rather than
+working. If parking the core saves anything, that is where it shows.
+
+Why `powermetrics` forces a separate run. It seizes the Apple Silicon PMU, so
+a binary reading hardware counters through kperf cannot run at the same time
+without failing on a busy counter. This batch therefore runs the pipeline with
+no PMU at all and measures from outside the process. One `powermetrics`
+process is started per arm and stopped when that arm ends, so each raw file
+holds only that arm's samples and no alignment by timestamp is needed. The
+first and last sample of every arm are dropped, because the first can begin
+before the binary and the last can end after it.
+
+Part (c) is the control that gives (a) its meaning. At a saturating offered
+load the trading thread has a message waiting every time it looks, so it never
+parks and never spins idly. If the three waits still differ there, the
+difference is not about waiting and (a) measures something else.
+
+Part (e) applies the lesson from H62 rather than ignoring it. H62 measured a
+launch-to-launch spread of up to 1.364x on a p99 near 2 us, and it would be
+inconsistent to establish that bound and then report an energy figure from a
+single run. Three launches per arm is the minimum that lets the spread be seen
+at all, and it is registered as a condition on the result rather than as a
+footnote: if an arm's power moves more than 1.25x across launches, the
+comparison is inside its own noise and will be reported that way.
+
+Decision rules: each arm's statistic is the mean CPU power over its samples,
+first and last dropped, minus the mean of the idle arm in the same launch.
+Parts (a) and (d) are counts over the 3 launches and must hold in all 3. Part
+(b) is the median ratio across launches. Parts (c) and (e) are ratios of arm
+statistics. None carries a bootstrap interval, because three launches is too
+few for one and saying so is more honest than printing a wide one.
+
+Disclosure: nothing about energy has been measured on this machine or any
+other, at any point in this work, so every threshold here comes from
+reasoning rather than from data. The factor of 2 in (b) is the line between an
+effect worth a paragraph in the paper and an effect worth a sentence; it is not
+an estimate of the magnitude, which is unknown to me. It is possible that
+`wfe` on this core holds its clock and saves nothing measurable, in which case
+(a) and (b) are refuted and the finding is that parking the core does not pay
+on Apple Silicon, which would be worth reporting exactly as loudly.
+
+A measurement risk recorded in advance: the exact field names
+`powermetrics` prints vary between macOS releases. The parser names any field
+it cannot find, in which file, and reports no number for it rather than
+substituting a zero, and every raw file is kept so it can be parsed by hand if
+the parser misses. If the format differs on the measurement machine, the data
+is not lost.
 
 ## Note on the 2026-11-14 run
 
