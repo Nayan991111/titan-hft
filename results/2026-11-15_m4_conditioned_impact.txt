@@ -1,0 +1,70 @@
+The cost of immediacy over one fixed population, and the depth shape (H60)
+Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit e052fc5, 2026-11-15 12:34 IST.
+No PMU and no timing hypothesis in this batch, so the run needed no elevated privilege
+and thermal state does not bear on any verdict here: every quantity is an exact count or
+mean over a stated population. Real feed: NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, all
+28,734,686 messages, 8,850 instruments, 46,884,746 quotable sides. Synthetic feed
+reported as contrast. Zero allocations in every pass.
+
+This run closes the survivorship confound that H58 recorded and did not resolve.
+
+H60 (a) REFUTED. Over the fixed population, the quote move per share does not rise across
+    the five sizes. Per 100 shares: 0.0743, 1.0391, 1.3571, 0.6732, 0.9337 basis points.
+    It rises twice, then reverses at 1,000 to 5,000 shares, 1.3571 down to 0.6732.
+
+(b) REFUTED. The average price paid per share does not rise either. Per 100 shares:
+    0.0488, 0.5252, 0.6100, 0.3922, 0.3673. Two rises, then reversals at 1,000 to 5,000
+    and again at 5,000 to 10,000.
+
+    What this refutes is stronger than a wrong exponent, and it is worth stating exactly.
+    The brief writes the change in price as a constant times size raised to a power. Under
+    that form the cost per share is the constant times size raised to the power less one,
+    which is monotone in size for every value of the power: rising above one, falling
+    below one, flat at one. A measured cost per share that rises and then falls cannot be
+    produced by any exponent. So the functional form is refuted on this venue, not merely
+    the value the brief assigns to its exponent. The peak sits near 1,000 shares.
+
+(c) REFUTED, and this is the most useful number in the run. Mean shares per level over
+    the fixed population, from the touch outward: 5103.6, 6297.5, 5809.0, 4799.1, 3554.6,
+    2668.1, 1990.1, 1671.8. Depth peaks at the second level and then thins at every
+    further level, falling 73.45% from the second to the eighth, a factor of 3.767. The
+    registered statement was that it does not fall. It falls.
+
+    The synthetic feed does the opposite. Its depth thickens monotonically at all eight
+    levels, 502.5 to 1789.7, a factor of 3.562. The two feeds therefore have inverted
+    depth shapes, and the consequence shows up directly in the systems measurement: a
+    walk to fill 10,000 shares visits 4.344 levels on the real feed and 10.772 on the
+    synthetic one. A synthetic generator of this kind does not reproduce the shape of a
+    real book, so order book code benchmarked only on synthetic feeds is being measured
+    against depth that thickens outward when real depth thins outward.
+
+    A second correction, against my own registered reasoning rather than against the
+    brief. Part (c) assumed that a mean depth profile fixes the cost-versus-size shape.
+    It does not, and the data shows why: mean depth at the first level over this
+    population is 5103.6 shares, yet filling 1,000 shares still takes 1.478 levels on
+    average, and filling 10,000 takes 4.344. The mean is inflated by very deep sides,
+    so what governs the cost at a given size is the distribution of depth at the touch
+    across sides and not its average. The mechanism in (c) is therefore weaker than
+    registered, and the non-monotone cost in (a) and (b) is not explained by the mean
+    profile alone. That explanation is not attempted here and is not claimed.
+
+(d) SUPPORTED. Conditioning changes the shape, so the confound H58 recorded was material
+    and the caveat was warranted. Unconditioned, both per-share series rise once and then
+    fall at every later size, peaking at 500 shares: move 4.5826, 39.3685, 16.6646,
+    1.1944, 0.9337 and paid 2.8129, 14.1828, 3.9299, 0.3854, 0.3673 per 100 shares.
+    Conditioned, both rise twice and peak at 1,000 shares. The peak moves by one size
+    step and the pattern of rises and falls differs.
+
+Consequence for H58, recorded rather than left implicit. H58's (a) and (b) keep their
+refuted verdicts and keep the confounded label, because (d) establishes the confound was
+real. They are superseded for quotation by H60 (a) and (b), which measure the same two
+series over one population and refute the brief's form cleanly. The open item H58 created
+is now closed.
+
+The fixed population: 6,517,671 sides, 13.90% of all quotable sides. Fillability rises
+with a side's total, so these are exactly the sides that can fill every one of the five
+sizes, and all five series share this denominator. On the synthetic feed the same
+condition holds for 97.64% of sides, which is why conditioning barely moves its numbers:
+its per-share series stay monotone falling both before and after conditioning (paid
+0.3771, 0.2197, 0.1792, 0.1002, 0.0717 per 100 shares), consistent with its thickening
+depth and with a power below one. The real feed admits no such exponent.
