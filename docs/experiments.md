@@ -90,6 +90,8 @@ are added afterwards and are never edited away when a prediction fails.
 | H58 | The fourth brief's claim that the change in price grows as size raised to a power above one, and its worked example of a tidy ladder of depth, tested on displayed depth: on the real feed (a) the quote move needed to fill a size, per share, rises across 100, 500, 1000, 5000 and 10000 shares; (b) the average price paid per share, in basis points from the best price, also rises across those sizes; (c) at least 1 in 100 attempts to fill 10000 shares cannot be filled from the displayed side at all; (d) walking the book to fill 10000 shares costs at least 1.5x the best-price query above the decode floor | (a), (b) refuted (confounded, see note), (c), (d) supported | (a) and (b) refuted on the measured numbers: move per 100 shares 4.188, 31.538, 17.026, 1.666, 1.258 and cost per 100 shares 2.402, 11.314, 3.844, 0.525, 0.591, each rising once then falling. Confound recorded, not argued away: a size the side cannot fill is excluded, and the exclusion runs 0.08%, 18.50%, 38.86%, 78.89%, 87.01%, so the mean at 10000 shares is taken over a far more liquid population than the mean at 100; this refutes the registered statement, not the brief's exponent, and the conditioned test is the open item. What survives: at 100 shares, fillable 99.92% of the time, immediacy costs 2.40 bps and the quote moves 4.19 bps over 15,618,175 sides. (c) 13,600,453 of 15,630,442 attempts to fill 10000 shares could not be filled at all, 0.8701 against a threshold of 0.01, and 1000 shares fails 38.86% of the time; the synthetic feed fails only 2.36%. (d) X(walk_10000)/X(top) = 1.667 [1.663, 1.683] BX against a floor of 1.5. New finding: the walk is cheaper on the real feed than the synthetic one (1.667 against 2.140) because it visits 4.512 levels against 10.772; on a real venue the walk is cheap because there is little to walk, which is the same thinness that refutes the brief's ladder. results/2026-11-14_m4_queue_walk.txt |
 | H59 | The three defects in how H57 and H58 were measured, corrected: the window was the first 10,000,000 of the session's 28,734,686 messages, and a replacement was counted as a new order. On the whole session, counting order chains rather than instances: (a) more than half of chains that end never execute at all, so the earlier figure is not an artifact of counting replacements; (b) the chain rate is below the instance rate on the same data by less than 8 percentage points; (c) the displayed side cannot fill 10000 shares in more than half of attempts; (d) every headline rate in (a) and (c) moves by less than 5 percentage points between the first 10,000,000 messages and the whole session, so the earlier window was representative | all four supported | (a) 10,110,283 of 10,629,593 chains that began and ended within the session never executed a share, 0.9511, against a threshold of 0.50. (b) chain 0.9511 against instance 0.9590, a gap of 0.79 points inside the 8 point ceiling; the accounting closes exactly, 12,676,036 instances minus 10,629,593 chains equals the 2,046,443 replacements; mean chain 1.1925 instances, only 3.21% ever replaced, longest chain 13,248 instances. (c) 40,367,075 of 46,884,746 attempts to fill 10000 shares could not be filled at all, 0.8610 against 0.50; 1000 shares fails 0.4390. (d) every rate moved under the 5 point threshold between the opening 10,000,000 messages and the whole session: chain 0.9700 to 0.9511 (1.89), instance 0.9769 to 0.9590 (1.79), unfillable at 10000 0.8701 to 0.8610 (0.91), so the earlier window was representative and the seventeenth run was not biased by it. still_resting=0: every order that arrived in the session also ended in it, so the population is complete with no truncation at either edge. H57's first-step reversal survives and grows: 0.1514 for 1 to 99 shares ahead against 0.0462 for nothing ahead, 3.28x, with the extremes 7.00x apart and the synthetic feed still showing no reversal. Cost ratios replicate on a feed 2.87x larger: queue/book 1.093 [1.076, 1.122] against 1.092, walk_10000/top 1.715 [1.699, 1.724] against 1.667. H58's survivorship confound is larger here, not smaller, and stays open. Supersedes the H57 and H58 rates for quotation. results/2026-11-15_m4_wholeday_chains.txt |
 | H60 | The survivorship confound H58 recorded, closed by conditioning on one fixed population: the sides that can fill every size, which by monotonicity are the sides that can fill the largest. On the real feed, over that population: (a) the quote move per share rises across 100, 500, 1000, 5000 and 10000 shares, which is the fourth brief's power above one; (b) the average price paid per share rises across those sizes; (c) mean shares per level does not fall with distance from the touch, that being the shape which makes cost per share fall rather than rise; (d) conditioning changes the shape of the per-share series against the unconditioned one, so the confound was material; if the shapes match, H58's refutation stands as measured rather than as confounded | (a), (b), (c) refuted, (d) supported | Fixed population 6,517,671 sides, 13.90% of quotable. (a) quote move per 100 shares 0.0743, 1.0391, 1.3571, 0.6732, 0.9337: reversal at 1000 to 5000. (b) paid per 100 shares 0.0488, 0.5252, 0.6100, 0.3922, 0.3673: reversals at 1000 to 5000 and 5000 to 10000. This refutes the brief's functional form, not just its exponent: under a power law the cost per share is monotone in size for every exponent, so a series that rises then falls admits no exponent at all. Peak near 1000 shares. (c) mean shares per level from the touch 5103.6, 6297.5, 5809.0, 4799.1, 3554.6, 2668.1, 1990.1, 1671.8: depth peaks at the second level then thins at every further level, down 73.45% to the eighth, a factor of 3.767; the registered claim was that it does not fall. The synthetic feed is inverted, thickening 502.5 to 1789.7, a factor of 3.562, and a 10000 share walk visits 4.344 levels on the real feed against 10.772 on the synthetic one, so a synthetic generator of this kind does not reproduce real depth shape. Second correction against my own registered reasoning: a mean profile does not fix the cost shape, since mean first-level depth is 5103.6 shares yet filling 1000 still takes 1.478 levels, so the distribution of depth at the touch governs it, not the average; the non-monotone cost is left unexplained rather than attributed. (d) supported: unconditioned series peak at 500 and fall thereafter, conditioned peak at 1000 and rise twice first, so the confound was material and H58's caveat was warranted. H58 (a) and (b) keep their refuted and confounded verdicts and are superseded for quotation by H60 (a) and (b); the open item H58 created is closed. results/2026-11-15_m4_conditioned_impact.txt |
+| H61 | The padding question H3b and H14 left unsettled, under the independent-launch protocol: 30 launches of `titan-stream`, AC power, PMU, paired within each launch so code layout and allocator placement cancel. Index placement is already controlled in the code (`Indices` is 128-byte aligned, so pad=64 puts both cells in one line and pad=128 does not, verified at run time by `same_line`). On the M4: (a) in uncached AcqRel streaming, pad=64 is cheaper in cycles per message than pad=128 in at least 21 of 30 launches (two-sided sign test p = 0.0428 at that count); (b) the same for cached AcqRel streaming; (c) the median paired difference in the uncached AcqRel case is at least 10% of the median pad=128 cycles per message; (d) L1D load misses per message are lower for pad=64 in at least 21 of 30 launches, uncached AcqRel, which would be the mechanism: one 128-byte line touched instead of two | pending (twentieth run) | |
+| H62 | H30b repeated under controlled conditions, since its own record says the run was noisy and the direction not established: `titan-pipeline file=BX from=34200 limit=100000`, once `rates=13271` and once `speed=1`, waits wfe, spin and isb, 5 epochs, 5 independent launches, AC power, nothing else running. (a) the p99 under the real timestamps is within 1.5x the p99 at a constant 13,271 msg/s for all three waits, as H30b found; (b) for each wait the real-timestamp p99 varies by less than 1.25x between the highest and lowest launch, so the run-to-run instability that weakened H30b is absent; (c) the constant-rate arm varies by less than 1.25x across launches for each wait, so any instability found in (b) belongs to the burst structure and not to the harness | pending (twentieth run) | |
 
 ## Notes on `titan-t2t`
 
@@ -1084,6 +1086,82 @@ H59 measured that 13.90% of BX sides can fill 10000 shares; part (d) is
 therefore about the shape of the series and not about how many sides qualify.
 Nothing about the real feed's conditioned costs or its depth profile has been
 measured, on any machine.
+
+## Pre-registered 2026-11-15, twentieth run
+
+**Why this run exists.** An audit of every non-clean verdict in the table
+separated two kinds. Twenty-four are the machine or the venue disagreeing with
+a prediction; those are findings and cannot be changed. Three were defects in
+how I measured, and two of those three had already been fixed and re-run (H21
+by H21b, H58 by H60). The remaining weakness is concentrated in two places,
+and both have the same cause rather than two different ones.
+
+**H61 (the padding question, under the independent-launch protocol).** H3 found
+no effect, H3b found the opposite of the prediction, and H14 forced the two
+index cells into one 128-byte line and came back inconclusive at p = 0.69 with
+the record asking for a retest at thirty. The cause is written in the SPSC
+results file itself: those runs used three epochs inside one process, on
+battery. Three epochs in one process are not three samples of anything that
+depends on placement, because they share a code layout, an allocator state and
+a thermal state, and placement is precisely what this question is about. The
+earlier finding that identical array code moved 3.8% between two builds is the
+same effect seen elsewhere in this work.
+
+So the unit of observation becomes the launch. Thirty independent launches on
+wall power, and within each launch the pad=64 and pad=128 cases are compared
+against each other, so whatever that process received from the loader and the
+allocator cancels in the difference. The sign test over thirty paired
+differences assumes no distribution at all. Twenty-one of thirty is registered
+because that is the exact count at which the two-sided test reaches p = 0.0428;
+the count and its p-value are both reported whatever the outcome.
+
+No code changes were needed for this. `Indices` is already `#[repr(C,
+align(128))]`, so pad=64 always places both cells in one line and pad=128 never
+does, and `titan-stream` already prints `head_off128`, `tail_off128` and
+`same_line` for every case, so the placement is verified in the output rather
+than assumed from the type.
+
+Direction. (a) through (c) are registered in the direction the M4 has already
+shown twice, that pad=64 is cheaper, because that is the claim needing
+confirmation or refutation; it is the reverse of the original H3b prediction,
+which is already refuted and is not re-tested here. Part (d) is the mechanism:
+if one 128-byte line is touched instead of two, the L1D load misses should fall
+with it. If (a) holds and (d) fails, the effect is real and its cause is not
+the one proposed, and that is what will be written.
+
+**H62 (H30b under controlled conditions).** H30 was invalid by a design error,
+paced at 6,627 msg/s when the window's own mean rate is 13,271. H30b corrected
+the rate and was supported, but its own evidence records the run as noisy: the
+identical real-timestamp arms came out 1.39 to 1.54 times higher than in the
+third run, a run-to-run change as large as the effect being measured, on a
+machine with more browser activity. A supported verdict resting on a run that
+cannot reproduce its own control arm is not settled.
+
+Part (b) is therefore the real test, and it can fail honestly. If the
+real-timestamp p99 is stable across five launches, the earlier instability was
+environmental and H30b stands. If it is not stable while the constant-rate arm
+is, then the burst structure itself produces the instability, the direction
+cannot be established on this machine, and H30b's verdict must be weakened to
+say so rather than left as supported.
+
+Decision rules: for H61, the unit is the launch and each launch is reduced to
+the median of its three epochs per case before anything is compared; paired
+differences are taken within a launch; the verdict on (a), (b) and (d) is the
+count of launches favouring pad=64 against the registered 21 of 30, with the
+exact sign-test p-value reported; (c) is a ratio of medians across launches
+with a bootstrap interval. For H62, the unit is the launch, each reduced to the
+median of its five epochs per arm, and every part is a ratio of launch
+statistics with no interval, since the launches are the whole sample.
+
+Disclosure: while building the analysis I ran thirty launches of
+`titan-stream` on this development container, which is shared Linux hardware
+and not the measurement machine. That run showed mixed directions and sign
+p-values from 0.005 to 1.0 across the six paired cases, so it does not support
+the direction registered above; it was run to validate the analysis code and
+its numbers are not evidence about the M4. Nothing has been measured on the M4
+for either hypothesis under this protocol. The 10% threshold in (c) is informed
+by the two earlier M4 battery runs, which showed 185 against 219 and 169
+against 220 cycles per message, differences of 15.5% and 23.2%.
 
 ## Note on the 2026-11-14 run
 
