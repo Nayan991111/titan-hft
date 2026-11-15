@@ -1,0 +1,105 @@
+The independent-launch protocol: padding by memory ordering, and the noise floor (H61, H62)
+Apple M4 MacBook Air (Mac16,13), macOS 27.2, rustc 1.92.0, commit 812c543, 2026-11-15 19:59 IST.
+AC POWER, Low Power Mode off, Docker quit, no thermal or performance warning recorded at any
+point. PMU via kperf on the measuring thread. Placement verified in the output, not assumed
+from the type: every pad=64 case reported same_line=1 and every pad=128 case same_line=0.
+
+H61: 30 independent launches of titan-stream, 200,000 messages, 3 epochs each, 13 cases.
+H62: 5 independent launches of titan-pipeline, BX from=34200 limit=100000, 5 epochs,
+     once rates=13271 and once speed=1, waits wfe, spin, isb.
+Unit of observation is the LAUNCH. Each launch is reduced to the median of its epochs per
+case before anything is compared, and pad=64 is paired against pad=128 inside each launch so
+that whatever the loader and allocator gave that process cancels in the difference.
+
+Why the protocol changed. H3 found no effect, H3b found the reverse of its prediction and
+H14 came back inconclusive at p = 0.69. The cause was written in results/2026-11-11_m4_spsc.txt
+by that file itself: three epochs inside one process, on battery. Three epochs in one process
+are not three samples of anything that depends on placement, and placement is the whole
+question.
+
+H61 (a) REFUTED. Uncached AcqRel streaming: pad=64 cheaper in cycles per message in 16 of 30
+    launches, two-sided sign p = 0.8555, median paired difference +0.055 cycles with interval
+    [-0.495, +0.625] straddling zero. There is no cycle effect either way.
+
+(b) REFUTED. Cached AcqRel streaming: 14 of 30, p = 0.8555, median difference -0.090 cycles,
+    interval [-0.480, +0.355]. No effect.
+
+(c) REFUTED, and by a wide margin. The uncached AcqRel difference is 0.055 cycles against a
+    pad=128 median of 24.630, which is 0.22% and not the registered 10%.
+
+(d) SUPPORTED, and perfectly consistent. Uncached AcqRel L1D load misses per message are
+    lower for pad=64 in 30 of 30 launches, sign p < 0.0001, median difference +0.311 misses
+    with interval [+0.239, +0.387]. Sharing one 128-byte line does remove a miss per message,
+    exactly as the coherence-granule argument predicts.
+
+    But (d) does not explain (a) through (c), and saying so is the point. The two quantities
+    are decoupled, in both directions. Where the L1D difference is cleanest, AcqRel, there is
+    no cycle difference at all. Where the cycle difference is largest, SeqCst below, there is
+    no L1D difference: +0.042 misses, 17 of 30, p = 0.5847. A measured miss on this core does
+    not cost measurable cycles in this access pattern, and the cycles that are spent are not
+    being spent on misses this counter can see. The mechanism registered in (d) is therefore
+    confirmed as a fact and rejected as an explanation. This is the second mechanism in two
+    days that measured true and explained nothing, the first being the depth profile in H60.
+
+THE RESULT H61 WAS NOT LOOKING FOR, and the one worth the paper. The padding question has no
+single answer: it depends on the memory ordering, and the dependence is large.
+
+    uncached streaming, cycles per message, median over 30 launches
+    ordering   pad=128    pad=64    paired difference        launches favouring pad=64
+    acqrel      24.630    24.790    +0.055   (  0.2%)        16 of 30   p = 0.8555
+    fenced      89.110    86.485    +4.335   (  4.9%)        23 of 30   p = 0.0052
+    seqcst     167.280    93.920   +71.215   ( 42.6%)        29 of 30   p < 0.0001
+
+    cached streaming, cycles per message, median over 30 launches
+    acqrel      14.580    14.265    -0.090   ( -0.3%)        14 of 30   p = 0.8555
+    fenced      26.730    27.420    -0.725   ( -2.7%)         8 of 30   p = 0.0161  (pad=128 wins)
+    seqcst      15.595    14.025    +1.540   (  9.9%)        20 of 30   p = 0.0987
+
+Under SeqCst without index caching, putting both indices in one 128-byte line is 42.6%
+cheaper, in 29 of 30 independent launches. Under AcqRel the same change does nothing
+measurable. Under Fenced the sign flips with caching: pad=64 wins uncached and pad=128 wins
+cached, both significant. So the textbook instruction to pad to a coherence granule to avoid
+false sharing is, on this core, correct only for some orderings and inverted for others.
+
+Candidate explanation, offered as a hypothesis and not as a finding. Under SeqCst both sides
+issue ldar loads and stlr stores on every message, and each side reads the other's index
+constantly. With both cells in one line, a single coherence transfer carries both values; with
+128-byte padding each side must obtain two lines. If the cost lives in coherence traffic and
+ordering stalls rather than in cache fills, it would appear in cycles and not in L1D load
+misses, which is the pattern measured. Testing this needs a coherence or snoop event rather
+than L1D_LOAD_MISS, and whether the M4 PMU exposes one is unknown here. It is not claimed.
+
+What this settles for H3b and H14. Their observation that pad=64 is faster in uncached
+streaming reproduces strongly, but only for SeqCst (29 of 30) and Fenced (23 of 30), and not
+at all for AcqRel (16 of 30). Neither of those statements named an ordering, so the question
+is now answered per ordering rather than in general. Their weakness was the protocol, not the
+observation: battery power and three epochs in one process.
+
+H62 (a) SUPPORTED, but weakly, and the weakness is quantified below. Median p99 over 5
+    launches, real timestamps against a constant 13,271 msg/s: isb 2,083 against 1,889 ns
+    (1.103x), spin 2,088 against 1,913 (1.091x), wfe 2,018 against 1,870 (1.079x). All inside
+    the registered 1.5x.
+
+(b) REFUTED. The real-timestamp p99 does not hold within 1.25x across launches for every
+    wait: isb spans 1,843 to 2,514 ns, a spread of 1.364x. spin (1.135x) and wfe (1.103x)
+    pass; isb does not, and the part was registered for all three.
+
+(c) REFUTED. The constant-rate arm fails too, and in a different wait: spin spans 1,877 to
+    2,521 ns, 1.343x. isb (1.150x) and wfe (1.019x) pass.
+
+    Both parts failing, in different waits, is more informative than either failing alone. It
+    means the launch-to-launch instability is not a property of the burst structure, which
+    was the alternative (c) was written to detect. It belongs to the machine and the harness
+    at this latency scale, and it appears in whichever arm happens to draw a bad launch.
+
+CONSEQUENCE, carried out as pre-registered rather than avoided. The arrival-structure effect
+is 1.079x to 1.103x. The launch-to-launch noise floor on the same quantity reaches 1.364x.
+The effect is smaller than the noise, so the direction cannot be established on this machine,
+and H30b's verdict is weakened from supported to within the noise floor accordingly. H62 (a)
+is reported as supported because its 1.5x threshold was met, while noting that a 1.5x
+threshold cannot discriminate against a 1.364x noise floor and so carries little weight.
+
+What is gained instead is the noise floor itself, measured rather than assumed: at a p99
+around 2 us on this fanless machine, five independent launches of identical work differ by up
+to 1.36x. Any future claim in this work about an effect smaller than that is not admissible
+without more launches, and that bound now exists in writing.
