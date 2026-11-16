@@ -1,0 +1,145 @@
+What a pricing kernel costs (H65)
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit a08c9e2,
+2026-11-16 10:09 IST. AC power confirmed by pmset, Low Power Mode 0, Docker not running,
+no profiler attached. 30 independent launches of `titan-greeks 3 ui pmu` and 30 of the same
+with `bg`, 3 epochs per launch, 7 arms, 2 strike ladders, 4096 contracts per arm per epoch,
+64 strikes per chain call. 2520 measured lines. The launch is the unit of observation and
+every pair is formed inside one launch.
+
+The kernel was validated before it was measured, by eight tests whose oracles share none of
+its machinery: the cumulative normal against compensated Simpson integration of the density
+with the tail integrated outward (worst absolute error 7.448e-8 against the 7.5e-8 the
+approximation claims), every sensitivity against a central difference of a price built on
+that integrated normal (worst deviation 0.352 of a tolerance whose absolute part is the
+difference's own cancellation floor), put-call parity to 4.441e-16, the fused kernel against
+six separate functions to 2.165e-16, and the strike ladder against the scalar kernel to
+5.684e-16.
+
+ABSOLUTE COST, performance cores, straddling ladder, median across 30 launches, per contract:
+
+    arm        cycles  instructions   IPC   L1D miss  br mispr      ns
+    cdf         15.87         87.13  5.49    0.0005    0.0017   3.849
+    price       45.37        229.78  5.06    0.0165    0.0635  11.069
+    fused       58.73        298.78  5.09    0.0094    0.0322  13.894
+    separate   134.11        748.19  5.58    0.0100    0.0630  30.240
+    f32         44.06        254.17  5.77    0.0060    0.0014   9.846
+    chain       58.04        303.59  5.23    0.0088    0.0474  13.004
+    loop        59.53        296.78  4.99    0.0061    0.0325  13.353
+
+H65 (e) REFUTED, and it refutes the premise this run was built on. The registered claim was
+    that the fused kernel exceeds 135 cycles per contract, the cycles per message of the
+    whole single-core trading path, in at least 21 of 30 launches. It exceeds it in 0 of 30.
+    The median is 58.733 cycles, bootstrap interval [58.668, 58.800].
+
+    So a Black-Scholes price with all five first-order sensitivities costs 58.7 cycles and
+    13.9 ns on a performance core, which is 43 percent of the 135 cycles the entire
+    feed-to-decision path takes on real BX data. The reasoning that motivated this run, that
+    a real options decision would blow the per-message budget and so the measured path is
+    unrepresentative, is wrong by a factor of 2.3 in the opposite direction. On this machine
+    an options market maker can afford to price on every message. A full 64-strike ladder
+    reprices in 58.04 x 64 = 3715 cycles, about 832 ns at the 4.47 GHz this arm ran at.
+
+    The 135 figure is flagged PRELIMINARY PROTOCOL in the experiments table, so this is a
+    comparison against a fixed number from an earlier run rather than a paired measurement.
+    That weakens the comparison but not the conclusion: the gap is 2.3x, far outside the
+    1.364x noise floor measured in H62, and the kernel's absolute cycles are recorded here so
+    the comparison can be redone when the path is re-measured under the launch protocol.
+
+(a) SUPPORTED. The six separate functions cost 2.284x the fused kernel in cycles per
+    contract, straddling ladder, performance cores, 30 of 30 launches, sign p < 0.0001,
+    median difference +75.343 cycles [+75.275, +75.445]. On efficiency cores the ratio rises
+    to 2.426. The instruction counts say why: 748.19 against 298.78, a factor of 2.50, since
+    each separate function recomputes d1, d2, both discount exponentials and up to two
+    cumulative normals. Reuse of the shared terms is worth 75 cycles per contract, and it
+    costs nothing in accuracy: the two agree to 2.165e-16.
+
+(b) SUPPORTED. The cumulative normal alone is 0.270 of the fused kernel in cycles,
+    straddling ladder, performance cores, 0 of 30 launches above the fused cost, sign
+    p < 0.0001. At 15.87 cycles for one evaluation and two evaluations plus one density per
+    fused call, the transcendental is the dominant term, as registered.
+
+(c) REFUTED, and the mechanism I registered was wrong. The claim was that scalar single
+    precision does not cut cycles per contract by more than 10 percent, so the ratio would
+    stand above 0.90. It is 0.750 on performance cores, 0 of 30 launches above, sign
+    p < 0.0001: 44.06 cycles against 58.73. The registration disclosed that an x86 smoke test
+    had already measured 0.867, on the refuting side, and the M4 is further from the
+    threshold still.
+
+    My reasoning was that the code is scalar, so no vector width is gained, and the operation
+    count is identical on a narrower type. The instruction counts show where that reasoning
+    failed: 254.17 against 298.78, a reduction of 15 percent in instructions, so the saving
+    is not in the arithmetic width at all but in shorter library routines. The single-precision
+    exponential and logarithm evaluate shorter polynomials than their double counterparts.
+    The remaining saving beyond instruction count comes from a higher IPC, 5.77 against 5.09.
+    On efficiency cores the ratio is 0.826, so the benefit is smaller there.
+
+    Paired with the accuracy measured in the validation tests, worst relative departure from
+    double of 3.3e-7 on price and 2.5e-5 on gamma, this is a quotable tradeoff rather than a
+    recommendation: 25 percent fewer cycles for five decimal digits on the second derivative.
+
+(d) REFUTED on performance cores and reversed on efficiency cores, exactly as the
+    registration said it might be. The claim was that hoisting the strike-independent terms
+    by hand cuts cycles per contract below 0.90 of the per-contract loop. The measured ratio
+    is 0.976 on performance cores, with the hand-hoisted form cheaper in 27 of 30 launches,
+    sign p < 0.0001, a saving of 1.427 cycles out of 59.5. Statistically certain and
+    practically nothing.
+
+    The registration predicted this and named the reason: LLVM already hoists those terms out
+    of the per-contract loop at opt-level 3 with fat LTO, because the base contract is
+    loop-invariant in every field except the strike. The instruction counts confirm it from
+    the other side: the hand-hoisted form issues 303.59 instructions against 296.78, slightly
+    more, because it carries the chunk bookkeeping and a per-strike validity test the scalar
+    loop does not need. The finding is about the compiler, not the kernel.
+
+    On efficiency cores it reverses: the ratio is 1.021 with the hand-hoisted form more
+    expensive in 28 of 30 launches, sign p < 0.0001. So hand-hoisting is worth 2.4 percent on
+    one cluster and costs 2.1 percent on the other.
+
+(f) SUPPORTED by a factor of 32 over its threshold, and the magnitude is the point rather
+    than the ratio. The claim was that the straddling ladder costs at least 2.0x the
+    out-of-the-money ladder in branch mispredicts per contract in the fused arm. The measured
+    ratio is 64.4 on performance cores, 30 of 30 launches, sign p < 0.0001.
+
+    The absolute numbers: 0.0322 mispredicts per contract against 0.0005. The cumulative
+    normal branches on the sign of its argument; the straddling ladder crosses the spot so d1
+    changes sign along it, the out-of-the-money ladder does not. A 64x ratio sounds decisive
+    and the cost is 0.31 cycles out of 58.73, half of one percent, which is what the arms
+    actually differ by (58.73 straddling against 58.42 out of the money). This is worth
+    stating precisely because a ratio reported without its magnitude would read as an
+    important effect, and it is not one.
+
+    One observation here is unexplained and is recorded as open. The `price` arm mispredicts
+    0.0635 per contract, twice the fused arm's 0.0322, although both evaluate the same two
+    cumulative normals. Its straddling-to-out-of-the-money cycle difference is also larger,
+    3.12 cycles against 0.31. Why the larger fused body predicts better is not established by
+    this run; if-conversion to conditional selects in one and not the other would explain it
+    but was not measured.
+
+THE CORE CLOCK IS NOT A CONSTANT OF THE MACHINE, and this run settles it with a wider spread
+than H64 showed. The performance cores ran this compute-bound kernel at 4.05 to 4.61 GHz,
+against 3.506 to 3.628 GHz for the cross-core round trip in H64 and the 3.3 to 4.4 GHz
+recorded earlier. So the same core is 27 percent faster in clock on a compute kernel than on
+a latency-bound handoff. Every cycles-to-nanoseconds conversion in the paper must use the
+measured clock of its own arm, which every table here reports per case.
+
+The efficiency cores held 1.088 GHz across every arm, matching H64's 1.080, with one
+exception that is recorded as a caveat rather than a result: the `separate` arm on
+efficiency cores reported 1.542 GHz on the straddling ladder and 1.083 on the
+out-of-the-money one, and its wall-time interval is correspondingly wide, +102.808 ns
+[+67.605, +168.150]. That arm is the heaviest and runs longest, so the efficiency cluster
+appears to boost under it, unevenly. No wall-time figure for `separate` on efficiency cores
+should be quoted as a point estimate from this run.
+
+CYCLES AND NANOSECONDS AGREE HERE, unlike in H64. Every pairing measured in both units gives
+the same ratio to within a few percent: separate against fused is 2.284 in cycles and 2.300
+in nanoseconds, single against double precision 0.750 and 0.747, hand-hoisted against the
+loop 0.976 and 0.976. H64's divergence between the two units was specific to a latency-bound
+cross-core handoff where the clock differed between arms; in a compute-bound kernel on one
+core the two units carry the same information.
+
+IPC runs from 4.93 to 5.78 across every arm on performance cores, so this kernel issues close
+to five instructions per cycle sustained, with L1D misses below 0.017 per contract everywhere
+and no arm above 0.12 even on efficiency cores. The kernel is arithmetic-bound, not
+memory-bound, which is the regime a closed-form pricer should be in and is worth stating
+because it means the result above is a statement about the core's arithmetic throughput
+rather than about this machine's memory system.
