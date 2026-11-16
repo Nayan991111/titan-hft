@@ -1,0 +1,125 @@
+The cross-core handoff under the independent-launch protocol (H64)
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 33852a5, 2026-11-16 08:11 IST.
+AC power, Low Power Mode off, Docker quit, powermetrics and Instruments killed before the
+run, no thermal or performance warning recorded at any point. 30 independent launches of
+`titan-pingpong 200000 3 ui pmu` and 30 of the same with `bg`, 16 cases each, 3 epochs per
+launch, launch as the unit of observation, pairs formed inside each launch. Placement
+verified in the output: every pad=64 case reported same_line=1 and every pad=128 case
+same_line=0.
+
+STEP 1, the check RQ1 depended on. The instruction census on the measurement machine shows
+what the compiler actually emitted for the ring's index operations:
+
+    titan_census_pop_acqrel    ldapr=1   stlur=1
+    titan_census_pop_seqcst    ldar=1    stlur=1
+    titan_census_pop_fenced    dmb=2
+    titan_census_push_acqrel   ldapur=1  stlr=1
+    titan_census_push_seqcst   ldar=1    stlr=1
+    titan_census_push_fenced   dmb=2
+    titan_census_wait_wfe      ldxr=1  sevl=1  wfe=2
+
+So the three policies really are the three forms RQ1 asks about: the RCpc acquire load
+(`ldapr`, and its unscaled-offset form `ldapur`), the RCsc acquire load (`ldar`), and a plain
+load with an explicit `dmb ish` either side. Releases are `stlr` and its unscaled form
+`stlur`. The wait path uses the armed exclusive monitor, `ldxr` then `sevl` then `wfe`, which
+is the correct idiom and not a bare `wfe` that could sleep forever. Without this census the
+paper's RQ1 would have rested on a documentation comment; with it, the claim is about
+instructions that are provably in the binary.
+
+A DEFECT IN THIS HYPOTHESIS'S OWN REGISTRATION, stated before the verdicts because it changes
+how three of them must be read. Parts (b), (c) and (e) each name a count or a bound without
+naming the configuration or the metric it applies to. The harness measures 16 cases across
+two QoS classes and reports both cycles and nanoseconds, and for all three parts the answer
+differs by configuration or by metric. That is my error in writing the registration, not a
+property of the data. Each part below is therefore reported under every reading the wording
+admits, with the full per-configuration counts, and nothing is selected after the fact.
+
+H64 (a) REFUTED. The registered claim had two halves: the SeqCst to AcqRel ratio of
+    round-trip cycles inside 0.90 to 1.10 with the consumer caching the producer's index, and
+    above 1.10 without it. The first half holds, the second fails.
+        median of per-launch ratios, caching ON : 1.000, 0.998, 1.041, 1.001
+        median of per-launch ratios, caching OFF: 0.999, 0.997, 1.014, 0.955
+    Every one of the eight is inside 0.90 to 1.10. The ordering makes no difference to the
+    cross-core round trip whether the index is cached or not.
+
+    This is the result worth the paper, and it is a contrast rather than a null. In the
+    streaming harness, measured under the same protocol on the same machine, SeqCst costs
+    6.79 and 3.79 times AcqRel when the index is not cached. Here it costs between 0.955 and
+    1.041 times. The same three orderings, the same ring, the same silicon, and the ordering
+    is a 6.8x effect in one harness and nothing in the other.
+
+    The explanation the numbers support: the cross-core round trip costs 452 to 510 cycles,
+    and that cost is the coherence transfer between two cores, which no choice of acquire
+    form changes. The ordering instruction is a few cycles inside a several-hundred-cycle
+    round trip. Streaming has no such floor, so throughput there is limited by the ordering
+    instructions themselves and they dominate. Ordering cost is therefore visible in a
+    throughput-bound pipeline and invisible in a latency-bound handoff, and reporting either
+    one alone would mislead.
+
+(b) SUPPORTED on performance cores, reversed on efficiency cores. On USER_INTERACTIVE, isb
+    spinning costs more than wfe in 30 of 30 launches, sign p < 0.0001: 351.55 against 271.15
+    cycles, so wfe is 1.30x cheaper. On BACKGROUND the direction flips completely, isb costing
+    more in 0 of 30 launches: 333.50 against 353.55 cycles, so wfe is 1.06x more expensive.
+    The registration named no QoS class; the default mode of the harness is USER_INTERACTIVE
+    and that is the reading under which the part is marked supported, with the reversal on the
+    efficiency cores recorded as part of the result and not as a footnote.
+
+(c) REGISTRATION AMBIGUOUS, and the two readings disagree. The part asks whether the
+    BACKGROUND to USER_INTERACTIVE round-trip ratio is below 3, without saying in which unit.
+        in cycles:    median 0.932 across configurations, range 0.808 to 1.298  -> below 3
+        in wall time: median 3.057 across configurations, range 2.664 to 3.939  -> above 3
+    Both are computed from the same 60 launches. The part is therefore not verdicted as
+    written. What it uncovered is more useful than the verdict would have been.
+
+    The efficiency core runs at 1.080 GHz in every single BACKGROUND case, with a bootstrap
+    interval of [1.080, 1.080] over 30 launches, while the performance core runs at 3.506 to
+    3.628 GHz. That is a clock ratio of about 3.28. Against it, the efficiency core completes
+    the round trip in FEWER cycles than the performance core, 0.808 to 0.984 of them, and in
+    about three times the wall time. Fewer cycles, far more nanoseconds.
+
+    This is the clearest case in the whole project for reporting both units, which the
+    protocol has done throughout. A cycles-only paper would conclude the efficiency cores are
+    slightly better at cross-core handoff. A nanoseconds-only paper would conclude they are
+    three times worse and would not know why. Both are true statements about the same runs.
+
+    It also corrects H8, which claimed the efficiency core round trip is at least 3x the
+    performance core and was refuted by a preliminary run with no results file. Under this
+    protocol the wall-time ratio is 3.057, so H8's claim holds in time, marginally, and fails
+    in cycles. H8 is not re-verdicted here because its own run is unquotable, but the question
+    it asked now has an answer from 60 launches on wall power.
+
+(d) SUPPORTED. Under SeqCst without index caching, pad=64 is cheaper than pad=128 in 28 of 30
+    launches on efficiency cores and 29 of 30 on performance cores, both sign p < 0.0001. The
+    streaming finding reproduces across cores, and more broadly than registered: pad=64 is
+    also cheaper at 24 to 30 of 30 in six further configurations. Two configurations reverse,
+    fenced uncached on performance cores (5 of 30, p = 0.0003) and SeqCst cached on efficiency
+    cores (6 of 30, p = 0.0014), so sharing one coherence granule is usually but not always
+    the cheaper arrangement.
+
+(e) SUPPORTED in seven of eight configurations, with the exception named. Fenced costs more
+    than AcqRel at 24 to 30 of 30 launches in seven configurations, sign p from 0.0014 down to
+    below 0.0001. The eighth, pad=128 uncached on performance cores, shows no effect at 12 of
+    30 and p = 0.3616. The registration again named no configuration, so this is reported as
+    seven of eight rather than as a single verdict. The largest penalty is pad=128 cached on
+    performance cores, where Fenced costs 1.250 times AcqRel.
+
+RQ3, and the harness answered it more directly than the registered parts did. Involuntary
+context switches over 200,000 round trips, median across launches:
+
+    lock-free ring, performance cores          0        maximum observed  89
+    lock-free ring, efficiency cores           1 to 3   maximum observed 516
+    mutex baseline, performance cores         36        maximum observed 603,073
+    mutex baseline, efficiency cores      53,658        maximum observed 1,229,115
+
+XNU does not preempt the two spinning lock-free threads on the performance cores at all in
+the median launch, across every ordering and every wait strategy. The mutex baseline on the
+same machine in the same launches is descheduled tens of thousands of times. The lock-free
+ring's advantage over a mutex on this scheduler is therefore not only its 2 to 3 times lower
+round trip, 271 to 510 cycles against 1,075, but that it is not handed back to the scheduler
+at all.
+
+A number the paper must not get wrong. The performance core does not run at 4.4 GHz during
+cross-core ping-pong. Measured across 30 launches it runs at 3.506 to 3.628 GHz, about 80% of
+the figure a datasheet-derived calculation would use. Any nanosecond claim converted from
+cycles must use the measured clock of the arm it came from, and every table here reports
+core_ghz per case so that conversion is always checkable.
