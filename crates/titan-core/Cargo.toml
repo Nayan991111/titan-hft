@@ -14,5 +14,9 @@ zerocopy = { version = "0.8", features = ["derive"] }
 socket2 = { version = "0.5", features = ["all"] }
 array-init = "2.1"
 
+[[bin]]
+name = "titan-greeks"
+path = "src/bin/titan-greeks.rs"
+
 [dev-dependencies]
 criterion = "0.5"

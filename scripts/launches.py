@@ -28,6 +28,8 @@ PAIR_KEY = ("order", "cached", "wait")
 # efficiency cores, so it is part of what identifies a case.
 PP_KEY = ("order", "pad", "cached", "wait", "qos")
 
+GREEKS_KEY = ("arm", "ladder", "qos")
+
 
 def median(xs):
     s = sorted(xs)
@@ -82,6 +84,8 @@ def parse(path):
             key = tuple(d.get(k, "") for k in RING_KEY)
         elif kind == "pp":
             key = tuple(d.get(k, "") for k in PP_KEY)
+        elif kind == "greeks_cost":
+            key = tuple(d.get(k, "") for k in GREEKS_KEY)
         elif kind == "pl":
             key = (d.get("load", ""), d.get("wait", ""), d.get("path", ""))
         else:
@@ -209,6 +213,51 @@ def report_pair(data, kind, keynames, field, vary, a, b, favours):
               f"{a} larger in {wins}/{len(d)} launches, sign p = {sign_p(wins, len(d)):.4f}")
 
 
+def report_threshold(data, kind, keynames, field, want, threshold, above=True):
+    """Count the launches whose per-launch median crosses a fixed threshold.
+
+    For a hypothesis stated against a number from an earlier run rather than
+    against a paired arm, so there is nothing to pair with.
+    """
+    cases = per_launch(data, kind, field)
+    idx = {n: keynames.index(n) for n in want}
+    sel = [v for k, v in cases.items() if all(k[i] == want[n] for n, i in idx.items())]
+    if not sel or not sel[0]:
+        return
+    vals = sel[0]
+    wins = sum(1 for x in vals if (x > threshold if above else x < threshold))
+    tag = " ".join(f"{k}={v}" for k, v in want.items())
+    side = "above" if above else "below"
+    lo, hi = boot_ci(vals)
+    print(f"\n## {kind}: is {field} {side} {threshold} for {tag}?")
+    print(f"  median {median(vals):.3f} [{lo:.3f}, {hi:.3f}], {side} {threshold} "
+          f"in {wins}/{len(vals)} launches, sign p = {sign_p(wins, len(vals)):.4f}")
+
+
+def report_greeks(data):
+    """The six parts of H65, each on the arm, ladder, QoS and metric it names."""
+    if not data.get("greeks_cost"):
+        return
+    k = GREEKS_KEY
+    # (a) the six separate functions against the fused kernel
+    report_pair(data, "greeks_cost", k, "cycles", "arm", "separate", "fused", "separate")
+    # (b) the cumulative normal's share of the fused kernel
+    report_pair(data, "greeks_cost", k, "cycles", "arm", "cdf", "fused", "cdf")
+    # (c) single precision against double
+    report_pair(data, "greeks_cost", k, "cycles", "arm", "f32", "fused", "f32")
+    # (d) the hand-hoisted ladder against the per-contract loop
+    report_pair(data, "greeks_cost", k, "cycles", "arm", "chain", "loop", "chain")
+    # (e) against the 135 cycles per message of the whole trading path
+    report_threshold(data, "greeks_cost", k, "cycles",
+                     {"arm": "fused", "ladder": "straddle", "qos": "ui"}, 135.0)
+    # (f) the sign branch in the cumulative normal
+    report_pair(data, "greeks_cost", k, "br_mispredict", "ladder", "straddle", "otm", "straddle")
+    # Reported alongside, not registered: the same four pairings in wall time,
+    # because H64 showed cycles and nanoseconds disagree on efficiency cores.
+    for arm_a, arm_b in (("separate", "fused"), ("f32", "fused"), ("chain", "loop")):
+        report_pair(data, "greeks_cost", k, "ns", "arm", arm_a, arm_b, arm_a)
+
+
 def report_pingpong(data):
     if "pp" not in data or not data["pp"]:
         return
@@ -246,6 +295,7 @@ def main():
         report_padding(data, field)
     report_pipeline(data)
     report_pingpong(data)
+    report_greeks(data)
 
 
 if __name__ == "__main__":

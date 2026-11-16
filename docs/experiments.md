@@ -94,6 +94,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H62 | H30b repeated under controlled conditions, since its own record says the run was noisy and the direction not established: `titan-pipeline file=BX from=34200 limit=100000`, once `rates=13271` and once `speed=1`, waits wfe, spin and isb, 5 epochs, 5 independent launches, AC power, nothing else running. (a) the p99 under the real timestamps is within 1.5x the p99 at a constant 13,271 msg/s for all three waits, as H30b found; (b) for each wait the real-timestamp p99 varies by less than 1.25x between the highest and lowest launch, so the run-to-run instability that weakened H30b is absent; (c) the constant-rate arm varies by less than 1.25x across launches for each wait, so any instability found in (b) belongs to the burst structure and not to the harness | (a) supported but uninformative, (b), (c) refuted | (a) median p99 over 5 launches, real timestamps against constant 13,271 msg/s: isb 2,083 vs 1,889 ns (1.103x), spin 2,088 vs 1,913 (1.091x), wfe 2,018 vs 1,870 (1.079x), all inside 1.5x. (b) refuted: real-timestamp isb spans 1,843 to 2,514 ns, 1.364x, above the 1.25x registered for all three waits (spin 1.135x and wfe 1.103x pass). (c) refuted too, and in a different wait: constant-rate spin spans 1,877 to 2,521 ns, 1.343x (isb 1.150x, wfe 1.019x pass). Both failing in different waits rules out the burst structure as the cause, which is what (c) was written to detect, and locates the instability in the machine and harness at this latency scale. CONSEQUENCE, as pre-registered: the arrival-structure effect (1.079x to 1.103x) is smaller than the launch-to-launch noise floor on the same quantity (1.364x), so the direction cannot be established on this machine and H30b is weakened accordingly. (a) is recorded as supported because its threshold was met, while noting a 1.5x threshold cannot discriminate against a 1.364x noise floor. Gained instead, measured rather than assumed: at a p99 near 2 us on this fanless machine, five independent launches of identical work differ by up to 1.36x. No later claim in this work about a smaller effect is admissible without more launches. results/2026-11-15_m4_launch_protocol.txt |
 | H63 | What waiting costs in energy on a fanless chip, the half of the wait-strategy question no counter in this work has touched. `titan-pipeline` with no PMU, so `powermetrics` can own the counters, 3 independent launches of 7 arms each: idle, then wfe, spin and isb at 13,271 msg/s and at a saturating offered load. (a) at 13,271 msg/s, mean CPU power above the idle baseline is lower for wfe than for both spin and isb, in all 3 launches; (b) the median ratio of spin to wfe power above idle is at least 2; (c) at saturating load, where the trading thread never waits, the three waits fall within 1.25x of each other, so any difference in (a) belongs to waiting and not to the work; (d) P-cluster active residency at 13,271 msg/s is lower for wfe than for spin and isb in all 3 launches, which would be the mechanism the OS can see; (e) each arm's power varies by less than 1.25x across the 3 launches, so the comparison sits above the launch-to-launch noise floor H62 measured | (a), (b), (c) supported, (d), (e) refuted | First energy measurement anywhere in this work. 3 launches, 21 arms, no PMU in the binary since powermetrics owns the counters. (a) at 13,271 msg/s wfe draws less than spin and isb in all 3 launches above that launch's own idle: wfe 2734.4/1859.0/2702.2, spin 6572.5/5275.3/6194.7, isb 4655.4/3667.6/4601.9 mW; ordering also holds unsubtracted. (b) median of per-launch spin/wfe ratios 2.404 against threshold 2 (2.403, 2.838, 2.292); robust, ratio of medians 2.292 and of raw means 2.232. (c) at 20M msg/s offered the three waits fall within 1.0021x, 1.0225x, 1.0153x raw against 1.25x, so the difference in (a) belongs to waiting and not the work. (d) REFUTED: launch 2 has wfe residency highest (90.6 against 90.1 and 90.2). The real result is larger than the refutation: mean P-cluster active residency is 90.0% wfe, 90.3% spin, 90.4% isb, identical to within half a point while power differs 2.26x, and wfe runs at a HIGHER clock than spin (3965.2 against 3730.3 MHz). Parking the core saves energy without the core becoming idle in anything macOS reports and without clocking down; the saving is in what the core executes while waiting. RESIDENCY IS THE WRONG PROXY FOR ENERGY ON THIS CORE. Third mechanism in three days that measured true and explained nothing, after H60 (c) and H61 (d). (e) REFUTED by the baseline arm alone: idle spread 26.062x (Chrome was running and was not quit; launch 2's idle window shows P-residency 8.9% against launch 1's 0.0%). All six comparison arms are stable to within 4.9%, the baseline is a 1% to 16% correction rather than the signal, and every verdict was checked with and without subtraction and does not change. Absolute energy per message is not trustworthy from this run; the ratios between waits at the same load are. Usable for the paper: the trading core draws 2.84 W on wfe, 4.72 W on isb and 6.42 W on bare spin at feed rate, and the three are indistinguishable within 3% at saturation. results/2026-11-15_m4_energy.txt |
 | H64 | The cross-core handoff under the independent-launch protocol, re-measuring the four research questions that currently rest on rows with no results file. 30 launches of `titan-pingpong 200000 3 ui pmu` and 30 of the same with `bg`, AC power, paired within launch. (a) RQ1: the median across launches of the per-launch SeqCst to AcqRel ratio of round-trip cycles lies inside 0.90 to 1.10 with the consumer caching the producer's index, and above 1.10 without it; (b) RQ2: wfe has a lower median round trip than isb spinning in at least 21 of 30 launches (two-sided sign p = 0.0428 at that count); (c) RQ3: the median across launches of the per-launch BACKGROUND to USER_INTERACTIVE round-trip ratio is below 3; (d) RQ4: under SeqCst without index caching, pad=64 is cheaper than pad=128 in at least 21 of 30 launches, as it is in streaming; (e) Fenced is the slowest of the three orderings in at least 21 of 30 launches | (a) refuted, (b) supported on P-cores and reversed on E-cores, (c) registration ambiguous, not verdicted, (d) supported, (e) supported in 7 of 8 configurations | Census on the measurement machine first: pop_acqrel ldapr + stlur, pop_seqcst ldar + stlur, pop_fenced dmb x2, push_acqrel ldapur + stlr, push_seqcst ldar + stlr, wait_wfe ldxr + sevl + wfe x2. RQ1 is provably measuring ldapr against ldar against dmb ish. MY REGISTRATION WAS DEFECTIVE: parts (b), (c) and (e) name a count or bound without naming the configuration or metric, and the answer differs by both. Reported under every reading the wording admits. (a) refuted: seqcst/acqrel cycles ratios are 1.000, 0.998, 1.041, 1.001 cached and 0.999, 0.997, 1.014, 0.955 uncached, all inside 0.90 to 1.10, so the second half fails. THE RESULT IS THE CONTRAST: the same orderings cost 6.79x and 3.79x in the streaming harness uncached and 0.955 to 1.041 here. The cross-core round trip is 452 to 510 cycles of coherence transfer, which swamps the ordering instruction; streaming has no such floor. Ordering cost is visible in a throughput-bound pipeline and invisible in a latency-bound handoff. (b) on USER_INTERACTIVE isb costs more than wfe in 30/30, p < 0.0001, 351.55 against 271.15 cycles, wfe 1.30x cheaper; on BACKGROUND the direction flips, 0/30, wfe 1.06x more expensive. (c) not verdicted: bg/ui ratio is 0.932 median in cycles (below 3) and 3.057 median in wall time (above 3), from the same 60 launches. The E-core runs at 1.080 GHz with interval [1.080, 1.080] over 30 launches while the P-core runs at 3.506 to 3.628 GHz, a 3.28x clock ratio, so the E-core finishes the round trip in FEWER cycles (0.808 to 0.984) and about 3x the wall time. Strongest case in the project for reporting both units. Also answers H8's question, whose own run is unquotable: the wall-time ratio is 3.057, so that claim holds in time and fails in cycles. (d) supported: pad=64 cheaper under SeqCst uncached in 28/30 on E-cores and 29/30 on P-cores, and in six further configurations at 24 to 30 of 30; two reverse, fenced uncached on P-cores (5/30) and SeqCst cached on E-cores (6/30). (e) fenced costs more than acqrel at 24 to 30 of 30 in seven configurations, worst 1.250x at pad=128 cached on P-cores; the eighth, pad=128 uncached on P-cores, shows no effect at 12/30, p = 0.3616. RQ3 answered directly: involuntary switches per 200,000 round trips, median 0 for the lock-free ring on P-cores (max 89) and 1 to 3 on E-cores (max 516), against 36 on P-cores (max 603,073) and 53,658 on E-cores (max 1,229,115) for the mutex baseline. XNU never preempts the spinning lock-free threads on P-cores in the median launch. The P-core runs at 3.506 to 3.628 GHz during ping-pong, not 4.4, so every cycles-to-nanoseconds conversion must use the measured clock of its own arm. results/2026-11-16_m4_crosscore.txt |
+| H65 | A pricing kernel is the decision an options market maker makes, so its cost decides whether the trading path measured here is representative: (a) the six separate sensitivity functions cost at least 2.0x the fused kernel in cycles per contract; (b) the cumulative normal is at least 20 percent of the fused kernel; (c) scalar single precision does not cut cycles per contract by more than 10 percent, so the ratio is above 0.90; (d) hoisting the strike-independent terms by hand cuts cycles per contract below 0.90 of the per-contract loop; (e) the fused kernel exceeds 135 cycles per contract, the cycles per message of the whole single-core trading path, in at least 21 of 30 launches; (f) the straddling strike ladder costs at least 2.0x the out-of-the-money ladder in branch mispredicts per contract | pending (twenty-third run) | |
 
 ## Notes on `titan-t2t`
 
@@ -1465,3 +1466,99 @@ matches the reasoning recorded before the run: each seqlock writer loop
 holds one `dmb ish`, the copy loops none. Results marked exploratory above
 (copy2 below copy1; cas2 below faa2; the PGO stage shifts) were not
 predicted and are not claims.
+
+## Pre-registered 2026-11-16, twenty-third run
+
+**Why this run exists.** The trading path measured in this work ends in a
+decision costing 22 cycles of toxicity update and 21 of pre-trade risk
+checks, against 135 cycles for the whole path on real BX data. A reviewer is
+entitled to ask whether a path whose decision is that cheap is
+representative, because an options market maker's decision is not a signal
+lookup but a pricing kernel. That question has a measurable answer rather
+than an argumentative one, and this run takes it.
+
+**Disclosure, because it weakens the registration and hiding it would be
+worse.** The harness was smoke-tested on x86-64 Linux before these thresholds
+were fixed, and that test produced per-contract wall-time ratios of 2.28
+(separate to fused), 0.999 and 0.954 (chain to loop, straddle and
+out-of-the-money), 0.867 (single to double precision) and 0.252 (cumulative
+normal to fused). Those figures are from a different instruction set and a
+different compiler backend and are not the measurement machine, but they were
+seen, and a registration written after seeing related data is weaker than one
+written before. Every threshold below is therefore set from the mechanism it
+tests, and where the x86 observation already sits on the other side of a
+threshold that is stated in the part itself, so the outcome cannot be quietly
+reinterpreted afterwards.
+
+**What the kernel is.** Black and Scholes 1973 in the Merton form that
+carries a continuous dividend yield, with the five first-order sensitivities
+as closed forms. The cumulative normal is Abramowitz and Stegun 26.2.17. None
+of that is novel and none of it is claimed to be: the contribution is the
+cost, not the formula. The kernel is validated before it is measured, by
+eight tests whose oracles share none of its machinery. The cumulative normal
+is checked against compensated Simpson integration of the density with the
+tail integrated outward rather than subtracted from a half, worst absolute
+error 7.448e-8 against the 7.5e-8 the approximation claims. Every sensitivity
+is checked against a central difference of a price built on that integrated
+normal, worst deviation 0.35 of a tolerance whose absolute part is the
+difference's own cancellation floor. Put-call parity closes to 4.4e-16, the
+fused kernel agrees with the six separate functions to 2.2e-16, and the
+strike ladder agrees with the scalar kernel to 5.7e-16.
+
+**Protocol.** 30 independent launches of `titan-greeks 3 ui pmu` and 30 of
+`titan-greeks 3 bg pmu`, on AC power with Low Power Mode off, Docker quit and
+no profiler attached. The launch is the unit of observation and pairs are
+formed inside each launch, as in H61 onward. 4096 contracts per arm per
+epoch, 64 strikes per chain call, seven arms, two strike ladders.
+
+**The hypotheses, each naming its arm, ladder, QoS class, metric and
+statistic, because H64's registration failed to and three of its five parts
+could not be verdicted as written.**
+
+* **H65 (a)** The median across 30 launches of the per-launch ratio of
+  `separate` to `fused` cycles per contract, straddle ladder,
+  USER_INTERACTIVE, is **at least 2.0**. Mechanism: each of the six separate
+  functions recomputes `d1`, `d2`, both discount exponentials and up to two
+  cumulative normals, so the fused kernel removes roughly five sixths of that
+  shared work. x86 smoke: 2.28, on the same side.
+* **H65 (b)** The median across 30 launches of the per-launch ratio of `cdf`
+  to `fused` cycles per contract, straddle, USER_INTERACTIVE, is **at least
+  0.20**. Mechanism: a fused call evaluates two cumulative normals and one
+  density, each dominated by one `exp`. x86 smoke: 0.252, on the same side.
+* **H65 (c)** The median across 30 launches of the per-launch ratio of `f32`
+  to `fused` cycles per contract, straddle, USER_INTERACTIVE, is **above
+  0.90**. Mechanism: the code is scalar, so no vector width is gained, and
+  the operation count is identical on a narrower type. x86 smoke: 0.867,
+  **already on the refuting side of this threshold**, which is stated here so
+  that a refutation is the registered outcome and not a rescue.
+* **H65 (d)** The median across 30 launches of the per-launch ratio of
+  `chain` to `loop` cycles per contract, straddle, USER_INTERACTIVE, is
+  **below 0.90**. Mechanism: two exponentials, one square root and the drift
+  term move from once per contract to once per 64. x86 smoke: 0.999,
+  **already on the refuting side**, which suggests LLVM already hoists those
+  terms out of the per-contract loop at `opt-level=3` with fat LTO. If this
+  part is refuted that is the finding, and it is a statement about the
+  compiler rather than about the kernel.
+* **H65 (e)** Cycles per contract in the `fused` arm, straddle,
+  USER_INTERACTIVE, exceeds **135** in at least 21 of 30 launches. 135 is the
+  cycles per message of the full single-core trading path on real BX data,
+  from `results/2026-11-11_m4.txt`, which is flagged PRELIMINARY PROTOCOL in
+  this table. The comparison is therefore against a fixed number from that
+  run and is not paired; the kernel's absolute cycles are reported so it can
+  be redone when the path is re-measured under the launch protocol. No
+  prior observation: the x86 smoke test recorded wall time only.
+* **H65 (f)** The median across 30 launches of the per-launch ratio of branch
+  mispredicts per contract, straddle to out-of-the-money, in the `fused` arm,
+  USER_INTERACTIVE, is **at least 2.0**. Mechanism: the cumulative normal
+  branches on the sign of its argument, and the straddling ladder crosses the
+  spot so `d1` changes sign along it while the out-of-the-money ladder does
+  not. No prior observation: the x86 smoke test recorded wall time only.
+
+**What this run cannot settle.** Whether a vectorized kernel over a strike
+ladder reaches the throughput a quoting engine needs, because the kernel here
+is scalar and the comparison would need an explicit NEON implementation. And
+whether the efficiency cores change any of these answers in wall time rather
+than cycles, which the `bg` half of the run will show but which no part above
+registers a threshold for, deliberately: H64 showed the two units disagree on
+those cores and a threshold that did not name its unit would repeat exactly
+the defect this registration is written to avoid.
