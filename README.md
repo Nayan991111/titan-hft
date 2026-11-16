@@ -33,10 +33,16 @@ nothing, and each hypothesis is committed to
 
 ## Results so far
 
-Apple M4 (MacBook Air, Mac16,13), macOS 27.2, Rust 1.92, performance cores.
-Cycles are the primary unit because the core clock varies with load (3.3 to
-4.4 GHz observed); nanoseconds are given at the clock measured in the same
-run.
+Apple M4 (MacBook Air, Mac16,13), Rust 1.92, performance cores unless a row
+says otherwise. Cycles and nanoseconds are both reported, and neither is
+sufficient alone, because the core clock is not a property of the machine:
+**1.085 to 4.61 GHz has been measured on a performance core**, and which
+figure applies depends on what the workload does and how long it runs. A
+cross-core round trip holds 3.51 to 3.63 GHz, a compute-bound kernel 4.05 to
+4.61, a long streaming run 4.27 to 4.40, and a 200,000-message streaming run
+sits at 1.085 because it finishes before the frequency governor responds. So a
+cycle count from a short run is not comparable with one from a long run, and
+every row below carries the clock measured in its own arm.
 
 | Finding | Value | Source |
 |---|---|---|
