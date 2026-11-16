@@ -5,3 +5,6 @@
 /results/raw/
 __pycache__/
 *.pyc
+
+# Output of scripts/reproduce_paper_artifacts.sh: run output, not source.
+artifacts/

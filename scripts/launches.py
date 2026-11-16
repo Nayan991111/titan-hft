@@ -24,6 +24,9 @@ from collections import defaultdict
 
 RING_KEY = ("order", "pad", "cached", "wait")
 PAIR_KEY = ("order", "cached", "wait")
+# The cross-core harness adds the QoS class, which selects performance or
+# efficiency cores, so it is part of what identifies a case.
+PP_KEY = ("order", "pad", "cached", "wait", "qos")
 
 
 def median(xs):
@@ -77,6 +80,8 @@ def parse(path):
         launch = d["launch"]
         if kind == "st":
             key = tuple(d.get(k, "") for k in RING_KEY)
+        elif kind == "pp":
+            key = tuple(d.get(k, "") for k in PP_KEY)
         elif kind == "pl":
             key = (d.get("load", ""), d.get("wait", ""), d.get("path", ""))
         else:
@@ -161,6 +166,74 @@ def report_pipeline(data):
                 print(f"  wait={wait} path={path}: speed vs {ld} = {real / m:.3f}x ({real:.0f} vs {m:.0f} ns)")
 
 
+def pair_on(data, kind, keynames, field, vary, a, b):
+    """Pair cases that differ only in `vary`, inside each launch.
+
+    Two cases measured in one process share that process's code layout and
+    allocator state, so taking the difference inside a launch removes
+    launch-to-launch variation rather than averaging over it. Returns a map
+    from the held-fixed attributes to the list of per-launch (a, b) pairs.
+    """
+    idx = keynames.index(vary)
+    pairs = {}
+    for launch in sorted(data[kind], key=lambda x: int(x)):
+        bucket = {}
+        for key, fields in data[kind][launch].items():
+            if field not in fields or not fields[field]:
+                continue
+            rest = key[:idx] + key[idx + 1:]
+            bucket.setdefault(rest, {})[key[idx]] = median(fields[field])
+        for rest, v in bucket.items():
+            if a in v and b in v:
+                pairs.setdefault(rest, []).append((v[a], v[b]))
+    return pairs
+
+
+def report_pair(data, kind, keynames, field, vary, a, b, favours):
+    """Sign test and ratio for every pairing of `a` against `b`."""
+    pairs = pair_on(data, kind, keynames, field, vary, a, b)
+    if not pairs:
+        return
+    held = [k for k in keynames if k != vary]
+    print(f"\n## {kind}: {vary}={a} against {vary}={b} on {field}, paired inside each launch")
+    print(f"   positive difference and ratio above 1 favour {favours}")
+    for rest in sorted(pairs):
+        d = pairs[rest]
+        diffs = [x - y for x, y in d]          # a minus b
+        ratios = [x / y for x, y in d if y > 0]
+        wins = sum(1 for x in diffs if x > 0)
+        lo, hi = boot_ci(diffs)
+        tag = " ".join(f"{k}={v}" for k, v in zip(held, rest))
+        print(f"  {tag}: median diff {median(diffs):+.3f} [{lo:+.3f}, {hi:+.3f}], "
+              f"median of per-launch ratios {median(ratios):.3f}, "
+              f"{a} larger in {wins}/{len(d)} launches, sign p = {sign_p(wins, len(d)):.4f}")
+
+
+def report_pingpong(data):
+    if "pp" not in data or not data["pp"]:
+        return
+    launches = len(data["pp"])
+    for field in ("rtt_cycles", "batch_rtt_ns", "per_rt_p99_ns", "core_ghz", "invol_switches"):
+        cases = per_launch(data, "pp", field)
+        if not cases:
+            continue
+        print(f"\n## cross core, {field}, one value per launch, {launches} launches")
+        for key in sorted(cases):
+            xs = cases[key]
+            lo, hi = boot_ci(xs)
+            tag = " ".join(f"{k}={v}" for k, v in zip(PP_KEY, key))
+            print(f"  {tag}: median {median(xs):.3f} [{lo:.3f}, {hi:.3f}] over {len(xs)} launches")
+    # The four questions this harness answers, each as a within-launch pairing.
+    for field in ("rtt_cycles", "batch_rtt_ns"):
+        report_pair(data, "pp", PP_KEY, field, "order", "seqcst", "acqrel", "acqrel being cheaper")
+        report_pair(data, "pp", PP_KEY, field, "order", "fenced", "acqrel", "acqrel being cheaper")
+        report_pair(data, "pp", PP_KEY, field, "pad", "128", "64", "pad=64 being cheaper")
+        report_pair(data, "pp", PP_KEY, field, "wait", "isb", "wfe", "wfe being cheaper")
+        # The binary labels these "bg" (BACKGROUND, efficiency cores) and
+        # "ui" (USER_INTERACTIVE, performance cores).
+        report_pair(data, "pp", PP_KEY, field, "qos", "bg", "ui", "the performance cores being faster")
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -172,6 +245,7 @@ def main():
     for field in ("msg_cycles", "ns_per_msg", "msg_l1d_miss"):
         report_padding(data, field)
     report_pipeline(data)
+    report_pingpong(data)
 
 
 if __name__ == "__main__":

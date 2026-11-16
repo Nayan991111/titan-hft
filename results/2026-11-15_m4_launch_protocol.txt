@@ -103,3 +103,41 @@ What is gained instead is the noise floor itself, measured rather than assumed: 
 around 2 us on this fanless machine, five independent launches of identical work differ by up
 to 1.36x. Any future claim in this work about an effect smaller than that is not admissible
 without more launches, and that bound now exists in writing.
+
+ADDED 2026-11-16: what this run also says about memory ordering (RQ1), from the
+same 30 launches and no new measurement.
+
+This section is analysis of data already taken, not a pre-registered test. H61
+registered its parts about padding, so the ordering comparison below carries no
+registered threshold and is reported as an observation. It is recorded here
+because it answers a question the log had left in a contradictory state.
+
+Cycles per message above nothing, median over 30 independent launches, each
+launch reduced to the median of its 3 epochs:
+
+    index caching OFF
+      pad=128   acqrel  24.630   seqcst 167.280 (6.79x)   fenced  89.110 (3.62x)
+      pad=64    acqrel  24.790   seqcst  93.920 (3.79x)   fenced  86.485 (3.49x)
+    index caching ON
+      pad=128   acqrel  14.580   seqcst  15.595 (1.07x)   fenced  26.730 (1.83x)
+      pad=64    acqrel  14.265   seqcst  14.025 (0.98x)   fenced  27.420 (1.92x)
+
+The cost of the ordering is dominated by whether the consumer caches the
+producer's index, not by the ordering itself. With the index cached, so that
+each side reads the other's index once and then works locally until it runs
+out, SeqCst costs between 0.98 and 1.07 times AcqRel: the two are the same
+within the launch spread. Without that caching, SeqCst costs 3.79 to 6.79
+times AcqRel. Fenced is between 1.83 and 3.62 times AcqRel and is the only
+variant whose penalty survives index caching largely intact.
+
+This resolves a contradiction. H1b states that in streaming, SeqCst being more
+than 5% slower than AcqRel is refuted. That verdict is correct for the cached
+configuration (1.07x and 0.98x) and wrong for the uncached one (6.79x and
+3.79x), and the verdict names no configuration. It is the same defect H3b and
+H14 had, which was naming no ordering, and it has the same remedy: the
+question is answerable per configuration and not in general.
+
+H1b is not re-verdicted here, because it has no results file at all and its
+run used the preliminary protocol. What is recorded is that the question it
+asked now has an answer from 30 launches on wall power, and that the answer
+depends on a variable its statement did not mention.
