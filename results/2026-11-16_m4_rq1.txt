@@ -1,0 +1,140 @@
+RQ1 re-measured at a realistic run length (H68)
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit a20c744, 2026-11-16 20:27
+IST. AC power confirmed by pmset at the start and at the end, Low Power Mode 0, Docker not
+running. 30 independent launches of `titan-stream 10000000 3 pmu`. Three epochs, so each
+launch reduces to the median of its warm middle epoch rather than to the mean of a cold one
+and a warm one, which is the protocol H61 used and the one the paper states. 1170 measured
+lines, 13 cases.
+
+H68 (d) FAILED AS REGISTERED, AND THE CHECK WAS DEFECTIVE. I registered that the warm-epoch
+    core clock must exceed 4.0 GHz in every arm, and wrote that if it failed, nothing else in
+    the registration could be read. The lowest arm is 3.537 GHz. By the letter of the
+    registration this run is unreadable.
+
+    The letter is wrong, and the reason does not depend on the outcome. The clock is a steady
+    state and not a ramp: across the three epochs of every arm its spread is between 1.000x
+    and 1.135x, and eleven of the thirteen arms are inside 1.02x. What it tracks is the
+    DURATION of an epoch, not the message count:
+
+        arm                                  ms per epoch    GHz
+        acqrel/pad128/uncached/isb                  507.0  4.332
+        seqcst/pad128/uncached/isb                  509.6  4.287
+        acqrel/pad64/uncached/isb                   421.4  4.390
+        fenced/pad128/uncached/isb                  226.3  4.374
+        fenced/pad128/cached/isb                     51.8  3.979
+        acqrel/pad128/cached/isb                     23.3  3.561
+        seqcst/pad128/cached/isb                     22.1  3.785
+
+    Every arm processes exactly ten million messages. The cached arms finish in twenty-three
+    milliseconds because they are twenty-two times faster per message, and twenty-three
+    milliseconds is not long enough for the frequency governor to reach peak. So a threshold
+    stated per message cannot control a phenomenon that depends on duration, and demanding
+    that every arm reach peak clock at a fixed message count is demanding something impossible
+    of arms that differ by twenty-two times in speed.
+
+    What the check was for was to establish that the run is long enough to have ramped, after
+    H67 found a 200,000-message run measured at 1.085 GHz. On that question the answer is yes
+    and it is not close: the lowest arm here is 3.537 GHz, 3.26 times the idle clock, and every
+    uncached arm, which is where the disputed figure lives, is between 4.271 and 4.396 GHz.
+
+    The honest handling: part (d) is recorded as failed, the check is recorded as defective
+    with the reason above, and parts (a), (b) and (c) are read with their clocks stated beside
+    them. Reinterpreting a failed pre-registered check after seeing the data is the move
+    pre-registration exists to prevent, so the defect is named in terms of the harness rather
+    than in terms of what the other parts showed, and the corrected check for any future run
+    is stated here: every arm's epoch duration must exceed 200 ms, which is a duration
+    threshold for a duration phenomenon.
+
+(a) SUPPORTED. The registered claim was that SeqCst and AcqRel cost within 10 percent of each
+    other per message when the index is not cached, in cycles and in nanoseconds. At 128-byte
+    padding, performance cores, 30 launches:
+
+        cycles       AcqRel 221.070 [219.890, 221.880]   SeqCst 220.445 [217.030, 221.760]
+                     ratio 0.997
+        nanoseconds  AcqRel  50.701 [ 50.542,  51.467]   SeqCst  51.032 [ 50.698,  51.529]
+                     ratio 1.007
+
+    So the RCsc acquire load costs the same as the RCpc one in an uncached SPSC ring at a
+    realistic run length, to within three parts in a thousand in cycles and seven in
+    nanoseconds. The 6.79x this work published, measured at 200,000 messages, is confined to
+    run lengths where the core has not ramped. RQ1's uncached answer is that the ordering
+    costs nothing.
+
+(b) SUPPORTED, and it is the result a reviewer will disbelieve. The registered claim was that
+    Fenced costs below 0.60 of AcqRel uncached, inverting the published ranking. It costs
+    0.4475 in cycles (98.935 against 221.070) and 0.4464 in nanoseconds (22.632 against
+    50.701). H67's two-epoch sweep put this at 0.447 at the same message count, so two runs
+    with different epoch counts agree to one part in a thousand.
+
+    Stated plainly: adding two `dmb ish` instructions per ring operation makes the uncached
+    loop 2.23 times faster. The explicit barrier is not a cost here, it is the fastest of the
+    three orderings by a wide margin, and it is the only one whose cost does not grow with run
+    length (98.9 cycles here against 86.3 at 200,000 messages, while AcqRel goes 21.9 to
+    221.1).
+
+(c) REFUTED, and the refutation corrects an overstatement I made in H67's write-up earlier
+    today. The registered claim was that with the index cached, all three orderings lie within
+    10 percent of each other. Two of them do and the third does not:
+
+        cached, pad=128, cycles per message
+        AcqRel  8.465 [8.195, 8.505]
+        SeqCst  8.290 [8.235, 8.430]     SeqCst/AcqRel 0.979
+        Fenced 20.735 [20.425, 20.865]   Fenced/AcqRel 2.449
+
+    H67's results file states that the cached half of RQ1 survives, on the ground that the
+    SeqCst to AcqRel ratio is 1.015 and 1.030 at five and ten million messages. That is true
+    and it is not the whole claim. I computed only the ratio between the two acquire forms and
+    wrote the conclusion as though it covered the ordering in general, when the third ordering
+    in the same table costs 2.45 times AcqRel. The data to catch it was in H67's own sweep,
+    where Fenced cached is 20.480 against AcqRel's 8.170 at ten million, a ratio of 2.507. I
+    had it and did not check it. H67's wording is corrected and this file records why.
+
+THE CORRECTED ANSWER TO RQ1, which is what this run exists to produce.
+
+    Between the two acquire-load forms there is no difference worth measuring, at either
+    caching setting, at a realistic run length: 0.979 cached and 0.997 uncached. The
+    distinction between `ldapr` and `ldar` that the instruction census confirmed is in the
+    binary does not show up in the cost.
+
+    The explicit double barrier is a different matter and it flips sign. `dmb ish` either side
+    of a plain load costs 2.45 times AcqRel when the consumer caches the producer's index, and
+    0.45 times AcqRel when it does not. The same instruction sequence, the same ring, the same
+    machine: 2.45x more expensive in one configuration and 2.23x cheaper in the other.
+
+    That is the finding, and the mechanism is not established. What is ruled out is the
+    obvious explanation: Fenced carries MORE L1D misses than AcqRel in every configuration
+    (3.785 against 3.031 per message uncached at pad=128, 1.418 against 0.913 cached) and is
+    nonetheless faster uncached, so cache behaviour does not account for it. A plausible story
+    is that the barrier prevents a speculative behaviour the acquire path permits, and that the
+    behaviour only becomes pathological once the stream is long enough for the coherence
+    traffic to accumulate, but nothing measured here tests that.
+
+PADDING ALSO DEPENDS ON RUN LENGTH, which H61 could not have seen. Paired inside each launch,
+cycles per message, positive meaning 64-byte padding is cheaper:
+
+    ordering   configuration   H61 at 200,000 messages      H68 at 10,000,000 messages
+    AcqRel     uncached        16 of 30, p = 0.8555, none   26 of 30, p = 0.0001, +36.865
+    SeqCst     uncached        29 of 30, strong             27 of 30, p < 0.0001, +35.820
+    Fenced     uncached        23 of 30, strong             14 of 30, p = 0.8555, none
+    AcqRel     cached          not reported here            27 of 30 favour pad=128, -0.375
+    SeqCst     cached          not reported here            24 of 30 favour pad=128, -0.685
+    Fenced     cached          not reported here            18 of 30, p = 0.3616, none
+
+H61 concluded that pad=64 being faster in uncached streaming reproduces for SeqCst and Fenced
+and not at all for AcqRel. At ten million messages it reproduces for AcqRel and SeqCst and not
+at all for Fenced. Two of the three per-ordering answers reverse. Sharing one coherence granule
+is worth about 17 percent of the uncached cost for both acquire forms and nothing for the
+barrier; with the index cached the separate granule wins instead, by 4 to 8 percent.
+
+And a counterintuitive detail that rules out the easy explanation here too: pad=64 carries MORE
+L1D misses than pad=128 in every single case, by 0.009 to 0.512 per message, and is
+nonetheless the faster arrangement uncached. Whatever sharing the granule buys, it is not
+fewer misses.
+
+WHAT THIS RUN DOES NOT SETTLE. Why AcqRel's uncached cost grows tenfold with run length while
+Fenced's grows by 15 percent. L1D misses are ruled out as the explanation in both directions.
+The measurement that would settle it is a counter sweep on the uncached AcqRel arm across run
+lengths reading store-buffer and coherence events rather than cache misses, and whether the M4
+PMU exposes the needed events is not known here. Until that exists this work states the
+effect, states its size in both units, states that two independent runs agree on it, and
+states that the cause is open.
