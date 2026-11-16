@@ -38,6 +38,23 @@ use titan_core::pricing::{normal_cdf, price, Contract, Kind};
 /// is wrong by a multiple of the price, not by a few standard errors.
 const SIGMAS: f64 = 4.0;
 
+/// How far two arms computing the same statistic may differ.
+///
+/// Not zero, and this is the correction to a defect rather than a loosening.
+/// An earlier version of this file asserted bit-exact agreement between arms,
+/// which held on x86-64 and failed on aarch64 by about eight units in the
+/// last place: 1.849e-15 relative after 250 compounding steps. Bit-exact
+/// agreement between two differently shaped floating-point routines is not a
+/// portable property, and asserting it made the suite fail on the
+/// measurement machine and in continuous integration while passing where it
+/// was written.
+///
+/// 1e-12 is four orders of magnitude above that rounding and four orders
+/// below the smallest logic error this suite has actually caught, which was
+/// the 6.05e-2 observation-window disagreement, so it still separates the
+/// two.
+const SAME_ARM: f64 = 1e-12;
+
 #[test]
 fn the_generator_is_uniform() {
     const BINS: usize = 64;
@@ -337,12 +354,14 @@ fn an_unreachable_barrier_gives_the_vanilla_path_exactly() {
             let plain = titan_core::paths::terminal(&g, &mut a);
             let (log_s, t1, seen) = barrier_log_space(&g, &mut b, barrier, side, true);
             let (price_s, t2) = barrier_price_space(&g, &mut c, barrier, side);
-            assert_eq!(plain, log_s, "log-space monitor changed the path");
+            let d = (plain - log_s).abs() / plain;
+            assert!(d < SAME_ARM, "log-space monitor changed the path by {d:.3e}");
             assert!(!t1 && !t2, "an unreachable barrier was reported as touched");
             assert_eq!(seen, g.steps as u32, "early exit fired without a touch");
             // Price space accumulates the same logarithm and exponentiates
             // it the same way, so this is also exact.
-            assert_eq!(plain, price_s, "price-space monitor changed the path");
+            let d = (plain - price_s).abs() / plain;
+            assert!(d < SAME_ARM, "price-space monitor changed the path by {d:.3e}");
         }
     }
 }
@@ -399,11 +418,12 @@ fn the_arms_that_must_agree_do_agree_on_identical_variates() {
     let mut a = Rng::new(0xFEED_FACE);
     let mut b = Rng::new(0xFEED_FACE);
     for _ in 0..2_000 {
-        assert_eq!(
-            lookback_branchless(&g, &mut a),
-            lookback_branchy(&g, &mut b),
-            "branchless and branchy extremes differ"
-        );
+        let (s1, h1, l1) = lookback_branchless(&g, &mut a);
+        let (s2, h2, l2) = lookback_branchy(&g, &mut b);
+        for (x, y, what) in [(s1, s2, "terminal"), (h1, h2, "maximum"), (l1, l2, "minimum")] {
+            let d = (x - y).abs() / y.abs().max(1.0);
+            assert!(d < SAME_ARM, "branchless and branchy {what} differ by {d:.3e}");
+        }
     }
 
     // Log space against price space. One compares the accumulator to the
@@ -418,7 +438,11 @@ fn the_arms_that_must_agree_do_agree_on_identical_variates() {
         let mut d = Rng::new(0xC0DE_0000 ^ p);
         let (s1, t1, _) = barrier_log_space(&g, &mut c, barrier, side, false);
         let (s2, t2) = barrier_price_space(&g, &mut d, barrier, side);
-        assert_eq!(s1, s2, "terminal prices differ between the two monitors");
+        let gap = (s1 - s2).abs() / s1;
+        assert!(
+            gap < SAME_ARM,
+            "the two monitors' terminal prices differ by {gap:.3e}"
+        );
         disagree += (t1 != t2) as usize;
     }
 
@@ -481,7 +505,10 @@ fn the_arms_that_must_agree_do_agree_on_identical_variates() {
         "the two monitors disagreed on {:.3}% of paths",
         100.0 * flag_rate
     );
-    assert!(worst_stats < 1e-15, "rolling and stored differ by {worst_stats:.3e}");
+    assert!(
+        worst_stats < SAME_ARM,
+        "rolling and stored differ by {worst_stats:.3e}, beyond step rounding"
+    );
     // Early termination must actually save work, or the arm is pointless.
     assert!(
         exits_saved > full_steps / 100,
@@ -507,7 +534,8 @@ fn the_arithmetic_and_geometric_averages_order_correctly() {
     for _ in 0..5_000 {
         let (s1, arith) = asian_arithmetic(&g, &mut a);
         let (s2, geo) = asian_geometric(&g, &mut b);
-        assert_eq!(s1, s2, "the two averaging arms walked different paths");
+        let d = (s1 - s2).abs() / s1;
+        assert!(d < SAME_ARM, "the two averaging arms differ by {d:.3e}");
         assert!(
             geo <= arith * (1.0 + 1e-12),
             "geometric {geo:.8} exceeded arithmetic {arith:.8}"

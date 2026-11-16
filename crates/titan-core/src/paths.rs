@@ -164,6 +164,22 @@ pub enum Side {
     Up,
 }
 
+/// One exact log-price increment.
+///
+/// Every arm below steps through this function and nothing else, so the
+/// stepping arithmetic lives in exactly one place and no two arms can differ
+/// in how it is compiled. An earlier version wrote the expression inline in
+/// each arm; two of them then agreed bit for bit on x86-64 and disagreed by
+/// about eight units in the last place on aarch64, which is recorded in the
+/// errata for this module. Candidates are floating-point contraction applied
+/// in one arm and not another, and a different system library for the
+/// transcendentals. The mechanism is not established and is not claimed here;
+/// the fix is to give the arms no opportunity to differ.
+#[inline(always)]
+fn step(g: &Gbm, x: f64, z: f64) -> f64 {
+    x + (g.mu_dt + g.sig_sqrt_dt * z)
+}
+
 /// Terminal price only: the vanilla baseline.
 ///
 /// The log price is accumulated and exponentiated once at the end, so the
@@ -175,10 +191,10 @@ pub fn terminal(g: &Gbm, rng: &mut Rng) -> f64 {
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         i += 1;
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             i += 1;
         }
     }
@@ -194,11 +210,11 @@ pub fn asian_arithmetic(g: &Gbm, rng: &mut Rng) -> (f64, f64) {
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         sum += x.exp();
         i += 1;
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             sum += x.exp();
             i += 1;
         }
@@ -215,11 +231,11 @@ pub fn asian_geometric(g: &Gbm, rng: &mut Rng) -> (f64, f64) {
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         log_sum += x;
         i += 1;
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             log_sum += x;
             i += 1;
         }
@@ -242,12 +258,12 @@ pub fn lookback_branchless(g: &Gbm, rng: &mut Rng) -> (f64, f64, f64) {
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         hi = hi.max(x);
         lo = lo.min(x);
         i += 1;
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             hi = hi.max(x);
             lo = lo.min(x);
             i += 1;
@@ -268,7 +284,7 @@ pub fn lookback_branchy(g: &Gbm, rng: &mut Rng) -> (f64, f64, f64) {
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         if x > hi {
             hi = x;
         }
@@ -277,7 +293,7 @@ pub fn lookback_branchy(g: &Gbm, rng: &mut Rng) -> (f64, f64, f64) {
         }
         i += 1;
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             if x > hi {
                 hi = x;
             }
@@ -299,7 +315,7 @@ pub fn barrier_price_space(g: &Gbm, rng: &mut Rng, barrier: f64, side: Side) -> 
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         let s = x.exp();
         touched |= match side {
             Side::Down => s <= barrier,
@@ -307,7 +323,7 @@ pub fn barrier_price_space(g: &Gbm, rng: &mut Rng, barrier: f64, side: Side) -> 
         };
         i += 1;
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             let s = x.exp();
             touched |= match side {
                 Side::Down => s <= barrier,
@@ -342,7 +358,7 @@ pub fn barrier_log_space(
     let mut i = 0;
     while i < g.steps {
         let (z1, z2) = rng.next_normal_pair();
-        x += g.mu_dt + g.sig_sqrt_dt * z1;
+        x = step(g, x, z1);
         seen += 1;
         touched |= match side {
             Side::Down => x <= b,
@@ -353,7 +369,7 @@ pub fn barrier_log_space(
             break;
         }
         if i < g.steps {
-            x += g.mu_dt + g.sig_sqrt_dt * z2;
+            x = step(g, x, z2);
             seen += 1;
             touched |= match side {
                 Side::Down => x <= b,
@@ -387,7 +403,7 @@ pub fn rolling(g: &Gbm, rng: &mut Rng, barrier: f64, side: Side) -> Stats {
             if i >= g.steps {
                 break;
             }
-            x += g.mu_dt + g.sig_sqrt_dt * z;
+            x = step(g, x, z);
             sum += x.exp();
             log_sum += x;
             hi = hi.max(x);
@@ -437,7 +453,7 @@ pub fn stored(
             if i >= g.steps {
                 break;
             }
-            x += g.mu_dt + g.sig_sqrt_dt * z;
+            x = step(g, x, z);
             out[i] = x;
             i += 1;
         }

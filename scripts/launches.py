@@ -18,6 +18,7 @@ the paired differences needs no distributional assumption at all.
     python3 scripts/launches.py RAWFILE
 """
 
+import re
 import sys
 import random
 from collections import defaultdict
@@ -66,6 +67,20 @@ def boot_ci(xs, reps=4000, seed=1):
     return (ms[int(0.025 * reps)], ms[int(0.975 * reps) - 1])
 
 
+def launch_key(x):
+    """Sort order for a launch label.
+
+    Labels are not always bare numbers: a run that sweeps two QoS classes
+    tags them `ui1` and `bg1` so the two sets cannot collide. Sorting those
+    with `int` raises, which is how one run's entire statistics section was
+    lost after the labels changed and this function did not exist.
+    """
+    m = re.match(r"^([A-Za-z_]*)(\d+)$", str(x))
+    if m:
+        return (m.group(1), int(m.group(2)))
+    return (str(x), 0)
+
+
 def parse(path):
     """kind -> launch -> case tuple -> field -> list of values."""
     out = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
@@ -105,7 +120,7 @@ def parse(path):
 def per_launch(data, kind, field):
     """case tuple -> list of one value per launch, launches sorted."""
     res = defaultdict(list)
-    for launch in sorted(data[kind], key=lambda x: int(x)):
+    for launch in sorted(data[kind], key=launch_key):
         for key, fields in data[kind][launch].items():
             if field in fields and fields[field]:
                 res[key].append(median(fields[field]))
@@ -127,7 +142,7 @@ def report_padding(data, field):
     # Paired within launch: positive means 64-byte padding is cheaper.
     print(f"\n## paired within launch, {field}: pad128 minus pad64 (positive favours pad64)")
     pairs = defaultdict(list)
-    for launch in sorted(data["st"], key=lambda x: int(x)):
+    for launch in sorted(data["st"], key=launch_key):
         by_pair = defaultdict(dict)
         for key, fields in data["st"][launch].items():
             order, pad, cached, wait = key
@@ -151,7 +166,7 @@ def report_pipeline(data):
     cases = per_launch(data, "pl", "p99_ns")
     if not cases:
         return
-    launches = sorted(data["pl"], key=lambda x: int(x))
+    launches = sorted(data["pl"], key=launch_key)
     print(f"\n## pipeline p99, one value per launch, {len(launches)} launches")
     for key in sorted(cases):
         xs = cases[key]
@@ -184,7 +199,7 @@ def pair_on(data, kind, keynames, field, vary, a, b):
     """
     idx = keynames.index(vary)
     pairs = {}
-    for launch in sorted(data[kind], key=lambda x: int(x)):
+    for launch in sorted(data[kind], key=launch_key):
         bucket = {}
         for key, fields in data[kind][launch].items():
             if field not in fields or not fields[field]:
@@ -247,7 +262,7 @@ def pair_keys(data, kind, keynames, field, want_a, want_b):
     ia = tuple(keynames.index(n) for n in want_a)
     ib = tuple(keynames.index(n) for n in want_b)
     out = []
-    for launch in sorted(data[kind], key=lambda x: int(x)):
+    for launch in sorted(data[kind], key=launch_key):
         a = b = None
         for key, fields in data[kind][launch].items():
             if field not in fields or not fields[field]:

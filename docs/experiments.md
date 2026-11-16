@@ -1091,6 +1091,52 @@ therefore about the shape of the series and not about how many sides qualify.
 Nothing about the real feed's conditioned costs or its depth profile has been
 measured, on any machine.
 
+### Errata, 2026-11-16 (four defects of mine in the twenty-fourth run, and a red CI)
+
+* **I asserted bit-exact equality between differently shaped floating-point
+  code, which is not a portable property.** Six assertions in the path
+  engine's suite compared two arms with `assert_eq!` on doubles. They held on
+  the x86-64 container the code was written in and failed on
+  aarch64-apple-darwin by about eight units in the last place, 1.849e-15
+  relative after 250 compounding steps. That failed two tests on the
+  measurement machine and turned continuous integration red, because the CI
+  matrix includes `macos-latest`, which is the same target. The arms now step
+  through one `step` function so the stepping arithmetic exists in a single
+  place and cannot be compiled two ways, and the cross-arm bound is 1e-12:
+  four orders above that rounding and four below the smallest logic error
+  this suite has caught, the 6.05e-2 window disagreement, so it still
+  separates them. The mechanism is **not established**: this host emits no
+  fused multiply-add for the expression, so contraction applied on one target
+  and not another is a candidate rather than a finding, as is a different
+  system library for the transcendentals. Recorded as open.
+* **A run's entire statistics section was lost to a label change I made.**
+  The twenty-fourth run's script tagged launches `ui1` and `bg1` so the two
+  QoS sets could not collide, and `scripts/launches.py` sorted launch labels
+  with `int`, which raises on `ui1`. The script crashed after all 60 launches
+  had been measured, so the data survived and the analysis did not. The sort
+  is now a natural key that accepts a prefix. The lesson is narrower than the
+  bug: the harness and the analyzer agree on a wire format that nothing
+  checks, and changing one end silently broke the other after the expensive
+  part was already done.
+* **I spent two scripts chasing a clippy warning that does not exist.**
+  Runs 22 and 23 reported one clippy warning on the measurement machine and
+  none in the container, and I treated it as an aarch64-specific lint worth
+  diagnosing. The count came from `grep -cE "^(warning|error)"`, which
+  matched the line `error: 'cargo-clippy' is not installed for the toolchain
+  'stable-aarch64-apple-darwin'`. Clippy has never run on that machine. The
+  lint count for it in those two runs means nothing and should be read as
+  absent, not as zero. Installing it with `rustup component add clippy` is
+  the fix, and until then no clippy figure from that machine is admissible.
+* **The twenty-fourth run was measured on battery.** The protocol registered
+  for it specifies AC power, and H61 demonstrated that the preliminary
+  conditions can reverse an answer, so no part of H66 is verdicted from that
+  run. Its figures are recorded below as provisional, because they are
+  internally consistent, paired inside each launch, and carry 30 of 30 sign
+  tests with tight bootstrap intervals. One part needs the repeat more than
+  the others: part (f) came in at 1.5454 against a threshold of 1.50, a
+  margin of three percent, which is the only comparison in the run that a
+  change in conditions could plausibly move across its line.
+
 ### Errata, 2026-11-16 (two defects the path engine's own tests found)
 
 * **A shared generator stream invalidated a comparison, and the test blamed

@@ -376,7 +376,22 @@ fn the_chain_agrees_with_the_scalar_kernel_strike_by_strike() {
     let mut two = vec![Greeks::default(); 2];
     let c = Contract { s: 100.0, k: 100.0, t: 0.5, r: 0.0, q: 0.0, sigma: 0.2 };
     assert_eq!(chain(&c, Kind::Call, &strikes, &mut two), 2);
-    assert_eq!(two[0], greeks(&Contract { k: strikes[0], ..c }, Kind::Call));
+    // A tolerance rather than equality, and for the same reason the main loop
+    // above uses one: the hoisted and scalar forms are different arithmetic
+    // shapes, and asserting that two such shapes agree to the last bit is not
+    // a portable claim. The path engine's suite asserted it and failed on
+    // aarch64 by eight units in the last place while passing on x86-64.
+    let want = greeks(&Contract { k: strikes[0], ..c }, Kind::Call);
+    for (x, y) in [
+        (two[0].price, want.price),
+        (two[0].delta, want.delta),
+        (two[0].gamma, want.gamma),
+        (two[0].vega, want.vega),
+        (two[0].theta, want.theta),
+        (two[0].rho, want.rho),
+    ] {
+        assert!((x - y).abs() / y.abs().max(1.0) < 1e-14);
+    }
 }
 
 #[test]
