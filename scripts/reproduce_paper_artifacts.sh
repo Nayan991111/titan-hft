@@ -118,6 +118,12 @@ h "cross-core handoff and streaming ring, $LAUNCHES independent launches"
 for i in $(seq 1 "$LAUNCHES"); do
   for q in ui bg; do
     ./target/release/titan-pingpong "$PP_N" "$PP_E" "$q" $PMU 2>&1 | sed "s/^pp /pp launch=$i /" >> "$RAW"
+    # The pricing kernel (H65) and the path engine (H66). Both are pure
+    # compute and cost a few milliseconds a launch, so they ride the same
+    # loop rather than needing one of their own. The QoS class is part of
+    # each case's key, so a plain launch number is enough to pair within.
+    ./target/release/titan-greeks "$PP_E" "$q" $PMU 2>&1 | sed "s/\$/ launch=$i/" >> "$RAW"
+    ./target/release/titan-paths  "$PP_E" "$q" $PMU 2>&1 | sed "s/\$/ launch=$i/" >> "$RAW"
   done
   ./target/release/titan-stream "$ST_N" "$ST_E" $PMU 2>&1 | sed "s/^st /st launch=$i /" >> "$RAW"
   printf "%s " "$i"
@@ -152,8 +158,11 @@ echo "environment:  $OUT/environment.txt"
 echo
 echo "The verdicts these numbers are judged against are pre-registered in"
 echo "docs/experiments.md, written before each run and never edited afterwards."
-echo "Rows flagged NOT QUOTABLE there have no results file and are excluded"
-echo "from the paper."
+echo "Every row there cites the results file holding its data, except two that"
+echo "record findings about the counter interface itself, where the row is the"
+echo "record. Rows flagged PRELIMINARY PROTOCOL were measured with three to"
+echo "five epochs inside one process rather than over independent launches,"
+echo "and are quotable only with that protocol stated alongside them."
 if [ "$MODE" = "quick" ]; then
   echo
   echo "This was --quick, so the counts are small and the numbers will not match"

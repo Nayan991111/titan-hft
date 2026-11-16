@@ -96,6 +96,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H64 | The cross-core handoff under the independent-launch protocol, re-measuring the four research questions that currently rest on rows with no results file. 30 launches of `titan-pingpong 200000 3 ui pmu` and 30 of the same with `bg`, AC power, paired within launch. (a) RQ1: the median across launches of the per-launch SeqCst to AcqRel ratio of round-trip cycles lies inside 0.90 to 1.10 with the consumer caching the producer's index, and above 1.10 without it; (b) RQ2: wfe has a lower median round trip than isb spinning in at least 21 of 30 launches (two-sided sign p = 0.0428 at that count); (c) RQ3: the median across launches of the per-launch BACKGROUND to USER_INTERACTIVE round-trip ratio is below 3; (d) RQ4: under SeqCst without index caching, pad=64 is cheaper than pad=128 in at least 21 of 30 launches, as it is in streaming; (e) Fenced is the slowest of the three orderings in at least 21 of 30 launches | (a) refuted, (b) supported on P-cores and reversed on E-cores, (c) registration ambiguous, not verdicted, (d) supported, (e) supported in 7 of 8 configurations | Census on the measurement machine first: pop_acqrel ldapr + stlur, pop_seqcst ldar + stlur, pop_fenced dmb x2, push_acqrel ldapur + stlr, push_seqcst ldar + stlr, wait_wfe ldxr + sevl + wfe x2. RQ1 is provably measuring ldapr against ldar against dmb ish. MY REGISTRATION WAS DEFECTIVE: parts (b), (c) and (e) name a count or bound without naming the configuration or metric, and the answer differs by both. Reported under every reading the wording admits. (a) refuted: seqcst/acqrel cycles ratios are 1.000, 0.998, 1.041, 1.001 cached and 0.999, 0.997, 1.014, 0.955 uncached, all inside 0.90 to 1.10, so the second half fails. THE RESULT IS THE CONTRAST: the same orderings cost 6.79x and 3.79x in the streaming harness uncached and 0.955 to 1.041 here. The cross-core round trip is 452 to 510 cycles of coherence transfer, which swamps the ordering instruction; streaming has no such floor. Ordering cost is visible in a throughput-bound pipeline and invisible in a latency-bound handoff. (b) on USER_INTERACTIVE isb costs more than wfe in 30/30, p < 0.0001, 351.55 against 271.15 cycles, wfe 1.30x cheaper; on BACKGROUND the direction flips, 0/30, wfe 1.06x more expensive. (c) not verdicted: bg/ui ratio is 0.932 median in cycles (below 3) and 3.057 median in wall time (above 3), from the same 60 launches. The E-core runs at 1.080 GHz with interval [1.080, 1.080] over 30 launches while the P-core runs at 3.506 to 3.628 GHz, a 3.28x clock ratio, so the E-core finishes the round trip in FEWER cycles (0.808 to 0.984) and about 3x the wall time. Strongest case in the project for reporting both units. Also answers H8's question, whose own run is unquotable: the wall-time ratio is 3.057, so that claim holds in time and fails in cycles. (d) supported: pad=64 cheaper under SeqCst uncached in 28/30 on E-cores and 29/30 on P-cores, and in six further configurations at 24 to 30 of 30; two reverse, fenced uncached on P-cores (5/30) and SeqCst cached on E-cores (6/30). (e) fenced costs more than acqrel at 24 to 30 of 30 in seven configurations, worst 1.250x at pad=128 cached on P-cores; the eighth, pad=128 uncached on P-cores, shows no effect at 12/30, p = 0.3616. RQ3 answered directly: involuntary switches per 200,000 round trips, median 0 for the lock-free ring on P-cores (max 89) and 1 to 3 on E-cores (max 516), against 36 on P-cores (max 603,073) and 53,658 on E-cores (max 1,229,115) for the mutex baseline. XNU never preempts the spinning lock-free threads on P-cores in the median launch. The P-core runs at 3.506 to 3.628 GHz during ping-pong, not 4.4, so every cycles-to-nanoseconds conversion must use the measured clock of its own arm. results/2026-11-16_m4_crosscore.txt |
 | H65 | A pricing kernel is the decision an options market maker makes, so its cost decides whether the trading path measured here is representative: (a) the six separate sensitivity functions cost at least 2.0x the fused kernel in cycles per contract; (b) the cumulative normal is at least 20 percent of the fused kernel; (c) scalar single precision does not cut cycles per contract by more than 10 percent, so the ratio is above 0.90; (d) hoisting the strike-independent terms by hand cuts cycles per contract below 0.90 of the per-contract loop; (e) the fused kernel exceeds 135 cycles per contract, the cycles per message of the whole single-core trading path, in at least 21 of 30 launches; (f) the straddling strike ladder costs at least 2.0x the out-of-the-money ladder in branch mispredicts per contract | (a) supported, (b) supported, (c) refuted, (d) refuted on P-cores and reversed on E-cores, (e) refuted and it refutes this run's premise, (f) supported but the magnitude is negligible | Validated before measured: cumulative normal 7.448e-8 worst against compensated Simpson integration of the density, every sensitivity within 0.352 of a tolerance whose absolute part is the central difference's own cancellation floor, put-call parity 4.441e-16, fused against separate 2.165e-16, ladder against scalar 5.684e-16. ABSOLUTE COST, P-cores, straddling ladder, median of 30 launches, per contract: cdf 15.87 cycles, price 45.37, fused 58.73, separate 134.11, f32 44.06, chain 58.04, loop 59.53; IPC 4.93 to 5.78 and L1D misses under 0.017 everywhere, so the kernel is arithmetic-bound. (e) REFUTED 0/30 against a registered 21/30: the fused kernel is 58.733 cycles [58.668, 58.800], not above 135. A full Black-Scholes price with all five sensitivities costs 43 percent of the whole feed-to-decision path, so the premise that a real options decision would blow the per-message budget is wrong by 2.3x in the opposite direction, far outside H62's 1.364x noise floor. A 64-strike ladder reprices in 3715 cycles, about 832 ns. The 135 is a PRELIMINARY PROTOCOL figure, so this is unpaired against a fixed number and is to be redone when the path is re-measured. (a) supported: separate costs 2.284x fused, 30/30, p<0.0001, +75.343 cycles [+75.275, +75.445], 748.19 instructions against 298.78; 2.426x on E-cores; the two agree to 2.165e-16 so the reuse is free. (b) supported: the cumulative normal alone is 0.270 of the fused kernel, 0/30 above, p<0.0001, 15.87 cycles per evaluation. (c) REFUTED and my registered mechanism was wrong: scalar f32 is 0.750 of f64, not above 0.90, 0/30, p<0.0001. The saving is not in arithmetic width but in shorter library routines, 254.17 instructions against 298.78, plus IPC 5.77 against 5.09. 0.826 on E-cores. Against the validated accuracy loss (3.3e-7 on price, 2.5e-5 on gamma) this is a quotable tradeoff. (d) REFUTED as the registration predicted: hand-hoisting gives 0.976, not below 0.90, saving 1.427 of 59.5 cycles, certain (27/30, p<0.0001) and practically nothing, because LLVM already hoists the loop-invariant terms at opt-level 3 with fat LTO; the hand-hoisted form issues MORE instructions (303.59 against 296.78) for the chunk bookkeeping. Reversed on E-cores at 1.021, 28/30. A finding about the compiler, not the kernel. (f) supported at 64.4x against a 2.0x threshold, 30/30, p<0.0001, but 0.0322 mispredicts per contract against 0.0005 costs 0.31 cycles of 58.73, half of one percent. Reported with its magnitude because the ratio alone would mislead. OPEN: the price arm mispredicts twice as often as the fused arm on the same two cumulative normals, and its ladder-to-ladder cycle gap is 3.12 against 0.31; if-conversion would explain it but was not measured. THE CORE CLOCK IS NOT A MACHINE CONSTANT: P-cores ran this compute kernel at 4.05 to 4.61 GHz against 3.506 to 3.628 for H64's cross-core round trip, 27 percent apart, so every cycles-to-ns conversion must use its own arm's measured clock. E-cores held 1.088 GHz except the heaviest arm, which boosted unevenly to 1.542 and whose E-core wall time must not be quoted as a point estimate. Cycles and nanoseconds agree throughout here (2.284 against 2.300, 0.750 against 0.747, 0.976 against 0.976), so H64's divergence between the units was specific to a latency-bound handoff, not general. results/2026-11-16_m4_greeks.txt |
 | H66 | Path dependence is accumulated one step at a time, so what it costs per step decides whether an exotic payoff is affordable at feed rate: (a) geometric averaging, additive in logarithms, costs below 0.70 of arithmetic averaging in cycles per step; (b) a barrier monitored in log space costs below 0.70 of the same barrier monitored in price space; (c) branchless extremes are NOT faster than branchy ones, ratio above 0.95, because the theory of records puts a new extreme at about 1/k on step k; (d) stopping at the first touch costs between 0.55 and 0.95 of running to maturity in cycles per path; (e) a stored path costs above 1.10 of rolling scalars with L1D misses per step below 0.05 in both; (f) tracking every statistic costs below 1.50 of generating the path alone | (a) refuted, (b) refuted, (c) supported and statistically null as predicted, (d) supported, (e) refuted in the opposite direction, (f) refuted by 3 percent | AC power confirmed at the start AND end of the run. Validated first by ten oracles sharing none of the engine's machinery: chi-square 57.98 on 63 df, KS 0.001624 against 0.002150 critical, exact process moments within 1.66 se, European against Black-Scholes within 1.12 se, geometric Asian against an exact DISCRETE closed form within 1.92 se, in-out parity below 5.2e-15, unreachable barrier reproducing the plain generator. ABSOLUTE COST, P-cores, per step: terminal 23.14 cycles, asian_geom 26.77, asian_arith 34.41, lookback_free 27.02, lookback_branchy 27.08, barrier_log 27.18, barrier_price 34.87, barrier_log_exit 18.09, rolling 35.74, stored 32.98. L1D misses 0.0000 in EVERY arm including the one writing 2 KiB per path, so the engine is arithmetic-bound. THE NUMBER THIS RUN CONTRIBUTES is not a registered part: one exponential costs 7.647 and 7.693 cycles measured from two independent pairs of arms, agreeing to 0.60 percent, both 30/30 with p<0.0001. That decomposes H65's 15.87-cycle cumulative normal into 7.67 for the exponential and 8.20 for the polynomial, density and sign branch. Two runs registered three days apart on different harnesses cross-validate. (a) refuted: 0.7778 against a registered 0.70, 30/30, p<0.0001, 0.598 on E-cores. My mechanism was right and my magnitude wrong: I read an exponential across from H65 as 13 to 16 cycles and it is 7.67, so removing it from a 34.41-cycle step leaves 0.778. (b) refuted at 0.7794 for the identical reason, 30/30; the two refutations are one, both registered against the same overestimate. (c) SUPPORTED and the registration's best result, because it predicted an optimization would fail and named the mechanism first: the theory of records puts a new extreme at 1/k on step k, so about ln(250)=5.5 records in 250 steps, 2.2 percent of steps, well predicted. Ratio 0.9980, and on P-cores the effect is statistically absent, 11/30, sign p = 0.2005, bootstrap interval [-0.109, +0.005] containing zero. Small real effect on E-cores (0.985, 30/30, 0.627 of 41.67 cycles). (d) supported: 0.6657 in the registered 0.55 to 0.95 band, 30/30. Observations fall 250 to 187.8 (24.9 percent) against a 33.4 percent cycle saving, above the 0.538 floor a free saving would reach, as registered. Side effect: the early-exit arm mispredicts LESS with a near barrier (0.295 against 0.385, 30/30) because knocked-out paths run fewer loop-condition branches. (e) REFUTED IN THE OPPOSITE DIRECTION and the most useful finding: a stored path is 7.7 percent CHEAPER than rolling scalars (0.9227, 30/30) where above 1.10 was registered. The registered L1D sub-part is supported, 0.0000 misses in both, 30/30, which was registered precisely so the result could not be blamed on misses afterwards. Instructions are within 1.3 percent (158.32 against 156.31) and IPC differs 7.0 percent (4.429 fused against 4.740 split): in the fused loop the exponential sits on the dependency chain of the path recurrence, and splitting it lets independent exponentials pipeline. 27.5 percent cheaper on E-cores. The advice that prompted this measurement, to avoid storing paths for memory efficiency, is measured here as advice to pay 7.7 percent for memory that was free. (f) refuted by 3.0 percent at 1.5447, 30/30, with the mechanism closing to the cycle: rolling adds 12.604 cycles, of which the exponential is 7.647 (60.7 percent) and the log sum, min, max and barrier compare are 4.957, about 1.24 each. The exponential dominates as registered; it is not large enough relative to the other four to hold the total under 1.50. POWER CONDITIONS DID NOT MATTER: this repeats a battery run from four hours earlier and the two agree within 0.16 percent on every absolute and 0.13 percent on every ratio, with P-core clock 4.045 to 4.062 GHz on AC against 4.044 to 4.049 on battery. Compatible with H61, whose reversals were latency-bound cross-core work where the clock differed between arms. Limits stated: these runs are milliseconds long and never reach sustained-load throttling on a fanless chassis, and this is two runs four hours apart rather than a controlled power experiment. The AC requirement stays. OPEN: branch mispredicts sit at 0.390 per step in every arm including bare generation, differing between arms by at most 0.010. Common to all arms so it confounds nothing, but at roughly 10 cycles a mispredict it would be about 4 of bare generation's 23.14 cycles and its source is not established. results/2026-11-16_m4_paths.txt |
+| H67 | Two claims this work has published without closing, and one it rests on: (a) the index-caching benefit does not depend on how many messages pass through the ring, so its uncached-to-cached cycle ratio varies by less than 1.5x across 200,000 to 10,000,000 messages; (b) the 135 cycles per message of the full trading path, measured with five epochs in one process, reproduces within 10 percent over 30 independent launches; (c) the ring's share of that path is at most 1.10x, as H19 measured at 1.067 under the preliminary protocol | pending (twenty-fifth run) | |
 
 ## Notes on `titan-t2t`
 
@@ -1319,6 +1320,14 @@ for it.
   data or an explicit flag saying there is none. Before today, 53 rows named
   no source. Thirty-two had exactly one results file that documents them and
   now cite it; five span more than one run and cite all of them.
+* **SUPERSEDED. The bullet below is wrong on nineteen of its twenty-one rows
+  and is kept only because an erratum that deletes its own mistakes is not an
+  erratum. Read "Errata, 2026-11-16 (the traceability audit of 2026-11-16 was
+  itself wrong)" further down this file for the corrected position: sixty-seven
+  of sixty-nine rows cite a results file, and the two that do not are
+  counter-interface findings where the row is properly the record. No row in
+  this table is flagged NOT QUOTABLE any more; nineteen are flagged
+  PRELIMINARY PROTOCOL instead, with the file named.**
 * Twenty-one rows have no results file anywhere in the repo: H1, H1b, H2, H4,
   H5, H6, H7, H8, H9, H10, H11, H12, H13, H19, H23, H24, H35, H43, H44, H45
   and H46. Their runs predate the results/ convention, so the numbers in the
@@ -1867,3 +1876,101 @@ than cycles, which the `bg` half will show but which no part above registers
 a threshold for, deliberately, since H64 found the two units disagree there
 and a threshold that did not name its unit would repeat the defect this
 registration exists to avoid.
+
+## Pre-registered 2026-11-16, twenty-fifth run
+
+**Why this run exists: it opens nothing and closes three things.** Two of them
+are claims this work has already published and left hanging, and the third is
+the number H65's headline comparison is measured against. No new module, no
+new binary, and no change to any existing harness: every arm below runs code
+already in the repository that has already produced a published figure.
+
+**The three holes, named plainly.**
+
+1. The README states that index caching in the ring is worth 26.2x fewer
+   cycles per message at ten million messages and 1.69x at two hundred
+   thousand, and adds that run length is therefore a variable and is not yet
+   controlled. I wrote that caveat myself. A reviewer will ask, and at present
+   the honest answer is that nobody has checked.
+2. The 135 cycles per message for the full trading path is flagged PRELIMINARY
+   PROTOCOL in this table: it was measured with five epochs inside one
+   process. H65's main finding, that a Black-Scholes kernel with all five
+   sensitivities costs 43 percent of the whole feed-to-decision path, is a
+   comparison against that number. A headline should not rest on a figure
+   measured a way the paper elsewhere calls insufficient.
+3. H19's ring-cost figure of 1.067 carries the same flag, and it is the basis
+   of the claim that the ring adds under ten percent to the path.
+
+**Every threshold below was fixed before any arm was timed.** The original
+measurement's configuration was read out of `results/2026-11-11_m4.txt`
+first, because a repeat at a different message window or batch size would not
+be a repeat: feed `20190730_BX_ITCH_50`, 20,000,000 messages, batch 4096,
+spread 300, recorded as `stage=full ... 32.34 ns [32.03, 34.87]
+msg_cycles=135 msg_instructions=186 msg_l1d_miss=7.24 msg_br_mispred=2.74
+ipc=1.38 core_ghz=4.19` over five epochs. The repeat uses the same feed,
+window, batch and spread.
+
+**One thing that reading changed, and it matters beyond this run.** The
+trading path runs at IPC 1.38 with 7.24 L1D misses and 2.74 branch
+mispredicts per message. H65's pricing kernel runs at IPC 5.09 with 0.009
+L1D misses, and H66's path engine at IPC 3.77 to 4.74 with 0.0000. So the two
+things H65 compared are not the same kind of workload: one is memory-bound and
+branch-heavy, the other arithmetic-bound. That does not invalidate the
+comparison, since both are cycles for a unit of work, but it does mean H66's
+conclusions about the protocol and about power conditions, both measured on
+arithmetic-bound kernels, cannot be assumed to transfer to this path. Part (b)
+is the test of whether they do.
+
+**Protocol.** 20 independent launches of `titan-stream N 2 pmu` at each of
+N = 200,000, 1,000,000, 5,000,000 and 10,000,000, each sweep written to its
+own raw file; and 30 independent launches of `titan-t2t
+file=data/20190730.BX_ITCH_50 limit=20000000 epochs=2 batch=4096 spread=300
+stages=full,direct,book pmu`. AC power, Low Power Mode off, Docker quit. The
+launch is the unit of observation.
+
+The sweep goes to separate files per message count rather than being paired
+inside one, for a reason now recorded in `scripts/launches.py`: adding
+`messages` to the streaming key raises inside `report_padding`, which unpacks
+that key positionally, and the whole streaming section then disappears with no
+error anyone reads. Doing it the other way turned nineteen lines of statistics
+into zero and was caught only by running the analyzer on identical input
+before and after the change.
+
+**The hypotheses.**
+
+* **H67 (a)** The ratio of uncached to cached cycles per message, Acquire
+  ordering, 128-byte padding, performance cores, median across 20 launches at
+  each message count, **varies by less than 1.5x** between the lowest and the
+  highest count. Mechanism: the ring's loop body does not depend on how many
+  messages pass through it, so neither should its cost per message. If this
+  holds, the 26.2x in the README cannot be attributed to run length and must
+  be withdrawn or re-attributed; the likeliest other cause is that the two
+  figures come from code eight commits apart. If it fails, run length is a
+  real variable, the caveat as written stands, and the mechanism needs
+  finding.
+* **H67 (b)** The median across 30 launches of cycles per message for
+  `stage=full` on the real feed at the configuration above **lies within 10
+  percent of 135**, between 121.5 and 148.5. Mechanism: the original figure's
+  five epochs shared one process, and H61 showed that can reverse an answer.
+  Against that, H66 found the protocol and the power source made no
+  difference at all to an arithmetic-bound kernel. This path is not
+  arithmetic-bound, so the registered prediction is that it reproduces, and
+  the reason to doubt it is named: at 7.24 L1D misses per message the
+  allocator and code placement that vary launch to launch have something to
+  act on here that they did not have there.
+* **H67 (c)** The median across 30 launches of the per-launch ratio of
+  `stage=full` to `stage=direct` cycles per message is **at most 1.10**.
+  Mechanism: H19 measured 1.067, the ring is two operations against the
+  path's whole work, and part (b) tests whether this harness reproduces under
+  the protocol at all.
+
+**The question this run deliberately does not ask, recorded so it is not
+mistaken for an oversight.** H65's comparison treats the pricing kernel's 58.7
+cycles and the path's 135 as additive, and the IPC contrast above suggests
+they are not: on an out-of-order core, arithmetic at IPC 5.09 can partly hide
+behind the stalls of a path running at IPC 1.38, so 193.7 is an upper bound on
+the combined cost rather than an estimate of it. Testing that needs a stage
+inside `titan-t2t` that runs both, and this work does not alter an existing
+harness that has already produced published figures. It is the next run's
+question, and until it is measured the paper states 193.7 as a bound and says
+so.

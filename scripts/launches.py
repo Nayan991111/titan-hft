@@ -23,7 +23,18 @@ import sys
 import random
 from collections import defaultdict
 
+# WARNING before changing this tuple: it is unpacked positionally, as
+# `order, pad, cached, wait = key`, in two places inside report_padding. Adding
+# a field here raises there and the whole streaming section vanishes without an
+# error anyone reads. An attempt to append "messages" so that a run-length
+# sweep could be paired inside one file did exactly that: nineteen lines of
+# statistics became zero, caught only by running the analyzer on the same input
+# before and after. A sweep over message counts is done across separate raw
+# files instead, which needs no change here.
 RING_KEY = ("order", "pad", "cached", "wait")
+
+# The tick-to-trade harness: one row per stage of the trading path.
+T2T_KEY = ("feed", "stage")
 PAIR_KEY = ("order", "cached", "wait")
 # The cross-core harness adds the QoS class, which selects performance or
 # efficiency cores, so it is part of what identifies a case.
@@ -101,6 +112,8 @@ def parse(path):
             key = tuple(d.get(k, "") for k in RING_KEY)
         elif kind == "pp":
             key = tuple(d.get(k, "") for k in PP_KEY)
+        elif kind == "t2t":
+            key = tuple(d.get(k, "") for k in T2T_KEY)
         elif kind == "paths_cost":
             key = tuple(d.get(k, "") for k in PATHS_KEY)
         elif kind == "greeks_cost":
@@ -294,6 +307,31 @@ def report_cross(data, kind, keynames, field, want_a, want_b, favours):
           f"first larger in {wins}/{len(d)} launches, sign p = {sign_p(wins, len(d)):.4f}")
 
 
+def report_t2t(data):
+    """The trading path's stages, each under the independent-launch protocol.
+
+    The figure of 135 cycles per message that H65's headline comparison rests
+    on came from three epochs in one process. This reports the same stages
+    over independent launches so that comparison can be made against a number
+    measured the same way as the one it is compared with.
+    """
+    if not data.get("t2t"):
+        return
+    for field in ("msg_cycles", "ns_per_msg"):
+        cases = per_launch(data, "t2t", field)
+        rows = sorted((k, v) for k, v in cases.items() if v)
+        if not rows:
+            continue
+        print(f"\n## t2t: {field} per stage, median across launches")
+        for key, vals in rows:
+            lo, hi = boot_ci(vals)
+            print(f"  feed={key[0]} stage={key[1]:9} median {median(vals):9.3f} "
+                  f"[{lo:9.3f}, {hi:9.3f}] over {len(vals)} launches")
+    # The ring's share of the path, paired inside each launch.
+    for field in ("msg_cycles", "ns_per_msg"):
+        report_pair(data, "t2t", T2T_KEY, field, "stage", "full", "direct", "full")
+
+
 def report_paths(data):
     """The six parts of H66, each on the arms, distance, metric it names."""
     if not data.get("paths_cost"):
@@ -390,6 +428,7 @@ def main():
     report_pingpong(data)
     report_greeks(data)
     report_paths(data)
+    report_t2t(data)
 
 
 if __name__ == "__main__":
