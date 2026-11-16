@@ -30,6 +30,8 @@ PP_KEY = ("order", "pad", "cached", "wait", "qos")
 
 GREEKS_KEY = ("arm", "ladder", "qos")
 
+PATHS_KEY = ("arm", "dist", "qos")
+
 
 def median(xs):
     s = sorted(xs)
@@ -84,6 +86,8 @@ def parse(path):
             key = tuple(d.get(k, "") for k in RING_KEY)
         elif kind == "pp":
             key = tuple(d.get(k, "") for k in PP_KEY)
+        elif kind == "paths_cost":
+            key = tuple(d.get(k, "") for k in PATHS_KEY)
         elif kind == "greeks_cost":
             key = tuple(d.get(k, "") for k in GREEKS_KEY)
         elif kind == "pl":
@@ -234,6 +238,80 @@ def report_threshold(data, kind, keynames, field, want, threshold, above=True):
           f"in {wins}/{len(vals)} launches, sign p = {sign_p(wins, len(vals)):.4f}")
 
 
+def pair_keys(data, kind, keynames, field, want_a, want_b):
+    """One (a, b) pair per launch for two fully specified cases.
+
+    `report_pair` varies one field and holds the rest equal, which cannot
+    compare two cases that differ in more than one field. This can.
+    """
+    ia = tuple(keynames.index(n) for n in want_a)
+    ib = tuple(keynames.index(n) for n in want_b)
+    out = []
+    for launch in sorted(data[kind], key=lambda x: int(x)):
+        a = b = None
+        for key, fields in data[kind][launch].items():
+            if field not in fields or not fields[field]:
+                continue
+            if all(key[i] == v for i, v in zip(ia, want_a.values())):
+                a = median(fields[field])
+            if all(key[i] == v for i, v in zip(ib, want_b.values())):
+                b = median(fields[field])
+        if a is not None and b is not None:
+            out.append((a, b))
+    return out
+
+
+def report_cross(data, kind, keynames, field, want_a, want_b, favours):
+    """Sign test and ratio for two fully specified cases, paired per launch."""
+    d = pair_keys(data, kind, keynames, field, want_a, want_b)
+    if not d:
+        return
+    ta = " ".join(f"{k}={v}" for k, v in want_a.items())
+    tb = " ".join(f"{k}={v}" for k, v in want_b.items())
+    diffs = [x - y for x, y in d]
+    ratios = [x / y for x, y in d if y > 0]
+    wins = sum(1 for x in diffs if x > 0)
+    lo, hi = boot_ci(diffs)
+    print(f"\n## {kind}: [{ta}] against [{tb}] on {field}, paired inside each launch")
+    print(f"   positive difference and ratio above 1 favour {favours}")
+    print(f"  median diff {median(diffs):+.4f} [{lo:+.4f}, {hi:+.4f}], "
+          f"median of per-launch ratios {median(ratios):.4f}, "
+          f"first larger in {wins}/{len(d)} launches, sign p = {sign_p(wins, len(d)):.4f}")
+
+
+def report_paths(data):
+    """The six parts of H66, each on the arms, distance, metric it names."""
+    if not data.get("paths_cost"):
+        return
+    k = PATHS_KEY
+    # (a) geometric against arithmetic averaging: one exponential per step
+    report_pair(data, "paths_cost", k, "cyc_step", "arm", "asian_geom", "asian_arith", "asian_geom")
+    # (b) the barrier monitored in log space against price space
+    report_pair(data, "paths_cost", k, "cyc_step", "arm", "barrier_log", "barrier_price", "barrier_log")
+    # (c) branchless extremes against branchy ones
+    report_pair(data, "paths_cost", k, "cyc_step", "arm", "lookback_free", "lookback_branchy", "lookback_free")
+    # (d) stopping at the first touch, per path because the step count differs
+    report_pair(data, "paths_cost", k, "cyc_path", "arm", "barrier_log_exit", "barrier_log", "barrier_log_exit")
+    # (e) a stored path against rolling scalars, and the misses that would explain it
+    report_pair(data, "paths_cost", k, "cyc_step", "arm", "stored", "rolling", "stored")
+    for arm in ("stored", "rolling"):
+        report_threshold(data, "paths_cost", k, "l1d_step",
+                         {"arm": arm, "dist": "near", "qos": "ui"}, 0.05, above=False)
+    # (f) every statistic against bare path generation; the two differ in
+    # both arm and distance, so this needs the cross pairing
+    for qos in ("ui", "bg"):
+        report_cross(data, "paths_cost", k, "cyc_step",
+                     {"arm": "rolling", "dist": "near", "qos": qos},
+                     {"arm": "terminal", "dist": "na", "qos": qos}, "rolling")
+    # Reported alongside, not registered: the branch the barrier distance
+    # controls, and the same three savings in wall time.
+    for arm in ("barrier_log", "barrier_price", "rolling"):
+        report_pair(data, "paths_cost", k, "brmis_step", "dist", "near", "far", "near")
+        break
+    for a, b in (("asian_geom", "asian_arith"), ("barrier_log", "barrier_price")):
+        report_pair(data, "paths_cost", k, "ns_step", "arm", a, b, a)
+
+
 def report_greeks(data):
     """The six parts of H65, each on the arm, ladder, QoS and metric it names."""
     if not data.get("greeks_cost"):
@@ -296,6 +374,7 @@ def main():
     report_pipeline(data)
     report_pingpong(data)
     report_greeks(data)
+    report_paths(data)
 
 
 if __name__ == "__main__":

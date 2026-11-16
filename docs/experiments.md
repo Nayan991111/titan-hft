@@ -95,6 +95,7 @@ are added afterwards and are never edited away when a prediction fails.
 | H63 | What waiting costs in energy on a fanless chip, the half of the wait-strategy question no counter in this work has touched. `titan-pipeline` with no PMU, so `powermetrics` can own the counters, 3 independent launches of 7 arms each: idle, then wfe, spin and isb at 13,271 msg/s and at a saturating offered load. (a) at 13,271 msg/s, mean CPU power above the idle baseline is lower for wfe than for both spin and isb, in all 3 launches; (b) the median ratio of spin to wfe power above idle is at least 2; (c) at saturating load, where the trading thread never waits, the three waits fall within 1.25x of each other, so any difference in (a) belongs to waiting and not to the work; (d) P-cluster active residency at 13,271 msg/s is lower for wfe than for spin and isb in all 3 launches, which would be the mechanism the OS can see; (e) each arm's power varies by less than 1.25x across the 3 launches, so the comparison sits above the launch-to-launch noise floor H62 measured | (a), (b), (c) supported, (d), (e) refuted | First energy measurement anywhere in this work. 3 launches, 21 arms, no PMU in the binary since powermetrics owns the counters. (a) at 13,271 msg/s wfe draws less than spin and isb in all 3 launches above that launch's own idle: wfe 2734.4/1859.0/2702.2, spin 6572.5/5275.3/6194.7, isb 4655.4/3667.6/4601.9 mW; ordering also holds unsubtracted. (b) median of per-launch spin/wfe ratios 2.404 against threshold 2 (2.403, 2.838, 2.292); robust, ratio of medians 2.292 and of raw means 2.232. (c) at 20M msg/s offered the three waits fall within 1.0021x, 1.0225x, 1.0153x raw against 1.25x, so the difference in (a) belongs to waiting and not the work. (d) REFUTED: launch 2 has wfe residency highest (90.6 against 90.1 and 90.2). The real result is larger than the refutation: mean P-cluster active residency is 90.0% wfe, 90.3% spin, 90.4% isb, identical to within half a point while power differs 2.26x, and wfe runs at a HIGHER clock than spin (3965.2 against 3730.3 MHz). Parking the core saves energy without the core becoming idle in anything macOS reports and without clocking down; the saving is in what the core executes while waiting. RESIDENCY IS THE WRONG PROXY FOR ENERGY ON THIS CORE. Third mechanism in three days that measured true and explained nothing, after H60 (c) and H61 (d). (e) REFUTED by the baseline arm alone: idle spread 26.062x (Chrome was running and was not quit; launch 2's idle window shows P-residency 8.9% against launch 1's 0.0%). All six comparison arms are stable to within 4.9%, the baseline is a 1% to 16% correction rather than the signal, and every verdict was checked with and without subtraction and does not change. Absolute energy per message is not trustworthy from this run; the ratios between waits at the same load are. Usable for the paper: the trading core draws 2.84 W on wfe, 4.72 W on isb and 6.42 W on bare spin at feed rate, and the three are indistinguishable within 3% at saturation. results/2026-11-15_m4_energy.txt |
 | H64 | The cross-core handoff under the independent-launch protocol, re-measuring the four research questions that currently rest on rows with no results file. 30 launches of `titan-pingpong 200000 3 ui pmu` and 30 of the same with `bg`, AC power, paired within launch. (a) RQ1: the median across launches of the per-launch SeqCst to AcqRel ratio of round-trip cycles lies inside 0.90 to 1.10 with the consumer caching the producer's index, and above 1.10 without it; (b) RQ2: wfe has a lower median round trip than isb spinning in at least 21 of 30 launches (two-sided sign p = 0.0428 at that count); (c) RQ3: the median across launches of the per-launch BACKGROUND to USER_INTERACTIVE round-trip ratio is below 3; (d) RQ4: under SeqCst without index caching, pad=64 is cheaper than pad=128 in at least 21 of 30 launches, as it is in streaming; (e) Fenced is the slowest of the three orderings in at least 21 of 30 launches | (a) refuted, (b) supported on P-cores and reversed on E-cores, (c) registration ambiguous, not verdicted, (d) supported, (e) supported in 7 of 8 configurations | Census on the measurement machine first: pop_acqrel ldapr + stlur, pop_seqcst ldar + stlur, pop_fenced dmb x2, push_acqrel ldapur + stlr, push_seqcst ldar + stlr, wait_wfe ldxr + sevl + wfe x2. RQ1 is provably measuring ldapr against ldar against dmb ish. MY REGISTRATION WAS DEFECTIVE: parts (b), (c) and (e) name a count or bound without naming the configuration or metric, and the answer differs by both. Reported under every reading the wording admits. (a) refuted: seqcst/acqrel cycles ratios are 1.000, 0.998, 1.041, 1.001 cached and 0.999, 0.997, 1.014, 0.955 uncached, all inside 0.90 to 1.10, so the second half fails. THE RESULT IS THE CONTRAST: the same orderings cost 6.79x and 3.79x in the streaming harness uncached and 0.955 to 1.041 here. The cross-core round trip is 452 to 510 cycles of coherence transfer, which swamps the ordering instruction; streaming has no such floor. Ordering cost is visible in a throughput-bound pipeline and invisible in a latency-bound handoff. (b) on USER_INTERACTIVE isb costs more than wfe in 30/30, p < 0.0001, 351.55 against 271.15 cycles, wfe 1.30x cheaper; on BACKGROUND the direction flips, 0/30, wfe 1.06x more expensive. (c) not verdicted: bg/ui ratio is 0.932 median in cycles (below 3) and 3.057 median in wall time (above 3), from the same 60 launches. The E-core runs at 1.080 GHz with interval [1.080, 1.080] over 30 launches while the P-core runs at 3.506 to 3.628 GHz, a 3.28x clock ratio, so the E-core finishes the round trip in FEWER cycles (0.808 to 0.984) and about 3x the wall time. Strongest case in the project for reporting both units. Also answers H8's question, whose own run is unquotable: the wall-time ratio is 3.057, so that claim holds in time and fails in cycles. (d) supported: pad=64 cheaper under SeqCst uncached in 28/30 on E-cores and 29/30 on P-cores, and in six further configurations at 24 to 30 of 30; two reverse, fenced uncached on P-cores (5/30) and SeqCst cached on E-cores (6/30). (e) fenced costs more than acqrel at 24 to 30 of 30 in seven configurations, worst 1.250x at pad=128 cached on P-cores; the eighth, pad=128 uncached on P-cores, shows no effect at 12/30, p = 0.3616. RQ3 answered directly: involuntary switches per 200,000 round trips, median 0 for the lock-free ring on P-cores (max 89) and 1 to 3 on E-cores (max 516), against 36 on P-cores (max 603,073) and 53,658 on E-cores (max 1,229,115) for the mutex baseline. XNU never preempts the spinning lock-free threads on P-cores in the median launch. The P-core runs at 3.506 to 3.628 GHz during ping-pong, not 4.4, so every cycles-to-nanoseconds conversion must use the measured clock of its own arm. results/2026-11-16_m4_crosscore.txt |
 | H65 | A pricing kernel is the decision an options market maker makes, so its cost decides whether the trading path measured here is representative: (a) the six separate sensitivity functions cost at least 2.0x the fused kernel in cycles per contract; (b) the cumulative normal is at least 20 percent of the fused kernel; (c) scalar single precision does not cut cycles per contract by more than 10 percent, so the ratio is above 0.90; (d) hoisting the strike-independent terms by hand cuts cycles per contract below 0.90 of the per-contract loop; (e) the fused kernel exceeds 135 cycles per contract, the cycles per message of the whole single-core trading path, in at least 21 of 30 launches; (f) the straddling strike ladder costs at least 2.0x the out-of-the-money ladder in branch mispredicts per contract | (a) supported, (b) supported, (c) refuted, (d) refuted on P-cores and reversed on E-cores, (e) refuted and it refutes this run's premise, (f) supported but the magnitude is negligible | Validated before measured: cumulative normal 7.448e-8 worst against compensated Simpson integration of the density, every sensitivity within 0.352 of a tolerance whose absolute part is the central difference's own cancellation floor, put-call parity 4.441e-16, fused against separate 2.165e-16, ladder against scalar 5.684e-16. ABSOLUTE COST, P-cores, straddling ladder, median of 30 launches, per contract: cdf 15.87 cycles, price 45.37, fused 58.73, separate 134.11, f32 44.06, chain 58.04, loop 59.53; IPC 4.93 to 5.78 and L1D misses under 0.017 everywhere, so the kernel is arithmetic-bound. (e) REFUTED 0/30 against a registered 21/30: the fused kernel is 58.733 cycles [58.668, 58.800], not above 135. A full Black-Scholes price with all five sensitivities costs 43 percent of the whole feed-to-decision path, so the premise that a real options decision would blow the per-message budget is wrong by 2.3x in the opposite direction, far outside H62's 1.364x noise floor. A 64-strike ladder reprices in 3715 cycles, about 832 ns. The 135 is a PRELIMINARY PROTOCOL figure, so this is unpaired against a fixed number and is to be redone when the path is re-measured. (a) supported: separate costs 2.284x fused, 30/30, p<0.0001, +75.343 cycles [+75.275, +75.445], 748.19 instructions against 298.78; 2.426x on E-cores; the two agree to 2.165e-16 so the reuse is free. (b) supported: the cumulative normal alone is 0.270 of the fused kernel, 0/30 above, p<0.0001, 15.87 cycles per evaluation. (c) REFUTED and my registered mechanism was wrong: scalar f32 is 0.750 of f64, not above 0.90, 0/30, p<0.0001. The saving is not in arithmetic width but in shorter library routines, 254.17 instructions against 298.78, plus IPC 5.77 against 5.09. 0.826 on E-cores. Against the validated accuracy loss (3.3e-7 on price, 2.5e-5 on gamma) this is a quotable tradeoff. (d) REFUTED as the registration predicted: hand-hoisting gives 0.976, not below 0.90, saving 1.427 of 59.5 cycles, certain (27/30, p<0.0001) and practically nothing, because LLVM already hoists the loop-invariant terms at opt-level 3 with fat LTO; the hand-hoisted form issues MORE instructions (303.59 against 296.78) for the chunk bookkeeping. Reversed on E-cores at 1.021, 28/30. A finding about the compiler, not the kernel. (f) supported at 64.4x against a 2.0x threshold, 30/30, p<0.0001, but 0.0322 mispredicts per contract against 0.0005 costs 0.31 cycles of 58.73, half of one percent. Reported with its magnitude because the ratio alone would mislead. OPEN: the price arm mispredicts twice as often as the fused arm on the same two cumulative normals, and its ladder-to-ladder cycle gap is 3.12 against 0.31; if-conversion would explain it but was not measured. THE CORE CLOCK IS NOT A MACHINE CONSTANT: P-cores ran this compute kernel at 4.05 to 4.61 GHz against 3.506 to 3.628 for H64's cross-core round trip, 27 percent apart, so every cycles-to-ns conversion must use its own arm's measured clock. E-cores held 1.088 GHz except the heaviest arm, which boosted unevenly to 1.542 and whose E-core wall time must not be quoted as a point estimate. Cycles and nanoseconds agree throughout here (2.284 against 2.300, 0.750 against 0.747, 0.976 against 0.976), so H64's divergence between the units was specific to a latency-bound handoff, not general. results/2026-11-16_m4_greeks.txt |
+| H66 | Path dependence is accumulated one step at a time, so what it costs per step decides whether an exotic payoff is affordable at feed rate: (a) geometric averaging, additive in logarithms, costs below 0.70 of arithmetic averaging in cycles per step; (b) a barrier monitored in log space costs below 0.70 of the same barrier monitored in price space; (c) branchless extremes are NOT faster than branchy ones, ratio above 0.95, because the theory of records puts a new extreme at about 1/k on step k; (d) stopping at the first touch costs between 0.55 and 0.95 of running to maturity in cycles per path; (e) a stored path costs above 1.10 of rolling scalars with L1D misses per step below 0.05 in both; (f) tracking every statistic costs below 1.50 of generating the path alone | pending (twenty-fourth run) | |
 
 ## Notes on `titan-t2t`
 
@@ -1090,6 +1091,31 @@ therefore about the shape of the series and not about how many sides qualify.
 Nothing about the real feed's conditioned costs or its depth profile has been
 measured, on any machine.
 
+### Errata, 2026-11-16 (two defects the path engine's own tests found)
+
+* **A shared generator stream invalidated a comparison, and the test blamed
+  the code.** The first version of the arm-agreement test drove the
+  stop-at-first-touch monitor and the run-to-maturity monitor from one
+  generator stream across a loop of paths. The early-stopping arm consumes
+  fewer variates, so after the first path the two streams were out of step
+  and every comparison afterwards was between two different paths. The test
+  duly reported that early termination changed the touch verdict. It did not;
+  the test was wrong. Every arm comparison now reseeds both arms per path.
+  This is worth recording beyond the fix: any Monte Carlo comparison between
+  arms that consume different numbers of variates desynchronizes a shared
+  stream silently, and the symptom looks exactly like a logic error in the
+  thing being measured.
+* **The module disagreed with itself about its own observation window, by six
+  percent.** `rolling` seeded its running extremes with the spot at time zero
+  while `stored` seeded them from the first observation, so one tracked
+  extremes over `t_0 .. t_n` and the other over `t_1 .. t_n`. Both were
+  self-consistent and the two differed by up to 6.05 percent on the minimum.
+  The window is now `t_1 .. t_n` everywhere, which is also the window the two
+  averaging accumulators use, so one `Stats` has one meaning and a contract
+  that averages and one that tracks an extreme observe the same dates. The
+  two arms now agree bit for bit. Neither arm was wrong in isolation, which is
+  why only a cross-check between them could find it.
+
 ### Errata, 2026-11-16 (H65: two mechanisms of mine were wrong, and one premise)
 
 * **The premise of the run was wrong, not just a part of it.** H65 was
@@ -1603,3 +1629,157 @@ than cycles, which the `bg` half of the run will show but which no part above
 registers a threshold for, deliberately: H64 showed the two units disagree on
 those cores and a threshold that did not name its unit would repeat exactly
 the defect this registration is written to avoid.
+
+## Pre-registered 2026-11-16, twenty-fourth run
+
+**Why this run exists.** H65 measured a closed-form pricing kernel at 58.7
+cycles, 43 percent of the whole feed-to-decision path, which settled that
+vanilla pricing is affordable per message on this machine. It says nothing
+about a payoff that depends on the path, because such a payoff is not a
+formula evaluated once but a statistic accumulated at every observation: a
+running sum for an arithmetic average, a running product for a geometric
+one, a running extreme for a lookback, a survival flag for a barrier. The
+cost of path dependence is therefore a per-step cost, and this run measures
+it.
+
+**Every threshold below was fixed before any arm was timed on any machine,
+and that is a deliberate correction to H65's registration.** H65's had to
+disclose that an x86 smoke test had already placed two of its thresholds on
+their refuting side. Here the thresholds were written first, from the
+mechanisms stated with each part, with the harness compiled and the
+validation suite passing but nothing timed anywhere, not even in the Linux
+container this code was written in.
+
+After they were fixed, an x86-64 smoke test was run to confirm the harness
+emits every arm, and it produced per-step wall-time ratios of 0.760 for part
+(a) and 0.755 for part (b). Those are from a different instruction set and a
+different compiler backend, they are wall time rather than the cycles both
+parts are registered on, and they are recorded here because the sentence
+above would otherwise become untrue the moment anything ran. They sit just
+above both thresholds, so if the M4 behaves similarly those two parts are
+refuted. No threshold was moved after seeing them, and the paragraph is
+written this way so that nobody has to take that on trust: the thresholds and
+these numbers are in the same commit, and the commit that follows carries the
+measurement.
+
+**What the engine is, and how it was validated before any of it was
+measured.** Geometric Brownian motion under the risk-neutral measure,
+discretized exactly rather than by an Euler step: the log increment over a
+step is normal with mean `(r - q - sigma^2/2) dt` and variance
+`sigma^2 dt`, so there is no discretization bias at any step size and the
+only error in a simulated price is Monte Carlo error. The generator is
+xoshiro256++ seeded through splitmix64, with normal variates by Box-Muller.
+Ten tests check it against oracles that share none of its machinery:
+
+* uniforms against a chi-square over 64 equal bins on 640,000 draws: 57.98
+  against 63 degrees of freedom, and the mean within 1.3 standard errors of
+  one half.
+* normal variates against their first four moments and against a
+  Kolmogorov-Smirnov statistic computed with the cumulative normal from
+  `pricing`, which is itself validated against compensated Simpson
+  integration of the density: KS 0.001624 against a five percent critical
+  value of 0.002150, skewness 0.19 standard errors from zero, excess
+  kurtosis 0.51.
+* the path generator against the exact moments of the process, which are
+  closed forms: `E[S_T]` and `Var[ln S_T]` within 1.66 standard errors at
+  one, 100 and 250 steps.
+* a simulated European call against the Black-Scholes price that the
+  `pricing` tests have already validated by central difference and by
+  put-call parity: worst departure 1.12 standard errors over five contracts.
+* a simulated geometric Asian against the exact closed form for *discrete*
+  averaging, derived here rather than taken from the continuous Kemna and
+  Vorst result, because at 250 observations the two differ by 0.6 percent in
+  variance and enough paths would report a correct engine as broken. Worst
+  departure 1.92 standard errors, and the discrete form's gap to the
+  continuous limit falls from 4.9e-1 to 4.9e-5 as the observation count rises
+  by four orders of magnitude.
+* the barrier monitor against in-out parity, which is an identity holding
+  path by path and needing no formula: residual between 0 and 5.2e-15, with
+  both legs carrying between 34 and 83 percent of paths so the check is not
+  vacuous. And against an unreachable barrier, where the monitor must return
+  the plain generator's terminal price bit for bit, which catches a monitor
+  that consumes, reorders or perturbs a variate.
+* the claim in the source brief that coarser monitoring raises survival, as a
+  monotonicity property of the monitor: the touch probability rises 0.521,
+  0.590, 0.641, 0.667, 0.679 across 4, 12, 52, 250 and 1000 observations.
+* log space against price space on identical variates: terminal prices equal
+  exactly and the touch flag differs on 0 of 20,000 paths. Rolling scalars
+  against a stored path: identical to the last bit. Branchless extremes
+  against branchy: identical to the last bit.
+* the arithmetic average never below the geometric one, on every path, with
+  the two separating by up to 12.9 percent so the inequality is not trivial.
+
+Two defects were found by that suite and are recorded in the errata below.
+
+**Protocol.** 30 independent launches of `titan-paths 3 ui pmu` and 30 of
+`titan-paths 3 bg pmu`, on AC power with Low Power Mode off, Docker quit and
+no profiler attached. 2000 paths of 250 observations per arm per epoch. Every
+arm inside one epoch is seeded identically, so the arms walk the same paths
+and differ only in what they accumulate; across launches the launch is the
+unit of observation and pairs form inside it, as in every run from H61.
+The barrier arms run at two distances: `near` at 80 percent of spot, where a
+touch is close to even odds so the monitor's comparison is unpredictable, and
+`far` at one percent of spot, which no path reaches so the same comparison is
+perfectly predicted.
+
+**The hypotheses. Each names its arms, barrier distance, QoS class, metric
+and statistic.**
+
+* **H66 (a)** The median across 30 launches of the per-launch ratio of
+  `asian_geom` to `asian_arith` cycles per step, USER_INTERACTIVE, is **below
+  0.70**. Mechanism: a geometric average is additive in the logarithm, so it
+  needs no exponential until the path ends, while an arithmetic average needs
+  the price at every observation and so needs one every step. H65 measured a
+  cumulative normal, which is one exponential plus a degree-five polynomial,
+  at 15.87 cycles, so an exponential is of that order against a step whose
+  other work is a share of one Box-Muller pair and a few flops.
+* **H66 (b)** The same statistic for `barrier_log` against `barrier_price`,
+  `near`, USER_INTERACTIVE, is **below 0.70**. Mechanism: a barrier
+  comparison is monotone under the logarithm, so it can be made against the
+  accumulator with the barrier's logarithm taken once, removing the same
+  exponential per step.
+* **H66 (c)** The same statistic for `lookback_free` against
+  `lookback_branchy`, USER_INTERACTIVE, is **above 0.95**, that is, the
+  branchless form is **not** faster. Mechanism: the theory of records. In a
+  random walk the probability that step `k` sets a new extreme is about
+  `1/k`, so the expected number of records in 250 steps is about `ln 250`,
+  which is 5.5, or 2.2 percent of steps. A branch taken two percent of the
+  time is well predicted, so there is almost nothing for a branchless form to
+  win, while `fmax` and `fmin` add a dependency on the accumulator that the
+  comparisons do not. This part predicts that an optimization fails.
+* **H66 (d)** The median across 30 launches of the per-launch ratio of
+  `barrier_log_exit` to `barrier_log` cycles **per path**, `near`,
+  USER_INTERACTIVE, lies **between 0.55 and 0.95**. Mechanism: the validation
+  suite measured that stopping at the first touch removes 46.2 percent of
+  observations at this barrier, so 0.538 is the floor a free saving would
+  reach; the added test per step costs something, so the ratio should sit
+  above that floor, and below one because the saving is real. Per path rather
+  than per step, because the arm that stops early takes fewer steps and a
+  per-step figure would divide the saving away.
+* **H66 (e)** The median across 30 launches of the per-launch ratio of
+  `stored` to `rolling` cycles per step, `near`, USER_INTERACTIVE, is **above
+  1.10**, and L1D misses per step are **below 0.05** in both arms. Mechanism:
+  250 doubles is 2 KiB, which fits this core's L1 data cache, so storing the
+  path costs the store and reload traffic and a second pass over it rather
+  than cache misses. The second half of the part is what distinguishes those
+  two explanations, and it is registered so the first half cannot be
+  attributed to misses after the fact.
+* **H66 (f)** The median across 30 launches of the per-launch ratio of
+  `rolling` to `terminal` cycles per step, `near`, USER_INTERACTIVE, is
+  **below 1.50**. Mechanism: over bare path generation, rolling adds one
+  exponential for the arithmetic sum, one addition for the log sum, a minimum,
+  a maximum and one barrier comparison per step, and the exponential dominates
+  that list. If this part holds, every statistic an exotic payoff in this
+  module needs costs less than half again the cost of generating the path.
+
+**What this run cannot settle.** Whether a vectorized generator changes any
+of these answers, since the engine is scalar and Box-Muller's sine and cosine
+would need an explicit NEON implementation to compare. Whether a Brownian
+bridge correction for breaches between observations, which the source brief
+describes and this engine does not implement, costs enough to matter: that is
+a different measurement and the engine would have to grow the feature first.
+And whether any of this transfers to efficiency cores in wall time rather
+than cycles, which the `bg` half will show but which no part above registers
+a threshold for, deliberately, since H64 found the two units disagree there
+and a threshold that did not name its unit would repeat the defect this
+registration exists to avoid.

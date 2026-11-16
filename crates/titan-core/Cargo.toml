@@ -18,5 +18,9 @@ array-init = "2.1"
 name = "titan-greeks"
 path = "src/bin/titan-greeks.rs"
 
+[[bin]]
+name = "titan-paths"
+path = "src/bin/titan-paths.rs"
+
 [dev-dependencies]
 criterion = "0.5"
