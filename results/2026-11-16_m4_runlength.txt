@@ -1,0 +1,139 @@
+Run length, and what it does to RQ1 (H67)
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 3093080, 2026-11-16 19:49
+IST. AC power confirmed by pmset at the start and at the end. Low Power Mode 0, Docker not
+running. 20 independent launches of `titan-stream N 2 pmu` at each of N = 200,000, 1,000,000,
+5,000,000 and 10,000,000, each sweep in its own file; 30 independent launches of `titan-t2t
+file=data/20190730.BX_ITCH_50 limit=20000000 epochs=2 batch=4096 spread=300
+stages=full,direct,book pmu`. 520 streaming lines per count, 180 tick-to-trade lines.
+
+A DEFECT IN THIS RUN'S OWN DESIGN, stated first because it changes how the streaming numbers
+must be read. I registered `epochs=2`. The median of two epochs is their mean, so it averages
+the cold first epoch in rather than selecting past it; H61, which these numbers are compared
+against, used three epochs, whose median is the warm middle one. At 200,000 messages epoch 0
+costs 217.190 cycles per message and epoch 1 costs 21.930, so the median of two is 119.560 and
+is a figure for neither. Every streaming number below is therefore reported from epoch 1
+alone, which is the quantity H61's median of three selected, and the median-of-two figures are
+shown only where the difference is the point. Two epochs is the worst possible choice and the
+registration should not have specified it.
+
+H67 (b) SUPPORTED, and this is the part that mattered most. The registered claim was that the
+    135 cycles per message of the full trading path, measured with five epochs inside one
+    process, reproduces within 10 percent over 30 independent launches. It reproduces within
+    0.6 percent:
+
+        stage     launch protocol, 30 launches      original, 5 epochs
+        full      134.178 cycles [134.045, 134.332]  135
+        direct    126.143 cycles [125.720, 126.420]  126.97
+        book      118.692 cycles [118.448, 118.870]  119.05
+        full      32.756 ns [32.639, 33.101]         32.34 ns [32.03, 34.87]
+
+    Three figures that carried the PRELIMINARY PROTOCOL flag reproduce to within 0.6, 0.7 and
+    0.3 percent respectively. H65's headline comparison, that a Black-Scholes kernel with all
+    five sensitivities costs 43 percent of the whole feed-to-decision path, rests on the 135
+    and is therefore sound as stated.
+
+(c) SUPPORTED. The ring's share of the path is 1.063 over 30 launches, median difference
+    +7.952 cycles [+7.572, +8.438], 30 of 30 launches, sign p < 0.0001, against a registered
+    ceiling of 1.10. H19 measured 1.067 under the preliminary protocol, so that figure
+    reproduces to within 0.4 percent as well.
+
+(a) REFUTED, by a factor of eleven, and the refutation is the most consequential result this
+    work has produced. The registered claim was that the uncached to cached cycle ratio varies
+    by less than 1.5x across the message counts, on the mechanism that the ring's loop body
+    does not depend on how many messages pass through it. Warm epoch, AcqRel, 128-byte
+    padding, performance cores:
+
+        messages    uncached     cached     ratio
+         200,000      21.930     13.180      1.66
+       1,000,000     133.860     19.370      6.91
+       5,000,000     216.195      8.185     26.41
+      10,000,000     221.990      8.170     27.17
+
+    A spread of 16.33x against a registered 1.50x. The mechanism I gave was wrong.
+
+    Both previously published figures are vindicated by this. H61 measured 1.69x at 200,000
+    messages and the warm epoch here gives 1.66x, a 2 percent agreement. The preliminary run
+    measured 26.2x at 10,000,000 and this gives 27.17x, a 4 percent agreement. The README's
+    caveat that run length is a variable and is not yet controlled was correct, and it is now
+    controlled: the ratio rises monotonically and saturates between five and ten million
+    messages.
+
+THE FINDING THAT MATTERS MORE THAN THE HYPOTHESIS: RQ1'S PUBLISHED ANSWER IS A 200,000-MESSAGE
+ARTIFACT. The measuring core's clock in the warm epoch is 1.085 GHz at 200,000 messages,
+2.790 at a million, 4.332 at five million and 4.315 at ten. A 200,000-message run finishes
+before the frequency governor responds, so it is measured on a core at its idle clock. The
+streaming harness has always been run at 200,000 messages. The tick-to-trade harness has
+always been run at twenty million, which is why its figures reproduce and the streaming ones
+do not.
+
+RQ1 asks what memory ordering costs in a single-producer single-consumer ring. Measured at the
+warm epoch, 128-byte padding, performance cores:
+
+    SeqCst / AcqRel, index cached      SeqCst / AcqRel, index not cached
+      200,000      1.187                  200,000      8.153
+    1,000,000      1.366                1,000,000      1.530
+    5,000,000      1.015                5,000,000      0.987
+   10,000,000      1.030               10,000,000      0.997
+
+    Fenced / AcqRel, index not cached
+      200,000      3.934
+    1,000,000      0.745
+    5,000,000      0.460
+   10,000,000      0.447
+
+H61 reported 1.07x cached, 6.79x uncached and 3.62x for Fenced, all at 200,000 messages. The
+cached half survives: at five and ten million the ratio is 1.015 and 1.030, so the statement
+that the ordering is invisible when the consumer caches the producer's index holds at every
+run length tested. The uncached half does not survive. At five and ten million messages
+SeqCst and AcqRel cost the same to within 1.3 percent, in cycles and in nanoseconds alike.
+The 6.79x exists only at the run length where the core has not ramped.
+
+And the ranking inverts. Absolute cycles per message, warm epoch, uncached, 128-byte padding:
+
+        messages      AcqRel      SeqCst      Fenced
+         200,000      21.930     178.795      86.280
+       1,000,000     133.860     204.815      99.750
+       5,000,000     216.195     213.335      99.415
+      10,000,000     221.990     221.250      99.185
+
+    AcqRel's uncached cost grows 10.1x with run length while Fenced's grows 1.15x and is flat
+    past a million messages. So at 200,000 messages Fenced costs 3.93 times AcqRel, and at ten
+    million it costs 0.447 times AcqRel: two and a quarter times CHEAPER. The same three
+    orderings, the same ring, the same machine, and the ordering that looks worst at one run
+    length looks best at another.
+
+    In nanoseconds the inversion is the same and is not a clock artifact: AcqRel uncached goes
+    20.068, 47.642, 49.941, 51.007 ns while Fenced uncached goes 45.075, 33.587, 23.659,
+    22.726 ns. One rises 2.5x and the other falls 2.0x.
+
+WHAT IS AND IS NOT ESTABLISHED ABOUT THE MECHANISM. Two components are separable and only one
+is explained.
+
+    The clock ramp is established and quantified. At 200,000 messages the core is at 1.085 GHz
+    and at five million it is at 4.33 GHz, a factor of 3.99. Any workload that spends time
+    waiting on memory costs proportionally more CYCLES at a higher clock for the same
+    nanoseconds, so a cycles-per-message figure from a short run is not comparable with one
+    from a long run. The uncached arms carry 2.66 to 3.04 L1D misses per message and the
+    cached arms 0.91 to 1.30, so the uncached arms are the ones this distorts most.
+
+    The nanosecond-level divergence is NOT explained. AcqRel uncached slows by 2.5x in
+    nanoseconds and Fenced uncached speeds up by 2.0x as run length grows, and L1D misses move
+    by only 14 percent across that range, which is not enough to account for either. A
+    plausible story is that the explicit `dmb ish` barrier prevents a speculative behaviour
+    that the `ldapr` path permits and that only becomes pathological once the stream is long
+    enough, but nothing here measures that. It is recorded as the project's largest open
+    question and is not claimed.
+
+WHAT MUST CHANGE, LISTED SO IT IS NOT LOST.
+
+    1. Every streaming figure in the README and in H1, H1b, H2, H3b, H14 and H61 was measured
+       at 200,000 messages and is a figure for an unramped core. The cached conclusions hold.
+       The uncached ordering comparison does not, and the Fenced ranking reverses.
+    2. RQ1 needs re-measuring at a run length the feed implies. One NASDAQ BX session is
+       28,734,686 messages, so five to ten million is the right order and two hundred thousand
+       is not.
+    3. Nothing in the tick-to-trade results is affected. Those were always run at twenty
+       million messages and all three stages reproduce within 0.6 percent.
+    4. No results file is withdrawn. H61's numbers are correct for the run length they were
+       measured at, and that run length is now stated alongside them. What changes is the
+       generality claimed for them.
