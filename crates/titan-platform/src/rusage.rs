@@ -16,11 +16,15 @@ impl Usage {
     pub fn now() -> Usage {
         let mut ru: libc::rusage = unsafe { std::mem::zeroed() };
         unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut ru) };
+        // No casts here. `c_long` is already `i64` on both targets this
+        // work builds for, and a redundant cast warns on aarch64-apple-darwin
+        // while being silently accepted on x86-64 Linux, which is where the
+        // lint was being run.
         Usage {
-            minor_faults: ru.ru_minflt as i64,
-            major_faults: ru.ru_majflt as i64,
-            voluntary_switches: ru.ru_nvcsw as i64,
-            involuntary_switches: ru.ru_nivcsw as i64,
+            minor_faults: ru.ru_minflt,
+            major_faults: ru.ru_majflt,
+            voluntary_switches: ru.ru_nvcsw,
+            involuntary_switches: ru.ru_nivcsw,
         }
     }
 

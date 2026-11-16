@@ -420,11 +420,14 @@ pub mod events {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    // The import sits inside the test rather than at module scope. The only
+    // test here is gated off macOS, so a module-level `use super::*` is unused
+    // on macOS and warns there while being used on every other target. That
+    // warning is invisible to a Linux-only lint run, which is how it survived.
     #[cfg(not(target_os = "macos"))]
     #[test]
     fn reports_unavailable_off_macos() {
+        use super::{Kperf, KperfError};
         assert!(matches!(Kperf::open(), Err(KperfError::Load(_))));
     }
 }

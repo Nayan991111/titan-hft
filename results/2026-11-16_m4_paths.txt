@@ -1,0 +1,176 @@
+What path dependence costs per step (H66)
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit de9f07d,
+2026-11-16 19:07 IST. AC power confirmed by pmset at the start AND at the end of the run,
+Low Power Mode 0, Docker not running, no profiler attached. 30 independent launches of
+`titan-paths 3 ui pmu` and 30 of the same with `bg`, 3 epochs per launch, 10 arms, 2 barrier
+distances, 2000 paths of 250 observations per arm per epoch. 2700 measured lines, 60 distinct
+launch labels. Every arm inside one epoch is seeded identically, so the arms walk the same
+paths; across launches the launch is the unit of observation and pairs form inside it.
+
+The engine was validated before it was measured, by ten tests whose oracles share none of its
+machinery: uniforms against a chi-square over 64 bins (57.98 on 63 degrees of freedom);
+normal variates against four moments and a Kolmogorov-Smirnov statistic computed with the
+cumulative normal that `pricing`'s tests validated against Simpson integration (KS 0.001624
+against a 0.002150 critical value); the stepper against the exact moments of the process,
+within 1.66 standard errors; a simulated European against Black-Scholes, worst 1.12 standard
+errors over five contracts; a simulated geometric Asian against the exact closed form for
+discrete averaging, worst 1.92; the barrier monitor against in-out parity path by path
+(residual below 5.2e-15) and against an unreachable barrier (reproducing the plain generator);
+and every pair of arms that must agree, agreeing.
+
+ABSOLUTE COST, performance cores, median across 30 launches, per step:
+
+    arm               dist   cycles  instr   IPC    L1D  br mispr      ns   obs
+    terminal          na      23.14  87.19  3.77  0.0000  0.38979   5.681   250
+    asian_geom        na      26.77 102.58  3.83  0.0000  0.39017   6.592   250
+    asian_arith       na      34.41 146.40  4.25  0.0000  0.40022   8.495   250
+    lookback_free     na      27.02 103.76  3.84  0.0000  0.39098   6.655   250
+    lookback_branchy  na      27.08 105.77  3.91  0.0000  0.39184   6.670   250
+    barrier_log       near    27.18 103.92  3.82  0.0000  0.38978   6.704   250
+    barrier_log       far     26.87 103.92  3.87  0.0000  0.38207   6.630   250
+    barrier_price     near    34.87 147.39  4.23  0.0000  0.39930   8.613   250
+    barrier_log_exit  near    18.09  69.03  3.82  0.0000  0.29500   4.466 187.8
+    rolling           near    35.74 158.32  4.43  0.0000  0.40029   8.831   250
+    stored            near    32.98 156.31  4.74  0.0000  0.39438   8.153   250
+
+The L1D column is not rounded down: it is zero to four decimal places in every arm on
+performance cores, including the arm that writes and rereads 2 KiB per path. This engine is
+arithmetic-bound, and every statement below is about the core's arithmetic throughput rather
+than about this machine's memory system.
+
+THE NUMBER THIS RUN CONTRIBUTES, and it is not one of the six registered parts. One
+    exponential costs 7.65 to 7.69 cycles on a performance core, measured twice from
+    independent pairs of arms:
+
+        asian_arith minus asian_geom      7.647 cycles   (34.41 against 26.77)
+        barrier_price minus barrier_log   7.693 cycles   (34.87 against 27.18)
+
+    The two agree to 0.60 percent. Both differences are 30 of 30 launches with sign
+    p < 0.0001 and bootstrap intervals narrower than 0.08 cycles. Against H65, which measured
+    the whole cumulative normal at 15.87 cycles, this decomposes that figure: 7.67 for the
+    exponential and 8.20 for the degree-five polynomial, the density evaluation and the sign
+    branch around it. Two runs registered separately, three days apart, on different harnesses,
+    cross-validate.
+
+(a) REFUTED. The registered claim was that geometric averaging, being additive in the
+    logarithm and so needing no exponential per step, costs below 0.70 of arithmetic
+    averaging in cycles per step on performance cores. It costs 0.7778, with the geometric
+    form cheaper in 30 of 30 launches, sign p < 0.0001, median difference 7.657 cycles
+    [7.597, 7.683]. On efficiency cores the ratio is 0.598.
+
+    The mechanism I registered was right and my magnitude was wrong. One exponential per step
+    is removed, exactly as predicted. But I estimated an exponential at 13 to 16 cycles by
+    reading across from H65's 15.87 for the whole cumulative normal, and it is 7.67. Against
+    a step costing 34.41, removing 7.67 leaves 0.778, not 0.70. The registration's reasoning
+    was sound and its arithmetic rested on a figure this run then measured directly.
+
+(b) REFUTED, for the same reason and to within 0.2 percent of the same number. A barrier
+    monitored in log space costs 0.7794 of the same barrier monitored in price space on
+    performance cores, 30 of 30 launches, sign p < 0.0001, against a registered 0.70. On
+    efficiency cores, 0.594. The two refutations are one refutation: both parts removed one
+    exponential per step and both were registered against the same overestimate of what an
+    exponential costs.
+
+(c) SUPPORTED, and more strongly than the threshold asked. The registered claim was that
+    branchless extremes are NOT faster than branchy ones, ratio above 0.95, because the theory
+    of records puts a new extreme at about 1/k on step k, so the expected number of records in
+    250 steps is about ln 250 = 5.5, or 2.2 percent of steps, and a branch taken two percent
+    of the time is well predicted. The ratio is 0.9980.
+
+    On performance cores the effect is not merely small but statistically absent: the
+    branchless form is cheaper in 11 of 30 launches, sign p = 0.2005, and the bootstrap
+    interval on the difference is [-0.109, +0.005] cycles, which contains zero. The
+    instruction counts show where the 2.01 instructions per step the branchy form issues more
+    of go: nowhere, because they are predicted. On efficiency cores a small real effect appears,
+    0.985 with the branchless form cheaper in 30 of 30, worth 0.627 cycles of 41.67.
+
+    This part is recorded as the registration's strongest result because it predicted that an
+    optimization would fail, named the mechanism in advance, and the mechanism held.
+
+(d) SUPPORTED. Stopping at the first touch costs 0.6657 of running to maturity in cycles per
+    path on performance cores, 30 of 30 launches, sign p < 0.0001, against a registered band
+    of 0.55 to 0.95. The validation suite had measured that early termination removes 46.2
+    percent of observations at this barrier, so 0.538 is the floor a free saving would reach;
+    the measured 0.666 sits above that floor, which is the registered prediction that the added
+    test per step costs something real. The observation count confirms the work removed: 187.8
+    of 250 observations taken, a 24.9 percent reduction, against a 33.4 percent reduction in
+    cycles per path.
+
+    A side effect worth recording: the early-exit arm mispredicts LESS when the barrier is near
+    than when it is far, 0.295 against 0.385 per step, a ratio of 0.766 in 30 of 30 launches.
+    Paths that knock out early execute fewer loop-condition branches, and that saving exceeds
+    the cost of the barrier branch becoming unpredictable.
+
+(e) REFUTED, in the opposite direction, and this is the run's most useful finding. The
+    registered claim was that a stored path costs ABOVE 1.10 of rolling scalars, because 250
+    doubles is 2 KiB of store and reload traffic and a second pass over it. It costs 0.9227:
+    the stored path is 7.7 percent CHEAPER, in 30 of 30 launches, sign p < 0.0001.
+
+    The second half of the part was registered precisely so that the first half could not be
+    attributed to cache misses after the fact, and it is supported: L1D misses per step are
+    0.0000 in both arms, below 0.05 in 30 of 30 launches. The 2 KiB fits, so nothing is paid
+    for the traffic.
+
+    The counters say why the fused loop loses. The two arms issue almost the same instructions,
+    158.32 against 156.31 per step, a difference of 1.3 percent, but their IPC differs by 7.0
+    percent: 4.429 fused against 4.740 split. In the fused loop the exponential sits on the
+    dependency chain of the path recurrence, because the same `x` that the next step needs is
+    the argument the exponential consumes. Splitting the loop breaks that: the first pass does
+    only the recurrence, and the second pass evaluates exponentials whose arguments are all
+    already known and therefore independent of one another, so they pipeline.
+
+    The practical statement is the reverse of the advice that prompted this measurement.
+    Storing the path and making a second pass is cheaper than fusing everything into one loop
+    on this core, by 7.7 percent on performance cores and 27.5 percent on efficiency cores
+    (53.12 against 73.25 cycles), and it costs nothing in cache misses at this path length.
+    The advice to avoid storing paths for memory efficiency is, measured here, advice to pay
+    7.7 percent for memory that was free.
+
+(f) REFUTED by 3.0 percent, with the mechanism fully accounted for. The registered claim was
+    that tracking every statistic costs below 1.50 of generating the path alone. It costs
+    1.5447, in 30 of 30 launches, median difference 12.627 cycles [12.560, 12.665].
+
+    The decomposition closes to the cycle. Rolling adds 12.604 cycles per step over bare
+    generation. One exponential, measured independently above, is 7.647 of that, 60.7 percent.
+    The remaining 4.957 is the log sum, the running minimum, the running maximum and the
+    barrier comparison, four operations at about 1.24 cycles each. The registration said the
+    exponential would dominate that list, and it does; it is simply not large enough relative
+    to the other four to keep the total under half again the cost of the path.
+
+    So every statistic a path-dependent payoff in this module needs costs 54 percent more than
+    the path itself, not under 50. The claim the paper can make is the measured one.
+
+POWER CONDITIONS DID NOT MATTER HERE, AND THAT REFINES THE PROTOCOL RATHER THAN BREAKING IT.
+This run repeats, on AC power, a run made four hours earlier on battery, which its own
+registration forbade. The two agree to within 0.16 percent on every absolute cycle count and
+0.13 percent on every registered ratio:
+
+    part                            AC      battery   AC/battery
+    (a) asian_geom/asian_arith      0.7778   0.7775    1.0004
+    (b) barrier_log/barrier_price   0.7794   0.7787    1.0009
+    (c) lookback_free/branchy       0.9980   0.9967    1.0013
+    (d) exit/full per path          0.6657   0.6660    0.9995
+    (e) stored/rolling              0.9227   0.9226    1.0001
+    (f) rolling/terminal            1.5447   1.5454    0.9996
+
+The performance-core clock was 4.045 to 4.062 GHz on AC and 4.044 to 4.049 on battery, so the
+machine did not downclock. H61 showed that preliminary conditions can reverse an answer; this
+run shows that for a compute-bound single-core kernel on this machine the power source is not
+one of those conditions. Both statements are compatible: H61's reversals were in a
+latency-bound cross-core harness where the clock differed between arms.
+
+Two limits on that conclusion, stated so it is not over-read. These runs are short, a few
+milliseconds of load per launch, so they do not reach the sustained load at which a fanless
+chassis throttles; nothing here says battery and AC agree under sustained load. And the
+agreement is between two runs made four hours apart on the same machine in the same state
+apart from the power source, not an experiment that varied power while holding everything else
+fixed. The protocol's AC requirement is kept, because the cost of keeping it is nothing and the
+cost of dropping it is a confound that would be invisible.
+
+ONE OBSERVATION LEFT OPEN. Branch mispredicts sit at 0.390 per step in almost every arm,
+including bare path generation, and the arms differ from each other by at most 0.010. That
+floor is a property of the generator's loop structure rather than of any path statistic, and
+this run does not establish which branch produces it. It does not confound the comparisons,
+since it is common to every arm, but it is a large number to leave unexplained: at roughly 10
+cycles a mispredict it would account for about 4 of the 23.14 cycles bare generation costs.
+Recorded as open.
