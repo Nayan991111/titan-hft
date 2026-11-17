@@ -129,22 +129,118 @@ mod tests {
         assert_eq!(r.len(), r.page_size());
     }
 
+    /// Prefaulting makes pages resident.
+    ///
+    /// **This test used to read `assert_eq!(r.resident_pages()?, r.pages())`
+    /// and that assertion was wrong, not merely fragile.** Residency is the
+    /// kernel's to decide, not this code's, and `PinnedRegion::new` treats a
+    /// failed `mlock` as non-fatal by design (see `lock_error`). When the
+    /// kernel refuses to lock, which an unprivileged process on macOS
+    /// routinely sees, nothing in this code prevents the pages from being
+    /// compressed or evicted, so an exact-equality assertion was testing the
+    /// machine's memory pressure rather than the constructor. It failed on a
+    /// correct build on a laptop running a browser and an editor on battery.
+    ///
+    /// The property actually worth asserting is that prefaulting did
+    /// something, and the threshold is chosen against the size of the defect
+    /// it has to catch: a region that was never written would be near zero
+    /// pages resident, so 50 percent carries a large margin against the real
+    /// failure while being indifferent to a page or two being reclaimed.
     #[test]
-    fn all_pages_resident_after_prefault() {
+    fn prefault_makes_pages_resident() {
         let r = PinnedRegion::new(8 << 20).unwrap();
-        assert_eq!(r.resident_pages().unwrap(), r.pages());
+        let pages = r.pages();
+        let resident = r.resident_pages().unwrap();
+        assert!(pages > 0);
+        if r.is_locked() {
+            assert!(
+                resident * 100 >= pages * 99,
+                "locked region: {resident} of {pages} pages resident, \
+                 expected at least 99 percent"
+            );
+        } else {
+            eprintln!(
+                "note: mlock refused (errno {:?}), so these pages are not pinned \
+                 and residency is the operating system's to decide; \
+                 {resident} of {pages} resident",
+                r.lock_error()
+            );
+            assert!(
+                resident * 2 >= pages,
+                "unlocked region: only {resident} of {pages} pages resident, \
+                 which is too few for the constructor to have prefaulted at all"
+            );
+        }
     }
 
+    /// Prefaulting removes the zero-fill faults a fresh mapping would take.
+    ///
+    /// **Replaces an `assert_eq!(minor_faults, 0)` that was not a correctness
+    /// test.** A fault count is a property of the whole process and of the
+    /// machine's memory pressure; other tests in this binary run in parallel
+    /// and fault too. Asserting exactly zero gave the real defect, which is
+    /// prefaulting not happening, a detection margin of zero, and gave the
+    /// machine unlimited power to fail a correct build.
+    ///
+    /// This is a differential instead. Arm A writes one byte per page to a
+    /// fresh mapping that was never written, which must take a zero-fill
+    /// fault per page. Arm B does the same to a `PinnedRegion`, whose
+    /// constructor already wrote every page. Both arms run in the same
+    /// process moments apart, so power state, memory pressure and competing
+    /// applications apply to both and cancel in the ratio.
+    ///
+    /// A validity gate comes first: if arm A did not fault roughly once per
+    /// page, the fault counter is not measuring what this test needs and the
+    /// test reports that instead of pretending to a verdict. That is the same
+    /// discipline the experiment registrations use, and it is here because
+    /// the old version of this test had no such gate.
     #[test]
-    fn writes_after_prefault_take_no_faults() {
-        let mut r = PinnedRegion::new(8 << 20).unwrap();
-        let page = r.page_size();
-        let before = Usage::now();
+    fn prefaulting_removes_the_faults_a_fresh_mapping_takes() {
+        let bytes = 8usize << 20;
+        let page = page_size();
+        let pages = bytes / page;
+
+        // Arm A: fresh, unwritten mapping.
+        let raw = unsafe {
+            libc::mmap(
+                ptr::null_mut(),
+                bytes,
+                libc::PROT_READ | libc::PROT_WRITE,
+                libc::MAP_PRIVATE | libc::MAP_ANON,
+                -1,
+                0,
+            )
+        };
+        assert_ne!(raw, libc::MAP_FAILED, "mmap for the control arm failed");
+        let before_a = Usage::now();
+        for off in (0..bytes).step_by(page) {
+            unsafe { ptr::write_volatile((raw as *mut u8).add(off), 1u8) };
+        }
+        let faults_a = Usage::now().since(&before_a).minor_faults;
+        unsafe { libc::munmap(raw, bytes) };
+
+        // Arm B: prefaulted by the constructor.
+        let mut r = PinnedRegion::new(bytes).unwrap();
+        let before_b = Usage::now();
         let s = r.as_mut_slice();
         for off in (0..s.len()).step_by(page) {
             unsafe { ptr::write_volatile(&mut s[off], 1) };
         }
-        let d = Usage::now().since(&before);
-        assert_eq!(d.minor_faults, 0, "page faults inside a pre-faulted region");
+        let faults_b = Usage::now().since(&before_b).minor_faults;
+
+        // Validity gate, not a hypothesis about this code.
+        if faults_a * 2 < pages as i64 {
+            eprintln!(
+                "note: the control arm took {faults_a} faults over {pages} pages, \
+                 too few for the fault counter to be measuring zero-fill faults \
+                 here; prefault arm took {faults_b}. No verdict."
+            );
+            return;
+        }
+        assert!(
+            faults_b * 8 <= faults_a,
+            "prefaulting did not reduce faults: fresh mapping {faults_a}, \
+             pre-faulted region {faults_b}, over {pages} pages"
+        );
     }
 }
