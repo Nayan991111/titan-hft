@@ -1,0 +1,102 @@
+EXPLORATORY, NOT PRE-REGISTERED: the same ring on x86-64 (E1)
+
+This file is labelled exploratory because it is. Nothing here was registered
+before it ran. It was run to answer one question that the pre-registered body
+of work cannot answer at all, because every registered run in this project has
+been on one machine: is the run-length sensitivity of RQ1 a property of
+measurement, or a property of this laptop? A single-machine study cannot tell
+those apart, and that is the largest threat to this work's validity.
+
+It is recorded with an E number rather than an H number so that no reader can
+mistake it for a tested hypothesis, and every number in it is reported in
+nanoseconds only, because the host has no accessible PMU.
+
+HOST. Linux 6.18.44 x86_64, 2 cores, rustc 1.97.0, virtualized container.
+Compare the measurement machine: Apple M4, Mac16,13, macOS 27.2 build 26B123,
+4 performance cores and 6 efficiency cores, 16 GiB, rustc 1.92.0.
+
+PROTOCOL. The same `titan-stream` binary from the same commit, 10 independent
+launches at 200,000 messages and 10 at 10,000,000, 3 epochs each, each launch
+reduced to the median of its warm middle epoch. Identical analysis path.
+
+WHAT WAS MEASURED, warm epoch, 128-byte padding, nanoseconds per message:
+
+    arm                  200,000    10,000,000    ratio
+    acqrel uncached       10.671        11.410     1.069
+    acqrel cached          4.810         5.698     1.185
+    seqcst uncached      192.645       208.063     1.080
+    seqcst cached        120.516       117.198     0.972
+    fenced uncached      121.516       133.662     1.100
+    fenced cached         62.177        53.434     0.859
+
+FINDING 1: THE RUN-LENGTH SENSITIVITY DOES NOT APPEAR HERE.
+
+    comparison                 x86-64: 200k -> 10M        Apple M4: 200k -> 10M
+    SeqCst/AcqRel uncached     18.053 -> 18.234  (1.01x)   4.326 -> 1.006  (4.3x)
+    Fenced/AcqRel uncached     11.387 -> 11.714  (1.03x)   3.934 -> 0.447  (8.8x, SIGN FLIP)
+    SeqCst/AcqRel cached       25.055 -> 20.568  (1.22x)   1.187 -> 0.979  (1.2x)
+    Fenced/AcqRel cached       12.927 ->  9.378  (1.38x)   2.449 (10M)
+
+    The two uncached comparisons, which are the ones that reverse on the M4,
+    move by 1 and 3 percent here against 330 and 780 percent there. The
+    ordering ranking on this host is the same at both run lengths, in the same
+    order, with the same magnitudes.
+
+FINDING 2, WHICH WAS NOT THE QUESTION AND IS LARGER THAN THE ANSWER: THE COST
+OF MEMORY ORDERING DIFFERS BY AN ORDER OF MAGNITUDE BETWEEN THE TWO
+ARCHITECTURES.
+
+    On this x86-64 host, sequentially consistent operation costs 18.2 times
+    acquire-release in the uncached ring and a plain load with explicit
+    barriers costs 11.7 times. On the Apple M4 at the same run length the
+    first costs 1.0 times and the second costs 0.45 times.
+
+    The architectural explanation is standard and is consistent with the
+    instruction census this project already ran. x86-64 is total-store-order,
+    so an acquire load and a release store are plain moves and cost nothing
+    beyond the load and store themselves, while a sequentially consistent
+    store needs a fence. AArch64 is weakly ordered with native acquire and
+    release forms, so `ldapr` and `stlr` already carry the ordering in the
+    instruction and `ldar` costs little more. The result is that the
+    architecture which makes weak ordering free is the one that makes strong
+    ordering expensive, and the architecture that charges a little for both
+    makes the choice between them almost free.
+
+    Stated as a number a reader can use: choosing SeqCst over AcqRel in this
+    ring costs 18.2 times more work on x86-64 and nothing measurable on an M4.
+
+WHAT THIS DOES NOT ESTABLISH, and the first item is a real alternative
+explanation that this run cannot rule out.
+
+    1. This host is virtualized. The hypervisor may hide or average the
+       physical machine's frequency scaling, so the absence of a run-length
+       effect here is consistent with the M4's duration-driven DVFS being the
+       cause, and equally consistent with virtualization masking the same
+       effect on this host. A bare-metal x86-64 machine, or an Apple machine
+       with a fan, would separate those. Until one of those is run, the claim
+       this file supports is that the effect is absent on a virtualized
+       x86-64 Linux host, and no stronger claim.
+    2. Two cores against ten. Contention and scheduling on a two-core
+       container are not comparable to a four-plus-six heterogeneous laptop,
+       and this file makes no cross-architecture claim about absolute
+       latencies for that reason. The ratios between arms on one host are the
+       quantity compared, never an absolute figure from one host against an
+       absolute figure from the other.
+    3. Different compiler: rustc 1.97.0 here against 1.92.0 on the
+       measurement machine. The ring is the same source from the same commit,
+       but the generated code is not guaranteed identical.
+    4. No PMU, so no cycle counts, no instruction counts, no cache misses.
+       Every figure here is wall time. The M4 comparisons quoted beside them
+       are the nanosecond figures from the same analysis path for that reason,
+       not the cycle figures.
+
+WHY THIS MATTERS TO THE PAPER. The project's framing claim had been that
+measurement protocol decides microarchitectural conclusions. That claim, in
+that generality, is Mytkowicz, Diwan, Hauswirth and Sweeney, ASPLOS 2009,
+which demonstrated measurement bias from UNIX environment size and link
+order. Restating it would be restating a known result. What this file supplies
+is the difference: the sources this work found are duration-driven frequency
+scaling and heterogeneous core residency, neither of which existed on a
+general-purpose CPU in 2009, and their absence on an older architecture is
+evidence that they are properties of the new machine class rather than of
+measurement in general.

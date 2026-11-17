@@ -8,33 +8,67 @@ protocol.
 
 ## The thesis
 
-The contribution is not a faster ring or a cheaper book. It is that on this
-class of machine the measurement protocol decides the conclusion about as
-often as the code does, and that five specific protocol dimensions can be
-quantified rather than warned about. Three published-style claims in this work
-reversed under protocol changes that touched no code at all. That is the
-paper.
+**Revised 2026-11-16, after checking the prior work I should have checked
+before writing the first version.** The first draft of this document claimed
+the contribution was that measurement protocol decides microarchitectural
+conclusions. That claim, in that generality, is Mytkowicz, Diwan, Hauswirth
+and Sweeney, "Producing wrong data without doing anything obviously wrong!",
+ASPLOS 2009, which established that measurement bias is significant and
+commonplace and demonstrated it from UNIX environment size and link order. A
+paper restating it would be rejected in one line, and correctly.
 
-This framing is chosen because it is what the measurements actually support.
-A paper claiming "here is a fast trading path on a laptop" would rest on
-figures that this work has itself shown to be protocol-dependent. A paper
-claiming "the protocol is a confound, here is its size in five dimensions"
-rests on the reversals, which are the best-evidenced results in the whole
-body of work: each is measured over 30 independent launches with a sign test
-and a bootstrap interval, and two of them are confirmed by independent runs
+The contribution is narrower and harder, and it is two things.
+
+**First, a cross-architecture result on the cost of memory ordering in a
+single-producer single-consumer ring.** Choosing sequentially consistent
+operation over acquire-release costs 18.2 times more work on a virtualized
+x86-64 Linux host and nothing measurable on an Apple M4 at a realistic run
+length (1.0x). A plain load with explicit barriers costs 11.7 times
+acquire-release on x86-64 and 0.45 times on the M4, which is to say it is the
+cheapest of the three there and among the most expensive here. The
+architecture that makes weak ordering free is the one that makes strong
+ordering expensive, and the architecture that charges a little for both makes
+the choice between them nearly free. Both figures come from the same binary at
+the same commit through the same analysis path.
+
+**Second, a source of measurement bias specific to the machine class.** On the
+M4, the two uncached ordering comparisons change by 4.3 and 8.8 times between
+200,000 and 10,000,000 messages, the second with a sign flip; on x86-64 the
+same two comparisons change by 1 and 3 percent. The M4 evidence for the
+mechanism is direct: a 200,000-message run finishes before the frequency
+governor responds and is measured on a performance core at 1.085 GHz against
+4.33 for the long run. Duration-driven frequency scaling and heterogeneous
+core residency did not exist on a general-purpose CPU in 2009, and their
+absence on an older architecture is what makes this a new source rather than a
+restatement of a known one.
+
+The protocol material stays in the paper, but as the mechanism section of the
+second result rather than as the thesis. The three reversals this work
+produced are then evidence rather than embarrassment, and they are the
+best-evidenced results here: each over 30 independent launches with an exact
+sign test and a bootstrap interval, two of them confirmed by independent runs
 agreeing to one part in a thousand.
+
+**One caveat governs the whole second result and belongs in the abstract.**
+The x86-64 host is virtualized, so the absence of the effect there is
+consistent with the M4's frequency scaling being the cause and equally
+consistent with the hypervisor masking the same effect. A bare-metal x86-64
+machine or an Apple machine with a fan would separate those. Until one is run,
+the claim is that the effect is absent on a virtualized x86-64 Linux host, and
+nothing stronger.
 
 ## Title
 
 Primary, for arXiv and Zenodo:
 
-> **Same Code, Opposite Answers: Measurement Protocol as a Confound in
-> Microarchitectural Evaluation on a Fanless Apple M4**
+> **Ordering Is Free on One Architecture and Costs Eighteen Times on Another:
+> Memory Ordering in an SPSC Ring on Apple M4 and x86-64**
 
 Alternate if a reviewer finds the primary too informal:
 
-> **Protocol Sensitivity in Single-Machine Microarchitectural Measurement:
-> Five Dimensions That Reverse Conclusions on Apple Silicon**
+> **The Price of Memory Ordering Depends on the Machine: A Cross-Architecture
+> Measurement of an SPSC Ring, and a Source of Bias Specific to Heterogeneous
+> Silicon**
 
 For the JSys submission, which must carry a different title from the arXiv
 version (see Venue):
@@ -117,6 +151,8 @@ clone.
 | 58.733 cycles, 43 percent | `results/2026-11-16_m4_greeks.txt` |
 | 7.647 and 7.693 cycles | `results/2026-11-16_m4_paths.txt` |
 | 0.16 percent battery against wall power | `results/2026-11-16_m4_paths.txt` |
+| 18.2x and 11.7x on x86-64, 1.01x run-length change | `results/2026-11-16_x86_crossarch.txt` (EXPLORATORY) |
+| 4 performance and 6 efficiency cores, 16 GiB, macOS 27.2 build 26B123 | captured by `titan_t43`, to be written into every results file |
 
 ## Section map
 
@@ -185,14 +221,43 @@ it. The cost is maintaining two titles, which is mechanical.
 
 ## What blocks submission
 
-1. The barrier inversion is the paper's most striking result and its
-   mechanism is unknown. The paper can state it as open, and should, but a
-   reviewer will ask and the answer must be "here is what we ruled out and
-   here is the measurement that would settle it".
-2. 24 rows still carry PRELIMINARY PROTOCOL. Three such figures have since
+1. **The barrier inversion's mechanism is unknown** and it is now one of two
+   headline results. The paper can state it as open, and must, but the answer
+   to a reviewer has to be "here is what we ruled out and here is the
+   measurement that would settle it". Ruled out so far: cache behaviour, since
+   the barriered variant carries more L1D misses in every configuration and is
+   faster regardless.
+2. **The cross-architecture result rests on one exploratory run on a
+   virtualized two-core host.** It is the strongest claim in the paper and the
+   weakest-evidenced. It needs: a bare-metal x86-64 machine to rule out
+   hypervisor masking, more launches, and if at all possible a PMU so the
+   comparison is in cycles as well as nanoseconds. This is now the project's
+   highest-priority measurement.
+3. **24 rows still carry PRELIMINARY PROTOCOL.** Three such figures have since
    reproduced within 0.6 percent, which is evidence the flag is conservative,
    but no figure from those rows belongs in the paper without that statement
    beside it.
-3. The environment metadata is internally inconsistent: 14 results files say
-   macOS 27.2 and 6 say macOS 26B123. One is wrong and the reproducibility
-   section cannot be written until the machine is asked.
+4. **Related work is not written** and the audit above shows why that is not a
+   formality. One search changed the paper's thesis. The sections on
+   measurement bias, on SPSC ring design, and on Apple silicon
+   characterisation all need the same treatment before any of this is
+   submitted.
+
+## Record of what the environment actually is
+
+Settled by asking the machine rather than by typing a string:
+
+    ProductVersion  27.2            BuildVersion  26B123
+    hw.model        Mac16,13        cpu           Apple M4
+    performance cores 4             efficiency cores 6
+    memory          16 GiB
+    rustc 1.92.0 (ded5c06cf 2025-12-08), cargo 1.92.0, clippy 0.1.92
+    uname           Darwin 27.2.0 arm64
+
+The earlier concern that fourteen results files said macOS 27.2 and six said
+macOS 26B123 was not a contradiction. Both are correct and they are the
+product version and the build of one operating system. That was my error, not
+the files', and it is recorded here because the same error pattern, asserting
+a defect from a surface difference without checking what the strings mean,
+produced a second false alarm about clippy earlier the same day. Results files
+should carry both strings so the question cannot arise again.
