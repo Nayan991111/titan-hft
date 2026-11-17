@@ -8,73 +8,124 @@ protocol.
 
 ## The thesis
 
-**Revised 2026-11-16, after checking the prior work I should have checked
-before writing the first version.** The first draft of this document claimed
-the contribution was that measurement protocol decides microarchitectural
-conclusions. That claim, in that generality, is Mytkowicz, Diwan, Hauswirth
-and Sweeney, "Producing wrong data without doing anything obviously wrong!",
-ASPLOS 2009, which established that measurement bias is significant and
-commonplace and demonstrated it from UNIX environment size and link order. A
-paper restating it would be rejected in one line, and correctly.
+**Revised twice, and the second revision retracts a claim this document made
+as a headline.** History first, because the errata are part of the record.
 
-The contribution is narrower and harder, and it is two things.
+*First draft, 2026-11-16 morning.* Claimed the contribution was that
+measurement protocol decides microarchitectural conclusions. That claim, in
+that generality, is Mytkowicz, Diwan, Hauswirth and Sweeney, "Producing wrong
+data without doing anything obviously wrong!", ASPLOS 2009
+(doi:10.1145/1508244.1508275), which established that measurement bias is
+significant and commonplace and demonstrated it from UNIX environment size and
+link order. A paper restating it would be rejected in one line, and correctly.
 
-**First, a cross-architecture result on the cost of memory ordering in a
-single-producer single-consumer ring.** Choosing sequentially consistent
-operation over acquire-release costs 18.2 times more work on a virtualized
-x86-64 Linux host and nothing measurable on an Apple M4 at a realistic run
-length (1.0x). A plain load with explicit barriers costs 11.7 times
-acquire-release on x86-64 and 0.45 times on the M4, which is to say it is the
-cheapest of the three there and among the most expensive here. The
-architecture that makes weak ordering free is the one that makes strong
-ordering expensive, and the architecture that charges a little for both makes
-the choice between them nearly free. Both figures come from the same binary at
-the same commit through the same analysis path.
+*Second draft, 2026-11-16 evening.* Replaced it with a cross-architecture
+headline: sequential consistency costs 18.2 times acquire-release on x86-64 and
+1.0 times on the M4, and "the architecture that makes weak ordering free is the
+one that makes strong ordering expensive."
 
-**Second, a source of measurement bias specific to the machine class.** On the
+**That sentence is the definition of total store order, not a finding, and it
+is withdrawn as a contribution.** On x86-64 an acquire load and a release store
+are plain moves, so the denominator of that ratio is very nearly free, while a
+sequentially consistent store needs a locked operation or a fence, so the
+numerator is real. A large ratio on x86-64 and a ratio near one on AArch64,
+where `ldapr` and `stlr` both carry ordering in the instruction, is what any
+reader of the two memory models would predict before measuring. The number is
+correct and it was measured honestly; the mistake was calling the textbook
+prediction a discovery. It stays in the paper as a **control**: it is how the
+harness demonstrates that it reproduces known behaviour on a known machine,
+which is what earns the reader's trust for the machine where the behaviour is
+not known.
+
+*Third draft, 2026-11-17, and this is the one.* The nearest prior work is
+Khayet and Morrison, "Arm Weak Memory Consistency on Apple Silicon: What Is It
+Good For?", ASPLOS 2026. They measure Apple M1 and M4 under Apple's runtime
+TSO toggle against native Arm mode across 49 application workloads and conclude
+that the Arm memory model has no inherent performance advantage on Apple
+silicon, typical execution times being within about 3 percent. And they state
+explicitly that they leave the performance of atomic read-modify-write
+operations and memory barriers to future work, on the stated assumption that
+modern concurrent software is not bottlenecked on synchronization.
+
+**That deferral is this paper.** A single-producer single-consumer ring in a
+market-data feed handler is the case in which that assumption fails: the loop
+body is a few instructions and an index handoff, so the ordering operation is
+not a rounding error on the work, it is a large fraction of it. This work
+measures the thing they deferred, on one of the two parts they used, and
+reports three results.
+
+**First, and it is the one no memory model predicts: a full barrier is cheaper
+than a one-way acquire, and the comparison changes sign with caching.**
+Replacing `ldapr`/`stlr` with relaxed accesses bracketed by `dmb ish` makes the
+uncached streaming loop 2.23 times faster (ratio 0.4475 in cycles, 0.4464 in
+nanoseconds) and the cached loop 2.45 times slower. Two runs with different
+epoch counts agree on the uncached figure to one part in a thousand. Adding two
+full barriers per ring operation is supposed to cost more than a one-way
+acquire under every memory model that describes this hardware, and uncached it
+costs less than half. The obvious explanation is excluded by the counters:
+the barrier arm carries **more** L1D load misses than the acquire arm in every
+configuration and is faster uncached anyway. H69 is registered to decompose it
+by crossing the load side and the store side independently, which is the first
+question a reader who believes the number will ask.
+
+**Second, a source of measurement bias specific to this machine class.** On the
 M4, the two uncached ordering comparisons change by 4.3 and 8.8 times between
-200,000 and 10,000,000 messages, the second with a sign flip; on x86-64 the
-same two comparisons change by 1 and 3 percent. The M4 evidence for the
-mechanism is direct: a 200,000-message run finishes before the frequency
+200,000 and 10,000,000 messages, the second with a sign flip; on the x86-64
+host the same two comparisons change by 1 and 3 percent. The M4 evidence for
+the mechanism is direct: a 200,000-message run finishes before the frequency
 governor responds and is measured on a performance core at 1.085 GHz against
-4.33 for the long run. Duration-driven frequency scaling and heterogeneous
-core residency did not exist on a general-purpose CPU in 2009, and their
-absence on an older architecture is what makes this a new source rather than a
-restatement of a known one.
+4.33 for the long run. The clock tracks how long the core has been busy, not
+how much work it did, which is why arms processing identical message counts sit
+at different frequencies. Duration-driven frequency scaling and heterogeneous
+core residency did not exist on a general-purpose CPU in 2009 and are not
+discussed in the 2026 work either. This is the specific, post-2009, Apple
+silicon instance of the general phenomenon Mytkowicz named, which is a
+contribution; claiming the general phenomenon was not.
 
-The protocol material stays in the paper, but as the mechanism section of the
-second result rather than as the thesis. The three reversals this work
-produced are then evidence rather than embarrassment, and they are the
-best-evidenced results here: each over 30 independent launches with an exact
-sign test and a bootstrap interval, two of them confirmed by independent runs
-agreeing to one part in a thousand.
+**Third, a unit result that bears directly on the nearest prior work.** On
+efficiency cores the same comparison answers differently in cycles and in
+nanoseconds: fewer cycles (0.808 to 0.984) and 3.057 times the wall time,
+because the efficiency cluster is pinned near 1.080 GHz. Khayet and Morrison
+use execution time as their only performance metric and say so. On a part whose
+clusters run at fixed and very different clocks, execution time and cycle count
+are not interchangeable and can order two implementations oppositely. This work
+reports both units for every figure and shows a case where they disagree.
 
-**One caveat governs the whole second result and belongs in the abstract.**
-The x86-64 host is virtualized, so the absence of the effect there is
-consistent with the M4's frequency scaling being the cause and equally
-consistent with the hypervisor masking the same effect. A bare-metal x86-64
-machine or an Apple machine with a fan would separate those. Until one is run,
-the claim is that the effect is absent on a virtualized x86-64 Linux host, and
-nothing stronger.
+The protocol material stays, as the mechanism section of the second result. The
+three reversals this work produced are then evidence rather than
+embarrassment, and they are the best-evidenced results here: each over 30
+independent launches with an exact sign test and a bootstrap interval, two of
+them confirmed by independent runs agreeing to one part in a thousand.
+
+**Two caveats govern the paper and belong in the abstract.** The x86-64 host is
+virtualized, and worse than that phrase suggests: the container exposes no
+cpufreq interface at all, so the frequency hypothesis is not merely untested
+there, it is untestable from inside. The absence of the run-length effect there
+is consistent with the M4's frequency scaling being the cause and equally
+consistent with the hypervisor pinning the clock. A bare-metal x86-64 machine
+or an Apple machine with a fan would separate them. Until one is run, the claim
+is that the effect is absent on a virtualized x86-64 Linux host, and nothing
+stronger. Second, the barrier inversion is one Apple part in one data
+structure; it is a measured anomaly with an open mechanism, not a
+recommendation to anybody about how to write a ring.
 
 ## Title
 
 Primary, for arXiv and Zenodo:
 
-> **Ordering Is Free on One Architecture and Costs Eighteen Times on Another:
-> Memory Ordering in an SPSC Ring on Apple M4 and x86-64**
+> **A Full Barrier Cheaper Than a One-Way Acquire: Measuring the Cost of
+> Memory Ordering in an SPSC Ring on Apple M4**
 
-Alternate if a reviewer finds the primary too informal:
+Alternate if a reviewer finds the primary too pointed:
 
-> **The Price of Memory Ordering Depends on the Machine: A Cross-Architecture
-> Measurement of an SPSC Ring, and a Source of Bias Specific to Heterogeneous
-> Silicon**
+> **The Cost of Memory Ordering in a Single-Producer Ring on Apple Silicon,
+> and Why the Run Length Decides the Answer**
 
-For the JSys submission, which must carry a different title from the arXiv
-version (see Venue):
+For the JSys submission, which must carry a different title and a different
+system name from the arXiv version (see Venue):
 
-> **When the Harness Decides: Run Length, Epoch Structure and Core Residency
-> in Single-Machine Performance Measurement**
+> **Duration, Not Work: Measurement Bias from Frequency Scaling and Core
+> Residency on Heterogeneous Consumer Silicon**
 
 ## Abstract
 
@@ -156,35 +207,48 @@ clone.
 
 ## Section map
 
-1. **Introduction.** The protocol-as-confound claim, and the three reversals
-   that motivate it.
-2. **Machine, harness and counters.** Mac16,13, kperf on the measuring
+1. **Introduction.** The measurement the nearest prior work deferred, why an
+   SPSC ring is the case where its stated assumption fails, and the three
+   results.
+2. **Related work.** Positioned early rather than at the end, because the
+   contribution is defined by what three specific papers did and did not
+   measure. Drafted in full below.
+3. **Machine, harness and counters.** Mac16,13, kperf on the measuring
    thread, the 24 MHz counter grain, and the instruction census that proves
    `ldapr`, `ldar` and `dmb ish` are each in the binary rather than assumed
    from a source annotation.
-3. **The protocol.** The independent-launch design, within-launch pairing,
+4. **The protocol.** The independent-launch design, within-launch pairing,
    the exact sign test, and the measured noise floor of 1.364x. Includes the
    epoch-structure result, since it is a property of the protocol rather than
    of any workload.
-4. **Run length decides RQ1.** The ordering sweep, the clock evidence, the
-   inversion, the padding reversal, and what is ruled out as a mechanism.
-5. **The trading path.** Component ablation, the figures that reproduce, and
+5. **The barrier inversion.** The lead result. The 0.4475 uncached ratio, the
+   2.449 cached ratio, the sign change, the counter evidence that excludes
+   cache behaviour, and the H69 cross that decomposes the substitution into
+   its load side and its store side. The x86-64 run appears here as the
+   control that reproduces the textbook prediction on a machine where the
+   prediction is known.
+6. **Run length decides RQ1.** The ordering sweep, the clock evidence, the
+   padding reversal, and what is ruled out as a mechanism.
+7. **The trading path.** Component ablation, the figures that reproduce, and
    the 6.3 percent ring share.
-6. **Arithmetic-bound kernels.** Pricing and path-dependent payoffs: the
+8. **Arithmetic-bound kernels.** Pricing and path-dependent payoffs: the
    exponential's cost, fused against separate evaluation, and the result that
    a stored path beats a fused loop because the fused loop serializes on its
    accumulator chain.
-7. **Core residency and the reporting unit.** Efficiency cores, the
+9. **Core residency and the reporting unit.** Efficiency cores, the
    cycles-against-nanoseconds divergence, and the scheduler evidence: median
    zero involuntary context switches for every lock-free variant on
    performance cores against 53,658 for a mutex baseline on efficiency cores.
-8. **Five dimensions, collected.** A table of each dimension, its measured
-   size, and which published claim it would have invalidated.
-9. **Threats to validity.** One machine, one chassis, one operating system.
-   Short runs that never reach sustained-load throttling. Three mechanisms
-   recorded as open, including the barrier inversion, which is a headline
-   whose cause is unknown.
-10. **Related work and conclusion.**
+   This section is where the paper argues that execution time alone is not a
+   sufficient metric on a part with fixed and unequal cluster clocks.
+10. **Five dimensions, collected.** A table of each dimension, its measured
+    size, and which published claim it would have invalidated.
+11. **Threats to validity.** One machine, one chassis, one operating system.
+    Short runs that never reach sustained-load throttling. A virtualized
+    control host with no cpufreq interface. Three mechanisms recorded as
+    open, including the barrier inversion, which is the lead result and whose
+    cause is unknown.
+12. **Conclusion.**
 
 ## Venue
 
@@ -261,3 +325,142 @@ the files', and it is recorded here because the same error pattern, asserting
 a defect from a surface difference without checking what the strings mean,
 produced a second false alarm about clippy earlier the same day. Results files
 should carry both strings so the question cannot arise again.
+
+## Section 2 drafted in full: Related work
+
+Written 2026-11-17. Every citation in the first group was checked this session
+against at least two independent bibliographic sources, or read directly. The
+second group is flagged because it has not been, and nothing from the second
+group may appear in a submitted manuscript until it has.
+
+### Verified
+
+**Mytkowicz, T., Diwan, A., Hauswirth, M., and Sweeney, P. F. "Producing wrong
+data without doing anything obviously wrong!" ASPLOS 2009, pages 265 to 276,
+ACM. doi:10.1145/1508244.1508275, ISBN 978-1-60558-406-5.** The paper that
+named measurement bias in systems evaluation and showed it is both significant,
+meaning it can reverse a conclusion, and commonplace. Its demonstrated bias
+sources are the size of the UNIX environment and link order. It also surveyed
+133 papers from ASPLOS, PACT, PLDI and CGO and found that none with
+experimental results adequately considered measurement bias.
+
+*Relation to this work.* This work's second result is an instance of the
+phenomenon Mytkowicz et al. named, in a bias source that did not exist on a
+general-purpose CPU in 2009: the frequency a core runs at is a function of how
+long it has been busy, not of how much work it was given, so two
+implementations given identical message counts are measured at different
+clocks. The general claim is theirs and this paper says so in its first
+paragraph. What is new is a specific post-2009 source, its measured size (4.3
+and 8.8 times, one with a sign flip), and the direct clock evidence for the
+mechanism. An earlier draft of this document claimed the general result and was
+wrong to.
+
+*A note on the DOI.* Two different DOIs for this paper circulate:
+`10.1145/1508244.1508275` and `10.1145/1508284.1508275`. The first is correct
+and is what dblp, the authors' own institutional listing, and the ACM record
+all give; the second appears in a user-contributed BibSonomy entry and is a
+transposition. Noted because the wrong one would be copied silently.
+
+**Wrenger, L., Toellner, D., and Lohmann, D. "TOSTING: Investigating Total
+Store Ordering on ARM." ARCS 2023, Springer. doi:10.1007/978-3-031-42785-5_10.
+Extended as "Analyzing the memory ordering models of the Apple M1," Journal of
+Systems Architecture, 2024, doi:10.1016/j.sysarc.2024.103102.** Apple silicon
+implements a runtime-switchable total store order mode, used by the Rosetta 2
+x86 translator, alongside the standard AArch64 weak ordering. The switch is an
+implementation-defined bit in `ACTLR_EL1`, with support advertised in
+`AIDR_EL1`; this is independently documented in the Linux kernel patch series
+that exposes it through `prctl`. Having both models on one chip lets the two be
+compared with the rest of the machine held constant. Their headline figure is
+that TSO is on average 8.94 percent slower than weak ordering, on
+multi-threaded SPEC CPU 2017 FP workloads, measured on an M1.
+
+*Relation to this work.* Theirs is a comparison of two hardware memory models
+with the program held fixed. This is a comparison of ordering annotations and
+barrier placements within one memory model, with the hardware held fixed. The
+axes are orthogonal: nothing in an 8.94 percent whole-application figure for
+switching the machine's model predicts a 2.23 times difference between two
+correct ways of writing the same ring under the weak model.
+
+**Khayet, Y., and Morrison, A. "Arm Weak Memory Consistency on Apple Silicon:
+What Is It Good For?" ASPLOS 2026, Pittsburgh, PA, March 22 to 26, 2026.** The
+nearest prior work and the paper this one is positioned against. Measures
+Apple M1 and M4 under the TSO toggle against native Arm mode: microbenchmarks
+for load-load reordering, store-store reordering, store-to-load forwarding and
+SIMD load throughput, and 49 application workloads from SPEC CPU 2017, PARSEC,
+SPLASH-2x and OpenBenchmarking, single-core and multi-core. Their conclusion is
+that the Arm model has no inherent performance advantage on Apple silicon:
+typical execution times are within about 3 percent, the harmonic mean TSO
+slowdown falls from 4.2 percent to 1.9 percent with software changes, and the
+few severe cases, up to about 70 percent, are attributed to Apple
+implementation artifacts rather than to TSO's ordering requirements. Their
+statistical practice is careful: at least 8 runs per benchmark, continued until
+the 95 percent confidence interval is within 1 percent of the median, with
+randomized run order and non-parametric tests.
+
+*Relation to this work, in three parts, and this is the paragraph that defines
+the contribution.*
+
+First, **they explicitly leave the performance of atomic read-modify-write
+operations and memory barriers to future work**, on the stated assumption that
+modern concurrent software is not bottlenecked on synchronization. Barriers
+appear in their work only as experimental controls. Acquire, release and
+sequentially consistent orderings are not measured. This paper measures exactly
+that, on one of the same two parts.
+
+Second, **their assumption is reasonable for their workloads and false for
+this one.** In SPEC and PARSEC the synchronization operation is a small
+fraction of a large loop body. In an SPSC ring carrying market data the loop
+body is an index load, a slot access, an index store and a branch, so the
+ordering operation is a large fraction of the work. The pre-registered H69 (f)
+exists to measure that fraction rather than assert it, by comparing every
+ordered arm against a deliberately unordered cost floor. This paper therefore
+tests the premise under which the deferral was made, rather than disputing the
+conclusion drawn under it.
+
+Third, **two methodological points, offered as complements and not as
+criticism.** Their only performance metric is execution time, which they state.
+On a part whose performance and efficiency clusters run at fixed and very
+different clocks, execution time and cycle count are not interchangeable: this
+work measures a case in which the efficiency cores take fewer cycles (0.808 to
+0.984 of the performance-core figure) and 3.057 times the wall time, so the two
+units order the same pair of implementations oppositely. And frequency scaling
+is not discussed in their paper; the second result here is that run duration
+changes which ordering wins, by up to 8.8 times with a sign flip, through the
+clock. Their protocol of repeating until the confidence interval is tight does
+not by itself address this, because a bias that is a function of run duration is
+reproducible: repeating a short run faithfully reproduces the short run's
+answer. That is the sense in which this is a complement rather than a
+correction, and the paper will say it in those words.
+
+### Still to verify before submission, and not to be cited until then
+
+* **x86-TSO.** The rigorous programmer's model for x86 multiprocessors, by
+  Sewell, Sarkar, Owens, Zappa Nardelli and Myreen, which the surveys cite for
+  the claim that x86 is TSO and that acquire-release therefore lowers to plain
+  moves. The background claim is also derivable from the Intel and ARM
+  architecture manuals directly, which may be the better citation for a
+  measurement paper. Exact venue, year, pages and DOI not checked this session.
+* **The practitioner expectation.** The widely held engineering belief is that
+  ordering is nearly free on x86 and costs real barriers on ARM. That belief is
+  correct as stated, and the inversion measured here does not contradict it,
+  because it compares two ordered forms rather than ordered against unordered.
+  This distinction needs stating carefully in the introduction so no reader
+  takes the paper to be claiming something it is not. Blog and forum sources
+  are evidence of what practitioners believe but are not citable for the
+  technical claim; the manuals are.
+* **SPSC ring design.** The lock-free queue literature, for the design of the
+  ring itself rather than for ordering cost. Not surveyed this session.
+* **Apple silicon characterisation.** Independent microarchitectural
+  measurement of the M-series beyond the two papers above. Not surveyed.
+* **The ASPLOS 2026 DOI.** Khayet and Morrison was read as an author-hosted
+  PDF. The proceedings DOI and final page numbers must be filled in from the
+  ACM record before submission.
+
+### What this section means for the submission
+
+Related work was the largest hole in Gate 4 and it is the one that nearly sank
+the paper twice: once by restating Mytkowicz, once by presenting the definition
+of total store order as a discovery. Both were caught by searching, and both
+were caught only after the claim had already been written down. The order is
+now fixed for the rest of this project: **the prior-work search precedes the
+claim, not the manuscript.**

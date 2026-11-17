@@ -13,6 +13,7 @@
 //!
 //! [`baseline::MutexChannel`] is a `Mutex<VecDeque>` reference point.
 
+pub mod barrier;
 pub mod baseline;
 pub mod census;
 pub mod order;

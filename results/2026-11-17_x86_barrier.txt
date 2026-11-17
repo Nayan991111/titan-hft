@@ -1,0 +1,124 @@
+E2: BARRIER-PLACEMENT CROSS ON VIRTUALIZED x86-64, AS A CONTROL FOR H69
+EXPLORATORY, NOT PRE-REGISTERED. Run 2026-11-17.
+
+PURPOSE. H69 asks which half of an acquire-release pair carries the Fenced
+inversion measured on the M4 (0.4475 uncached, 2.449 cached, both reproduced).
+Before spending a 40-minute measurement on the measuring machine, the same
+harness was run on a machine where the answer is predictable from the memory
+model, to check that the harness and the statistics behave as expected. They
+did not behave as expected, and this file is why the H69 registration was
+revised before the M4 run rather than after it.
+
+HOST. Linux x86_64 in a KVM-virtualized Docker container. Intel Xeon, family 6
+model 207 stepping 2, 2 vCPUs, 96 KiB L1d and 4 MiB L2 across the two, 260 MiB
+L3 reported (a slice of a far larger socket, shared with tenants this run
+cannot see). rustc 1.97.0. NO PMU: no cycles, no instructions, no cache
+misses, no core clock. Every figure below is wall time. No cpufreq interface
+exists in the container, so frequency could not be observed even in principle.
+
+BINARY. target/release/titan-barrier at this commit. Five orderings at
+pad=128, each cached and uncached, ten cases:
+
+    acqrel       ldapr-equivalent   stlr-equivalent   (plain movs on x86)
+    fencedload   relaxed + fence    release store
+    fencedstore  acquire load       fence + relaxed store
+    fenced       relaxed + fence    fence + relaxed store
+    unordered    relaxed            relaxed           (NOT a correct ring)
+
+PROTOCOL. 30 independent launches of titan-barrier 10000000 2, launch label
+injected per line, each launch reduced to its per-case median across epochs,
+comparisons paired inside each launch, exact two-sided sign test. 600 data
+lines. Every ordered arm reported sum_ok=1 in all 30 launches, so no ordered
+arm lost or duplicated a message. The unordered arm also reported sum_ok=1
+throughout, which says nothing about its correctness: it is permitted to
+reorder and simply did not do so observably on this host.
+
+RESULT 1: UNCACHED, THE TWO BARRIER SIDES COST THE SAME, AND THEY SATURATE.
+Nanoseconds per message, paired, positive favouring the barrier arm:
+
+    acqrel against fencedload    median diff -64.637 [-68.017, -62.190]
+                                 ratio 0.212, acqrel cheaper 30/30
+    acqrel against fencedstore   median diff -65.053 [-68.975, -60.820]
+                                 ratio 0.207, acqrel cheaper 30/30
+    acqrel against fenced        median diff -92.183 [-93.297, -87.772]
+                                 ratio 0.150, acqrel cheaper 30/30
+
+The two sides cost within 0.7 percent of each other (64.637 against 65.053),
+and both together cost 92.183 rather than the 129.690 they would cost if they
+added. Store-side share 0.7098, load-side share 0.7102, sum 1.4145, within
+0.15 of 1 in only 3 of 30 launches. So on this host the barrier cost SATURATES:
+a second fence per operation adds about 42 percent of what the first one cost.
+This is the expected behaviour on a machine where acquire-release is a plain
+move and a fence is a real instruction, and it is the reference the M4 numbers
+are read against.
+
+RESULT 2, AND IT WAS NOT EXPECTED: A WEAK INVERSION APPEARS HERE TOO, CACHED.
+Cached, nanoseconds per message, paired:
+
+    acqrel against fencedload    median diff +2.460 [+0.391, +4.682]
+                                 ratio 1.142, acqrel LARGER in 23/30, p=0.0052
+    acqrel against fencedstore   ratio 0.398, acqrel cheaper 30/30
+    acqrel against fenced        ratio 0.418, acqrel cheaper 30/30
+
+Adding a fence after a relaxed load, with the release store left alone, makes
+the cached loop 14 percent CHEAPER than the acquire load on this x86 host,
+significant at 23 of 30. On x86 an acquire load is a plain move, so FencedLoad
+strictly adds an instruction and should strictly cost more. It does not.
+
+THIS MATTERS FOR THE PAPER'S FRAMING AND IT CONSTRAINS A CLAIM THE PAPER WAS
+ABOUT TO MAKE. The M4 inversion was being written up as a property of Apple
+silicon. A weak inversion in the same direction appears on x86-64, in the other
+caching configuration, at 1.14x against the M4's 2.23x. The honest statement is
+therefore NOT that the inversion is Apple-specific. It is that a barrier can be
+cheaper than the ordered instruction it replaces on both architectures
+measured, that the effect is an order of magnitude larger on the M4 and appears
+in the opposite caching configuration, and that this is consistent with the
+cause being an interaction between barrier placement and producer-consumer
+interleaving rather than the cost of an instruction.
+
+WHY THAT INTERPRETATION, AND WHY IT IS NOT A CONCLUSION. The cached-side
+numbers on this host are the fastest arms and therefore the most sensitive to
+preemption, and preemption here is severe: involuntary context switch counts
+up to 1133 per epoch on a 2-vCPU container running a producer, a consumer and
+the operating system with no spare core. The 23 of 30 result may be real or may
+be an artifact of that. It cannot be settled here. It is recorded because it
+changes what the paper may claim, not because it settles anything.
+
+RESULT 3: THE UNORDERED ARM IS NOT A COST FLOOR, AND H69 (f) WAS WRONG.
+Uncached, (acqrel - unordered) / acqrel has median -0.3596 [-0.7430, -0.2321]
+and is at or above the registered 0.30 threshold in 1 of 30 launches. The sign
+is NEGATIVE: removing all ordering makes the uncached loop about 36 percent
+SLOWER, not faster, and acqrel is cheaper than unordered in 24 of 30 launches
+(p = 0.0014). Cached the difference is 0.0324 and not significant (17/30,
+p = 0.5847).
+
+An arm that is slower than the arms it is supposed to bound is not a floor.
+Removing the ordering does not measure "the same loop without ordering"; it
+measures a different loop, in which the producer is no longer held in step and
+the two sides interleave differently. H69 (f) was registered as "ordering is at
+or above 0.30 of the loop, measured against the Unordered floor", and that
+hypothesis is not merely refuted, it is MALFORMED: there is no floor to measure
+against. It is rewritten before the M4 run as a validity check on the arm
+itself rather than as a claim about the loop.
+
+RESULT 4: H69 (g) WOULD HAVE FAILED ON THE M4 FOR THE FOURTH TIME.
+Shortest epoch here is 86.559 ms, in the unordered cached arm, and 222 of 300
+arm-launches exceed 200 ms. The cached arms are roughly 20 times faster per
+message than the uncached arms by construction, so at a fixed message count
+they always run short. On the M4 the cached arms finish 10M messages in about
+23 ms. A single global 200 ms threshold across all arms therefore fails on a
+correct run, which is exactly how H68 (d) failed. The check is rewritten to
+apply to the uncached arms, where the result lives, and to record the cached
+arms' durations without a pass or fail. Noted plainly: this is the fourth
+version of this check, and the recurring error is writing one global threshold
+for a quantity that differs per arm by design.
+
+WHAT THIS FILE IS FOR, AND WHAT IT IS NOT FOR. It is the control that shows the
+harness, the pairing and the sign test behave on a machine whose memory model
+predicts the answer, and it is the reason three parts of the H69 registration
+were corrected before any M4 time was spent. It is NOT evidence about Apple
+silicon, it is NOT a cross-architecture claim, and its cached-side numbers are
+not trustworthy enough to quote without the preemption caveat attached. Limits
+1 through 7 recorded in results/2026-11-16_x86_crossarch.txt apply here in
+full, the first of them being that frequency is unobservable from inside this
+container.

@@ -98,6 +98,8 @@ are added afterwards and are never edited away when a prediction fails.
 | H66 | Path dependence is accumulated one step at a time, so what it costs per step decides whether an exotic payoff is affordable at feed rate: (a) geometric averaging, additive in logarithms, costs below 0.70 of arithmetic averaging in cycles per step; (b) a barrier monitored in log space costs below 0.70 of the same barrier monitored in price space; (c) branchless extremes are NOT faster than branchy ones, ratio above 0.95, because the theory of records puts a new extreme at about 1/k on step k; (d) stopping at the first touch costs between 0.55 and 0.95 of running to maturity in cycles per path; (e) a stored path costs above 1.10 of rolling scalars with L1D misses per step below 0.05 in both; (f) tracking every statistic costs below 1.50 of generating the path alone | (a) refuted, (b) refuted, (c) supported and statistically null as predicted, (d) supported, (e) refuted in the opposite direction, (f) refuted by 3 percent | AC power confirmed at the start AND end of the run. Validated first by ten oracles sharing none of the engine's machinery: chi-square 57.98 on 63 df, KS 0.001624 against 0.002150 critical, exact process moments within 1.66 se, European against Black-Scholes within 1.12 se, geometric Asian against an exact DISCRETE closed form within 1.92 se, in-out parity below 5.2e-15, unreachable barrier reproducing the plain generator. ABSOLUTE COST, P-cores, per step: terminal 23.14 cycles, asian_geom 26.77, asian_arith 34.41, lookback_free 27.02, lookback_branchy 27.08, barrier_log 27.18, barrier_price 34.87, barrier_log_exit 18.09, rolling 35.74, stored 32.98. L1D misses 0.0000 in EVERY arm including the one writing 2 KiB per path, so the engine is arithmetic-bound. THE NUMBER THIS RUN CONTRIBUTES is not a registered part: one exponential costs 7.647 and 7.693 cycles measured from two independent pairs of arms, agreeing to 0.60 percent, both 30/30 with p<0.0001. That decomposes H65's 15.87-cycle cumulative normal into 7.67 for the exponential and 8.20 for the polynomial, density and sign branch. Two runs registered three days apart on different harnesses cross-validate. (a) refuted: 0.7778 against a registered 0.70, 30/30, p<0.0001, 0.598 on E-cores. My mechanism was right and my magnitude wrong: I read an exponential across from H65 as 13 to 16 cycles and it is 7.67, so removing it from a 34.41-cycle step leaves 0.778. (b) refuted at 0.7794 for the identical reason, 30/30; the two refutations are one, both registered against the same overestimate. (c) SUPPORTED and the registration's best result, because it predicted an optimization would fail and named the mechanism first: the theory of records puts a new extreme at 1/k on step k, so about ln(250)=5.5 records in 250 steps, 2.2 percent of steps, well predicted. Ratio 0.9980, and on P-cores the effect is statistically absent, 11/30, sign p = 0.2005, bootstrap interval [-0.109, +0.005] containing zero. Small real effect on E-cores (0.985, 30/30, 0.627 of 41.67 cycles). (d) supported: 0.6657 in the registered 0.55 to 0.95 band, 30/30. Observations fall 250 to 187.8 (24.9 percent) against a 33.4 percent cycle saving, above the 0.538 floor a free saving would reach, as registered. Side effect: the early-exit arm mispredicts LESS with a near barrier (0.295 against 0.385, 30/30) because knocked-out paths run fewer loop-condition branches. (e) REFUTED IN THE OPPOSITE DIRECTION and the most useful finding: a stored path is 7.7 percent CHEAPER than rolling scalars (0.9227, 30/30) where above 1.10 was registered. The registered L1D sub-part is supported, 0.0000 misses in both, 30/30, which was registered precisely so the result could not be blamed on misses afterwards. Instructions are within 1.3 percent (158.32 against 156.31) and IPC differs 7.0 percent (4.429 fused against 4.740 split): in the fused loop the exponential sits on the dependency chain of the path recurrence, and splitting it lets independent exponentials pipeline. 27.5 percent cheaper on E-cores. The advice that prompted this measurement, to avoid storing paths for memory efficiency, is measured here as advice to pay 7.7 percent for memory that was free. (f) refuted by 3.0 percent at 1.5447, 30/30, with the mechanism closing to the cycle: rolling adds 12.604 cycles, of which the exponential is 7.647 (60.7 percent) and the log sum, min, max and barrier compare are 4.957, about 1.24 each. The exponential dominates as registered; it is not large enough relative to the other four to hold the total under 1.50. POWER CONDITIONS DID NOT MATTER: this repeats a battery run from four hours earlier and the two agree within 0.16 percent on every absolute and 0.13 percent on every ratio, with P-core clock 4.045 to 4.062 GHz on AC against 4.044 to 4.049 on battery. Compatible with H61, whose reversals were latency-bound cross-core work where the clock differed between arms. Limits stated: these runs are milliseconds long and never reach sustained-load throttling on a fanless chassis, and this is two runs four hours apart rather than a controlled power experiment. The AC requirement stays. OPEN: branch mispredicts sit at 0.390 per step in every arm including bare generation, differing between arms by at most 0.010. Common to all arms so it confounds nothing, but at roughly 10 cycles a mispredict it would be about 4 of bare generation's 23.14 cycles and its source is not established. results/2026-11-16_m4_paths.txt |
 | H67 | Two claims this work has published without closing, and one it rests on: (a) the index-caching benefit does not depend on how many messages pass through the ring, so its uncached-to-cached cycle ratio varies by less than 1.5x across 200,000 to 10,000,000 messages; (b) the 135 cycles per message of the full trading path, measured with five epochs in one process, reproduces within 10 percent over 30 independent launches; (c) the ring's share of that path is at most 1.10x, as H19 measured at 1.067 under the preliminary protocol | (a) refuted by a factor of 11 and it invalidates RQ1's published uncached figures, (b) supported within 0.6 percent, (c) supported within 0.4 percent | AC power confirmed at the start AND end. MY OWN DESIGN DEFECT FIRST: I registered epochs=2, whose median is the MEAN of two epochs and so averages the cold first one in, where H61 used 3 epochs whose median selects the warm middle. At 200k, epoch 0 is 217.190 cycles and epoch 1 is 21.930, so the median of two is 119.560 and is a figure for neither. Every streaming number is therefore read from epoch 1, the quantity H61's median of 3 selected. (b) SUPPORTED within 0.6 percent and it is the part that mattered most: stage=full 134.178 cycles [134.045, 134.332] over 30 launches against the original 135; direct 126.143 against 126.97; book 118.692 against 119.05; full 32.756 ns [32.639, 33.101] against 32.34 ns. Three PRELIMINARY PROTOCOL figures reproduce within 0.6, 0.7 and 0.3 percent, so H65's headline (a pricing kernel is 43 percent of the whole path) is sound as stated. (c) SUPPORTED: the ring's share is 1.063, +7.952 cycles [+7.572, +8.438], 30/30, p<0.0001, against a 1.10 ceiling; H19's 1.067 reproduces within 0.4 percent. (a) REFUTED by 11x: the uncached-to-cached ratio is 1.66, 6.91, 26.41, 27.17 at 200k, 1M, 5M, 10M, a 16.33x spread against a registered 1.50x. My mechanism, that the ring's loop body does not depend on how many messages pass through it, was wrong. Both published figures are vindicated: H61's 1.69x at 200k reproduces at 1.66 (2 percent) and the preliminary 26.2x at 10M at 27.17 (4 percent). The README caveat I wrote was right and is now controlled. THE FINDING THAT MATTERS MORE THAN THE HYPOTHESIS: RQ1'S PUBLISHED UNCACHED ANSWER IS A 200,000-MESSAGE ARTIFACT. The warm-epoch core clock is 1.085 GHz at 200k, 2.790 at 1M, 4.332 at 5M, 4.315 at 10M: a 200k run finishes before the frequency governor responds. The streaming harness has ALWAYS been run at 200k; the tick-to-trade harness has always been run at 20M, which is why its figures reproduce and streaming's do not. SeqCst/AcqRel uncached is 8.153, 1.530, 0.987, 0.997 across the four counts, so at 5M and 10M the two orderings cost the SAME to within 1.3 percent in cycles and in nanoseconds; H61's 6.79x exists only at an unramped clock. The cached half survives: 1.187, 1.366, 1.015, 1.030, so ordering being invisible with the index cached holds at every length. AND THE RANKING INVERTS: uncached cycles per message are AcqRel 21.930/133.860/216.195/221.990 against Fenced 86.280/99.750/99.415/99.185, so AcqRel grows 10.1x with run length while Fenced grows 1.15x and is flat past 1M. Fenced costs 3.93x AcqRel at 200k and 0.447x at 10M, two and a quarter times CHEAPER. In nanoseconds, not a clock artifact: AcqRel uncached 20.068 to 51.007 ns rising, Fenced uncached 45.075 to 22.726 ns falling. MECHANISM, one component established and one not: the clock ramp is quantified (3.99x from 200k to 5M) and distorts any cycles figure for a memory-waiting workload, and the uncached arms carry 2.66 to 3.04 L1D misses per message against the cached arms' 0.91 to 1.30. The nanosecond divergence is NOT explained; L1D misses move only 14 percent across the range, which cannot account for a 2.5x slowdown and a 2.0x speedup. Recorded as the project's largest open question and not claimed. NOTHING IS WITHDRAWN: H61's numbers are correct for the run length they were measured at, which is now stated beside them; what changes is the generality claimed. results/2026-11-16_m4_runlength.txt |
 | H68 | RQ1 re-measured at a run length the feed implies, because H67 showed its published uncached answer is a 200,000-message artifact measured on a core at 1.085 GHz: at 10,000,000 messages and 3 epochs, (a) SeqCst and AcqRel cost within 10 percent of each other per message uncached, in cycles and in nanoseconds; (b) Fenced costs below 0.60 of AcqRel uncached, inverting the published ranking; (c) the ordering stays invisible with the index cached, all three within 10 percent of each other; (d) the warm-epoch core clock is above 4.0 GHz in every arm, confirming the run is long enough to have ramped | (a) supported, (b) supported and it inverts the published ranking, (c) refuted and it corrects an overstatement in H67, (d) failed as registered and the check was defective | AC power at the start AND end. 30 launches of titan-stream 10000000 3 pmu, 1170 lines, 3 epochs so each launch reduces to its warm middle epoch as the paper's protocol states. (d) FAILED AS WRITTEN and THE CHECK WAS DEFECTIVE: I required every arm above 4.0 GHz and the lowest is 3.537. The clock is a STEADY STATE not a ramp (spread 1.000x to 1.135x across epochs, 11 of 13 arms inside 1.02x) and it tracks epoch DURATION not message count: arms running 218 to 510 ms sit at 4.27 to 4.40 GHz, arms running 22 to 52 ms at 3.54 to 3.99. Every arm processes 10M messages; the cached arms finish in 23 ms because they are 22x faster per message. A per-message threshold cannot control a per-duration phenomenon. The question it was for is answered yes and not closely: the lowest arm is 3.26x the 1.085 GHz idle clock and every UNCACHED arm, where the disputed figure lives, is 4.271 to 4.396 GHz. Corrected check for any future run: every arm's epoch duration above 200 ms. (a) SUPPORTED: uncached pad=128, AcqRel 221.070 [219.890, 221.880] against SeqCst 220.445 [217.030, 221.760], ratio 0.997 in cycles and 1.007 in nanoseconds (50.701 against 51.032). The RCsc and RCpc acquire loads cost the same to three parts in a thousand. The 6.79x this work published is confined to run lengths where the core has not ramped. RQ1's uncached answer is that the ordering costs nothing. (b) SUPPORTED and it is the result a reviewer will disbelieve: Fenced costs 0.4475 of AcqRel uncached in cycles (98.935 against 221.070) and 0.4464 in nanoseconds. H67's two-epoch sweep gave 0.447 at the same count, so two runs with different epoch counts agree to one part in a thousand. Adding two dmb ish per ring operation makes the uncached loop 2.23x FASTER, and Fenced is the only ordering whose cost does not grow with run length (98.9 cycles here against 86.3 at 200k, while AcqRel goes 21.9 to 221.1). (c) REFUTED, and it corrects an overstatement I made in H67 hours earlier: cached pad=128, AcqRel 8.465, SeqCst 8.290 (0.979, inside 10 percent), Fenced 20.735 (2.449, far outside). H67's file says the cached half of RQ1 survives on the strength of the SeqCst to AcqRel ratio alone; the third ordering in the same table costs 2.45x AcqRel. The data to catch it was in H67's own sweep (Fenced cached 20.480 against AcqRel 8.170 at 10M, 2.507x). I had it and did not check it. THE CORRECTED RQ1 ANSWER: between the two acquire forms there is no difference worth measuring at either caching setting (0.979 cached, 0.997 uncached), so the ldapr against ldar distinction the census proved is in the binary does not show up in cost. The explicit double barrier FLIPS SIGN: 2.45x more expensive than AcqRel when the index is cached and 0.45x when it is not. Mechanism NOT established, and the obvious explanation is ruled out: Fenced carries MORE L1D misses than AcqRel in every configuration (3.785 against 3.031 uncached, 1.418 against 0.913 cached) and is faster uncached anyway. PADDING ALSO DEPENDS ON RUN LENGTH and two of three per-ordering answers REVERSE against H61: uncached pad=64 cheaper for AcqRel 26/30 p=0.0001 (+36.865 cycles) where H61 found 16/30 none, SeqCst 27/30 p<0.0001 (+35.820) where H61 found 29/30, Fenced 14/30 p=0.8555 none where H61 found 23/30 strong. Cached, pad=128 wins instead: AcqRel 27/30, SeqCst 24/30, Fenced none. Sharing one granule is worth about 17 percent uncached for both acquire forms and nothing for the barrier. Counterintuitive detail ruling out the easy explanation: pad=64 carries MORE L1D misses than pad=128 in every case (0.009 to 0.512 per message) and is faster uncached anyway. OPEN: why AcqRel's uncached cost grows tenfold with run length while Fenced's grows 15 percent. L1D misses are ruled out in both directions. Needs a counter sweep reading store-buffer and coherence events, and whether the M4 PMU exposes them is not known here. results/2026-11-16_m4_rq1.txt |
+| H69 | Which half of the acquire-release pair carries the Fenced inversion, by crossing the two sides: FencedLoad is `ldr`+`dmb ish` with `stlr`, FencedStore is `ldapr` with `dmb ish`+`str`, and Unordered is a relaxed cost floor that is not a correct ring. At 10,000,000 messages, 3 epochs, pad=128, performance cores, cached and uncached: (a) the uncached saving is store-dominant, store-side share at or above 0.70 with 21 of 30; (b) it is load-dominant instead, load-side share at or above 0.70 with 21 of 30, which at these thresholds cannot both hold with (a); (c) the two sides are additive, shares summing to 1 within 0.15; (d) each side alone reaches 21 of 30 in the same direction; (e) the cached sign change reproduces above 2.0 and localises to the same side; (f) the Unordered arm is a usable floor at all, that is (A-U)/A is positive, REVISED 2026-11-17 from an 0.30 size threshold after the x86 control showed the quantity is negative and the hypothesis malformed; (g) every UNCACHED arm's epoch duration is above 200 ms with the cached arms recorded without a pass or fail, REVISED 2026-11-17 from a global threshold, which is the fourth version of this check | PENDING, registered 2026-11-17 before the run, parts (f) and (g) revised the same day before the run after the x86 control | Registration in full below the table, with both superseded wordings kept in place. Not yet run. The x86-64 control for the same harness is E2, and it corrected three parts of this registration before any M4 time was spent | results/2026-11-17_m4_barrier.txt (pending) |
+| E2 | EXPLORATORY, NOT PRE-REGISTERED. The barrier-placement cross run on virtualized x86-64, as a control for H69: on a machine whose fences are a pure cost and whose acquire-release is a plain move, does the harness show the two barrier sides as symmetric and the inversion as absent | Harness and statistics behave. Uncached the two barrier sides cost within 0.7 percent of each other (64.637 against 65.053 ns) and SATURATE rather than add (shares 0.7098 and 0.7102, sum 1.4145, within 0.15 of 1 in only 3 of 30). THREE THINGS THE CONTROL CAUGHT, ALL BEFORE ANY M4 TIME WAS SPENT. (1) A WEAK INVERSION EXISTS HERE TOO: cached, FencedLoad is 1.142x CHEAPER than AcqRel, 23 of 30, p=0.0052, although on x86 an acquire load is a plain move so adding a fence should strictly cost. The paper may therefore NOT claim the inversion is Apple-specific; it may claim it is an order of magnitude larger on the M4 and in the opposite caching configuration. Not trustworthy without the preemption caveat: up to 1133 involuntary switches per epoch on 2 vCPUs with no spare core. (2) H69 (f) WAS MALFORMED, not merely wrong: (A-U)/A is -0.3596 [-0.7430, -0.2321] with AcqRel cheaper than Unordered 24 of 30, p=0.0014, so removing all ordering makes the loop 36 percent SLOWER and the Unordered arm is not a cost floor at all. Rewritten before the M4 run as a check on the arm's sign. (3) H69 (g) WOULD HAVE FAILED ON A CORRECT RUN for the fourth time: cached arms are ~20x faster per message by construction and always run short (shortest 86.559 ms here, ~23 ms expected on the M4), so a global duration threshold across all arms cannot hold. Rewritten to bind on the uncached arms only. Every ordered arm sum_ok=1 in all 30 launches | 30 launches of titan-barrier 10000000 2 in a KVM-virtualized Docker container, 2 vCPUs of an Intel Xeon (family 6 model 207, Emerald Rapids), rustc 1.97.0, no PMU so nanoseconds only. Numbered E because nothing about it was registered and because the host is not the paper's machine | results/2026-11-17_x86_barrier.txt (pending) |
 | E1 | EXPLORATORY, NOT PRE-REGISTERED, and numbered E rather than H so it cannot be mistaken for a tested hypothesis. Every registered run in this project is on one machine, which cannot distinguish a property of measurement from a property of this laptop, and that is the largest threat to the work's validity. The same titan-stream binary at the same commit was run on a virtualized x86-64 Linux host, 10 launches at 200,000 and 10 at 10,000,000 messages, 3 epochs, same analysis path, nanoseconds only because the host has no accessible PMU | two findings, the second larger than the question | FINDING 1, the run-length sensitivity does not appear off Apple silicon: SeqCst/AcqRel uncached goes 18.053 to 18.234 (1.01x) and Fenced/AcqRel uncached 11.387 to 11.714 (1.03x) between the two run lengths, against 4.326 to 1.006 (4.3x) and 3.934 to 0.447 (8.8x WITH A SIGN FLIP) on the M4. The two comparisons that reverse on the M4 move by 1 and 3 percent here. FINDING 2, not the question and larger than the answer: the cost of memory ordering differs by an order of magnitude between the architectures. On x86-64 SeqCst costs 18.2x AcqRel uncached and Fenced costs 11.7x; on the M4 at the same run length they cost 1.0x and 0.45x. The architectural explanation is standard and consistent with this project's own instruction census: x86-64 is total-store-order so acquire and release are plain moves and a seqcst store needs a fence, while AArch64 carries the ordering in ldapr and stlr so ldar costs little more. The architecture that makes weak ordering free makes strong ordering expensive. FOUR LIMITS, the first a real alternative explanation this run cannot exclude: the host is VIRTUALIZED, so the absence of the effect is equally consistent with the hypervisor masking frequency scaling, and only a bare-metal x86-64 or a fanned Apple machine separates those; 2 cores against 4+6, so only ratios within one host are compared and never an absolute from one against an absolute from the other; rustc 1.97.0 against 1.92.0; and no PMU, so wall time only. WHY IT MATTERS: the project's framing claim, that protocol decides microarchitectural conclusions, is Mytkowicz, Diwan, Hauswirth and Sweeney, ASPLOS 2009, which showed measurement bias from UNIX environment size and link order. This run supplies the difference: duration-driven frequency scaling and heterogeneous core residency did not exist on a general-purpose CPU in 2009, and their absence on an older architecture is evidence they belong to the new machine class rather than to measurement in general. | results/2026-11-16_x86_crossarch.txt |
 
 ## Notes on `titan-t2t`
@@ -2054,3 +2056,151 @@ lengths, reading store-buffer and coherence events rather than cache misses,
 and whether the M4 PMU exposes the needed events is not known here. Until that
 exists the paper states the effect, states its size in both units, and states
 that the cause is open.
+
+## Pre-registration: H69, which side of the acquire-release pair carries the Fenced inversion
+
+**Why this run exists.** H68 established, and H67 independently reproduced to
+one part in a thousand, that replacing `ldapr`/`stlr` with relaxed accesses
+bracketed by `dmb ish` makes the uncached streaming loop 2.23 times faster
+(ratio 0.4475) and the cached loop 2.45 times slower. Both figures are
+measured, neither is explained, and the paper currently states the inversion
+and says the mechanism is open. That is honest but it is not finished: a
+reviewer who believes the number will immediately ask which half of the
+substitution does it, and the existing measurement cannot answer, because
+`Fenced` changes the load side and the store side at the same time.
+
+This run crosses the two halves. `FencedLoad` reads with `ldr` + `dmb ish` and
+publishes with `stlr`; `FencedStore` reads with `ldapr` and publishes with
+`dmb ish` + `str`. Both are correct for an SPSC ring, because each load of the
+other side's index still carries acquire semantics and each publishing store
+still carries release semantics, whether those semantics come from the
+instruction or from the barrier beside it. They are substitutions a programmer
+could make, not synthetic arms. A fifth arm, `Unordered`, uses relaxed
+accesses on both sides; it is **not a correct ring** and exists only as a cost
+floor, so the four ordered arms can be expressed as a fraction of the total
+ordering cost in the loop rather than only against each other.
+
+**What is already known about the answer, which is nothing.** Both sides have a
+plausible stall story and this registration commits to neither. On the load
+side, an RCpc acquire load that misses and takes a coherence miss may have its
+ordering obligation enforced conservatively per instruction, where a plain load
+followed by a barrier may overlap better. On the store side, a release store
+must not become visible before prior accesses are observable, which with a
+200-cycle miss in flight may stall at the store, where a barrier followed by a
+plain store pays once and then leaves the store buffer unconstrained. The
+cached and uncached configurations have opposite signs, so whatever the
+mechanism is, it has to explain a sign change too.
+
+**The x86-64 control, already measured.** The same harness on a virtualized
+Intel Xeon, where `fence(SeqCst)` lowers to a locked operation or `mfence` and
+acquire-release are plain moves, makes both barrier sides a pure cost and makes
+them roughly symmetric: at 300,000 messages uncached, AcqRel 25.7 ns,
+FencedLoad 78.9, FencedStore 80.1, Fenced 104.9, Unordered 14.7. The two sides
+cost within 2 percent of each other and the two together cost less than their
+sum, so the barrier cost saturates rather than adding. This is what a machine
+with no inversion looks like under this harness, and it is the reference the M4
+numbers are read against. A 30-launch version of it is recorded as E2.
+
+**Protocol.** 30 independent launches of `titan-barrier 10000000 3 pmu`, AC
+power at the start and at the end, Low Power Mode off, Docker quit, Chrome
+quit, no profiler attached. Ten cases: five orderings at pad=128 on performance
+cores, each cached and uncached, which is the configuration in which the
+inversion was measured. The launch is the unit of observation; each launch is
+reduced to the median of its three epochs per case before anything is compared,
+and comparisons are paired inside each launch. Significance is the exact
+two-sided sign test, for which 21 of 30 is the p < 0.05 threshold
+(p = 0.04277). Roughly 30 to 40 minutes.
+
+Write `A`, `FL`, `FS`, `F` for the median cycles per message of AcqRel,
+FencedLoad, FencedStore and Fenced. Define the store-side share as
+`S = (A - FS) / (A - F)` and the load-side share as `L = (A - FL) / (A - F)`.
+Both are computed per launch and reported as the median across launches with a
+bootstrap CI. They are shares of the **total difference between AcqRel and
+Fenced**, whatever its sign: where Fenced is cheaper, as uncached on the M4,
+that total is a saving and the shares divide a saving; where Fenced is dearer,
+as everywhere on the x86 control and cached on the M4, the same statistic
+divides a penalty. A launch whose `|A - F|` falls below 2 percent of `A` is
+dropped from `S` and `L`, because the share then has no denominator, and the
+count of dropped launches is reported rather than hidden.
+
+**This registration was revised on 2026-11-17, before any M4 run, after the
+x86-64 control in `results/2026-11-17_x86_barrier.txt` was analysed.** Parts
+(f) and (g) were rewritten and the share definition above was generalised from
+"share of the saving" to "share of the total difference". The revisions are
+marked in place and the superseded wording is kept. Revising a registration
+after seeing data from the machine it tests would be worthless; revising it
+after a control run on a different machine exposed a malformed hypothesis is
+the only reason to run a control first.
+
+**The hypotheses.**
+
+* **H69 (a) The saving is store-dominant.** Uncached, `S` is **at or above
+  0.70** and the paired sign test on `A - FS > 0` reaches **21 of 30**. This
+  would say that replacing the release store with a barrier and a plain store
+  is most of the effect, and that the acquire load is close to free.
+* **H69 (b) The saving is load-dominant.** Uncached, `L` is **at or above
+  0.70** and the paired sign test on `A - FL > 0` reaches **21 of 30**. At
+  these thresholds (a) and (b) cannot both hold, so the design is forced to
+  pick a side or report neither. That is the point of registering the number
+  rather than the direction.
+* **H69 (c) The two sides are additive.** Uncached, `|S + L - 1|` is **at or
+  below 0.15**. If this fails while (a) or (b) holds, one barrier is doing work
+  the other would otherwise have to do, and the inversion is not a sum of two
+  independent substitutions. The x86 control already fails an equivalent test,
+  so a failure here is a real possibility and not a defect.
+* **H69 (d) Each side alone is a measurable effect.** Uncached, both
+  `A - FL` and `A - FS` reach **21 of 30** in the same direction. If only one
+  does, the inversion is localised to that side outright, which is a stronger
+  and simpler result than any share statistic.
+* **H69 (e) The sign change is reproduced and localises to the same side.**
+  Cached, `F / A` is **above 2.0**, reproducing H68's 2.449, and the side that
+  carried the uncached saving is the side that carries the cached penalty, that
+  is, `S` cached and `S` uncached are **both at or above 0.70** or **both at or
+  below 0.30**. If the sign flips between configurations but the responsible
+  side does not, two different mechanisms are at work and the paper says so.
+* **H69 (f) The Unordered arm is a usable floor at all.** *Rewritten
+  2026-11-17 after the x86 control and before the M4 run; the original is
+  below.* Uncached, the median of `(A - U) / A` is **positive**. That is the
+  whole hypothesis: not a size, a sign. If it is positive, the arm bounds the
+  ordered arms from below and the ordering fraction may be reported. If it is
+  negative, removing the ordering made the loop slower, the arm is not a floor,
+  and **no fraction-of-loop statement may be made from it in the paper.**
+
+  *What this replaced, and why.* The original read: "the median of `(A - U) / A`
+  is at or above 0.30", registered as a scale check so that a 2.23x ratio
+  between two ordering policies could be read against the size of the ordering
+  cost itself. The x86-64 control (E2) measured that quantity at **-0.3596**
+  [-0.7430, -0.2321], with AcqRel cheaper than Unordered in 24 of 30 launches,
+  p = 0.0014. Removing all ordering made that loop 36 percent slower. An arm
+  slower than the arms it is meant to bound is not a floor: it is a different
+  loop, in which the producer is no longer held in step and the two sides
+  interleave differently. The original hypothesis was therefore not refuted but
+  malformed, and a malformed hypothesis is corrected before the run or it
+  contaminates everything computed from it. The original wording stays in this
+  file; it is not edited away.
+* **H69 (g) The run is long enough to be read.** *Rewritten 2026-11-17, same
+  reason, and this is the fourth version of this check.* Every **uncached**
+  arm's `epoch_ms` is **above 200**. The cached arms' durations and clocks are
+  **recorded without a pass or fail.**
+
+  *Why the restriction.* The cached arms are roughly 20 times faster per
+  message than the uncached arms by construction, so at a fixed message count
+  they always run short: on the M4 they finish 10,000,000 messages in about 23
+  ms, and the x86 control's shortest epoch was 86.559 ms in the cached
+  unordered arm. A single global threshold across all arms therefore fails on a
+  perfectly correct run, which is exactly how H68 (d) failed. The recurring
+  error, now named so it stops recurring, is **writing one global threshold for
+  a quantity that differs per arm by design.** The result this run exists to
+  produce lives in the uncached arms, so that is where the duration check binds.
+
+**What this run cannot settle, and what would.** It cannot exclude a queue
+occupancy explanation. A barrier changes how far the producer runs ahead of the
+consumer, so some of the difference between these arms may be a difference in
+how full the ring sits rather than in the cost of an instruction. Measuring
+that needs occupancy instrumentation inside the hot loop, which would perturb
+the thing being measured, so the honest statement is that this alternative is
+open. It also cannot say why the sign changes with caching; it can only say
+whether the same side is responsible on both sides of the change. And it is a
+single machine: the x86 control shows what a machine without the inversion
+looks like under the same harness, but one Apple part and one virtualized Intel
+part do not make a cross-architecture claim.

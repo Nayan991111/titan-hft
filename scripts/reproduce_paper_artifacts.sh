@@ -126,6 +126,11 @@ for i in $(seq 1 "$LAUNCHES"); do
     ./target/release/titan-paths  "$PP_E" "$q" $PMU 2>&1 | sed "s/\$/ launch=$i/" >> "$RAW"
   done
   ./target/release/titan-stream "$ST_N" "$ST_E" $PMU 2>&1 | sed "s/^st /st launch=$i /" >> "$RAW"
+  # H69, the barrier-placement cross. It is the same ring at the same message
+  # count as titan-stream, so it belongs in the same loop: a separate loop
+  # would compare arms measured under a different set of launches, which is
+  # the one thing the independent-launch protocol exists to prevent.
+  ./target/release/titan-barrier "$ST_N" "$ST_E" $PMU 2>&1 | sed "s/^bd /bd launch=$i /" >> "$RAW"
   printf "%s " "$i"
 done
 echo

@@ -1,6 +1,7 @@
 //! Unmangled, non-inlined entry points so the instructions each ordering
 //! policy compiles to can be read from the assembly by symbol name.
 
+use crate::barrier::{FencedLoad, FencedStore, Unordered};
 use crate::order::{AcqRel, Fenced, SeqCst};
 use crate::pad::Pad128;
 use crate::ring::{Consumer, Producer};
@@ -25,6 +26,9 @@ macro_rules! census {
 census!(titan_census_push_acqrel, titan_census_pop_acqrel, AcqRel);
 census!(titan_census_push_seqcst, titan_census_pop_seqcst, SeqCst);
 census!(titan_census_push_fenced, titan_census_pop_fenced, Fenced);
+census!(titan_census_push_fencedload, titan_census_pop_fencedload, FencedLoad);
+census!(titan_census_push_fencedstore, titan_census_pop_fencedstore, FencedStore);
+census!(titan_census_push_unordered, titan_census_pop_unordered, Unordered);
 
 #[no_mangle]
 #[inline(never)]

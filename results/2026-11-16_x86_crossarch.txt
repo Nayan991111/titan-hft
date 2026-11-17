@@ -100,3 +100,82 @@ scaling and heterogeneous core residency, neither of which existed on a
 general-purpose CPU in 2009, and their absence on an older architecture is
 evidence that they are properties of the new machine class rather than of
 measurement in general.
+
+================================================================================
+ADDENDUM 2026-11-17. Two corrections to this file, neither of which changes a
+measured number. The first strengthens limit 1 from "possible" to "untestable
+here". The second withdraws a claim the paper built on this file.
+================================================================================
+
+LIMIT 1 IS WORSE THAN THIS FILE STATED, and the host was interrogated directly
+to find out. The original wording was that the hypervisor "may hide or average"
+the frequency behaviour. The accurate statement is that frequency cannot be
+observed from inside this container at all:
+
+    /sys/devices/system/cpu/cpu0/cpufreq/      does not exist
+    scaling_driver, scaling_cur_freq           absent, no cpufreq driver
+    /dev/cpu/0/msr                             absent (only cpuid is present)
+    perf                                       not installed, no PMU access
+    /proc/cpuinfo "cpu MHz"                    2100.000 on both cores, fixed
+    flags                                      constant_tsc, tsc_known_freq,
+                                               hypervisor
+    systemd-detect-virt                         docker
+    lscpu hypervisor vendor                     KVM, full virtualization
+
+So the frequency hypothesis is not merely untested on this host. It is
+UNTESTABLE from inside it. There is no interface through which a clock change
+could have been seen had one occurred, and the one number available, 2100.000
+MHz on both cores, is a nominal figure reported identically whatever the core
+is doing. A run-length effect driven by frequency would therefore be invisible
+here whether or not it happened. This is the strongest form of the limit and it
+is why the bare-metal run is the project's highest-priority outstanding
+measurement.
+
+THREE FURTHER LIMITS, not recorded in the original file.
+
+    5. The cache hierarchy is shared with tenants this run cannot see. lscpu
+       reports 260 MiB of L3 for the two visible cores. That is a slice of a
+       much larger socket, so L3 behaviour here is a function of other
+       workloads on the same physical part. The uncached arms are exactly the
+       ones that depend on coherence traffic, which makes this a limit on the
+       arms that matter most.
+    6. The host is a server part, not a desktop or laptop part: Intel Xeon,
+       family 6, model 207, stepping 2, with avx512, amx_tile, amx_bf16 and
+       hle/rtm present. Comparing it to a fanless consumer laptop part is a
+       comparison across two very different design points as well as two
+       instruction sets. The ratios between arms on one host remain the only
+       quantity compared, and that restriction is now doubly necessary.
+    7. Core count is 2 and both were used, one for the producer and one for
+       the consumer, with no spare core for the operating system. Preemption
+       of either side lands directly on the measured loop.
+
+ERRATUM: A CLAIM THE PAPER BUILT ON THIS FILE IS WITHDRAWN. On the strength of
+the ordering ratios recorded here, the paper's second draft led with: sequential
+consistency costs 18.2 times acquire-release on x86-64 and 1.0 times on the M4,
+therefore "the architecture that makes weak ordering free is the one that makes
+strong ordering expensive."
+
+THAT SENTENCE IS THE DEFINITION OF TOTAL STORE ORDER, NOT A FINDING. Under TSO
+an acquire load and a release store are plain moves, so the denominator of that
+ratio is very nearly free, while a sequentially consistent store requires a
+locked operation or a fence, so the numerator is real. Under AArch64's weak
+model both ldapr and stlr carry ordering in the instruction itself, so the
+numerator and denominator are both real and the ratio is near one. A large
+ratio on x86-64 and a ratio near one on AArch64 is what a reader of the two
+memory models predicts before any measurement is taken.
+
+THE NUMBERS IN THIS FILE ARE NOT WITHDRAWN. They were measured correctly and
+they reproduce the predicted behaviour, which is precisely their value: they
+are the control that shows this harness produces the textbook answer on a
+machine where the textbook answer is known. That is what earns a reader's trust
+for the Apple part, where the behaviour is not known and where the measured
+result (a full dmb ish barrier pair cheaper than a one-way ldapr acquire, by
+2.23 times uncached, with the sign reversing when the index is cached) is NOT
+predicted by any memory model describing that hardware.
+
+WHAT TO QUOTE FROM THIS FILE, AND WHAT NOT TO. Quote it as a control and as
+evidence that the run-length effect is absent on this host, with limit 1 as
+restated above attached every time. Do not quote the 18.2 or the 11.7 as
+discoveries. The third error of this kind in two days, and the same failure
+mode each time: a claim written down before the reading that would have
+settled it.

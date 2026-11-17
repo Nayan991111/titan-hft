@@ -34,6 +34,12 @@ from collections import defaultdict
 RING_KEY = ("order", "pad", "cached", "wait")
 
 # The tick-to-trade harness: one row per stage of the trading path.
+# Deliberately a SEPARATE constant from RING_KEY even though the field names
+# coincide today. RING_KEY is unpacked positionally inside report_padding and
+# carries the warning above; nothing here is unpacked positionally, so the two
+# must be free to diverge without one silently breaking the other.
+BD_KEY = ("order", "pad", "cached", "wait")
+
 T2T_KEY = ("feed", "stage")
 PAIR_KEY = ("order", "cached", "wait")
 # The cross-core harness adds the QoS class, which selects performance or
@@ -110,6 +116,8 @@ def parse(path):
         launch = d["launch"]
         if kind == "st":
             key = tuple(d.get(k, "") for k in RING_KEY)
+        elif kind == "bd":
+            key = tuple(d.get(k, "") for k in BD_KEY)
         elif kind == "pp":
             key = tuple(d.get(k, "") for k in PP_KEY)
         elif kind == "t2t":
@@ -307,6 +315,123 @@ def report_cross(data, kind, keynames, field, want_a, want_b, favours):
           f"first larger in {wins}/{len(d)} launches, sign p = {sign_p(wins, len(d)):.4f}")
 
 
+def barrier_shares(data, field, cached):
+    """Per-launch store-side share, load-side share and ordering fraction.
+
+    H69 asks which half of the acquire-release pair carries the measured
+    inversion, so the quantity of interest is a ratio of differences:
+
+        S = (A - FS) / (A - F)    store side's share of the saving
+        L = (A - FL) / (A - F)    load side's share
+        O = (A - U)  / A          ordering as a fraction of the loop
+
+    where A, FL, FS, F, U are the per-launch median cycles (or nanoseconds)
+    per message for acqrel, fencedload, fencedstore, fenced and unordered.
+
+    A launch is dropped from S and L when |A - F| is small, because the share
+    is then a ratio by a near-zero denominator and carries no information. The
+    count of dropped launches is returned so it can be reported rather than
+    hidden: if many are dropped the inversion did not reproduce in this run
+    and the shares must not be read at all.
+    """
+    want = ("acqrel", "fencedload", "fencedstore", "fenced", "unordered")
+    io = BD_KEY.index("order")
+    ic = BD_KEY.index("cached")
+    shares, floors, dropped = [], [], 0
+    for launch in sorted(data["bd"], key=launch_key):
+        got = {}
+        for key, fields in data["bd"][launch].items():
+            if key[ic] != cached or field not in fields or not fields[field]:
+                continue
+            if key[io] in want:
+                got[key[io]] = median(fields[field])
+        if not all(w in got for w in want):
+            continue
+        a, fl, fs, f, u = (got[w] for w in want)
+        if a > 0:
+            floors.append((a - u) / a)
+        # 2 percent of A is the smallest denominator worth dividing by: the
+        # measured noise floor on this protocol is 1.364x at p99, so a gap
+        # below a few percent is not distinguishable from noise.
+        if abs(a - f) < 0.02 * abs(a):
+            dropped += 1
+            continue
+        shares.append(((a - fs) / (a - f), (a - fl) / (a - f)))
+    return shares, floors, dropped
+
+
+def report_barrier(data):
+    """H69: decompose the Fenced inversion into its load and store sides."""
+    if not data.get("bd"):
+        return
+    for field in ("msg_cycles", "ns_per_msg"):
+        for arm in ("fencedload", "fencedstore", "fenced", "unordered"):
+            report_pair(data, "bd", BD_KEY, field, "order", "acqrel", arm,
+                        f"{arm} being cheaper than acqrel")
+    for field in ("msg_cycles", "ns_per_msg"):
+        for cached in ("0", "1"):
+            shares, floors, dropped = barrier_shares(data, field, cached)
+            tag = "cached" if cached == "1" else "uncached"
+            print(f"\n## bd: barrier-side shares, {tag}, on {field}")
+            if not shares and not floors:
+                print("  no launch carried all five arms")
+                continue
+            if floors:
+                lo, hi = boot_ci(floors)
+                m = median(floors)
+                # H69 (f) as revised: the hypothesis is the SIGN, not a size.
+                # A negative value means the unordered arm is slower than the
+                # arms it is meant to bound, so it is not a floor and no
+                # fraction-of-loop figure may be taken from it.
+                verdict = ("usable as a floor" if m > 0 else
+                           "NOT A FLOOR: unordered is slower, no ordering "
+                           "fraction may be quoted from this arm")
+                print(f"  H69 (f) (A-U)/A: median {m:+.4f} [{lo:+.4f}, {hi:+.4f}] "
+                      f"over {len(floors)} launches, positive in "
+                      f"{sum(1 for x in floors if x > 0)}/{len(floors)}, {verdict}")
+            if dropped:
+                print(f"  {dropped} launch(es) dropped from the shares: "
+                      f"|A-F| below 2 percent of A, so the share has no denominator")
+            if not shares:
+                print("  no launch retained a usable denominator, shares not reported")
+                continue
+            s = [x for x, _ in shares]
+            ll = [y for _, y in shares]
+            sums = [x + y for x, y in shares]
+            for name, vals, note in (("S store-side", s, "H69 (a) at or above 0.70"),
+                                     ("L load-side", ll, "H69 (b) at or above 0.70")):
+                lo, hi = boot_ci(vals)
+                print(f"  {name}: median {median(vals):+.4f} [{lo:+.4f}, {hi:+.4f}], "
+                      f"{note} in {sum(1 for x in vals if x >= 0.70)}/{len(vals)} launches")
+            lo, hi = boot_ci(sums)
+            print(f"  S+L: median {median(sums):.4f} [{lo:.4f}, {hi:.4f}], "
+                  f"H69 (c) within 0.15 of 1 in "
+                  f"{sum(1 for x in sums if abs(x - 1.0) <= 0.15)}/{len(sums)} launches")
+    # H69 (g) as revised: the threshold binds on the UNCACHED arms, where the
+    # result lives. The cached arms are roughly 20x faster per message by
+    # construction and always run short at a fixed message count, so a global
+    # threshold across all arms fails on a correct run. That is how H68 (d)
+    # failed, and this is the fourth version of this check.
+    cases = per_launch(data, "bd", "epoch_ms")
+    if cases:
+        ic = BD_KEY.index("cached")
+        print("\n## bd: H69 (g) epoch duration, threshold on the uncached arms only")
+        for cached, label, binds in (("0", "uncached", True), ("1", "cached", False)):
+            sel = {k: v for k, v in cases.items() if k[ic] == cached and v}
+            if not sel:
+                continue
+            allv = [x for v in sel.values() for x in v]
+            worst = min((min(v), k) for k, v in sel.items())
+            if binds:
+                print(f"  {label}: shortest epoch {worst[0]:.3f} ms in {worst[1]}, "
+                      f"{sum(1 for x in allv if x > 200.0)}/{len(allv)} arm-launches "
+                      f"above 200 ms, THRESHOLD BINDS")
+            else:
+                print(f"  {label}: shortest {worst[0]:.3f} ms, median "
+                      f"{median(allv):.3f} ms, recorded without a pass or fail "
+                      f"(these arms run short by construction)")
+
+
 def report_t2t(data):
     """The trading path's stages, each under the independent-launch protocol.
 
@@ -426,6 +551,7 @@ def main():
         report_padding(data, field)
     report_pipeline(data)
     report_pingpong(data)
+    report_barrier(data)
     report_greeks(data)
     report_paths(data)
     report_t2t(data)
