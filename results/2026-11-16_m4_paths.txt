@@ -1,5 +1,5 @@
 What path dependence costs per step (H66)
-Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit de9f07d,
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 7bceffa (tree 838be60; was de9f07d before the author-name rewrite of 2026-11-17),
 2026-11-16 19:07 IST. AC power confirmed by pmset at the start AND at the end of the run,
 Low Power Mode 0, Docker not running, no profiler attached. 30 independent launches of
 `titan-paths 3 ui pmu` and 30 of the same with `bg`, 3 epochs per launch, 10 arms, 2 barrier

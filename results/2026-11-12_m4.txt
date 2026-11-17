@@ -1,7 +1,7 @@
 # Summaries of the 2026-11-12 measurement run (statistics only; raw epoch
 # lines stay on the measurement machine; no NASDAQ data is reproduced).
 #
-# Code:      commit b20bbf1, pushed at 09:10:02 IST, before the first run
+# Code:      commit 453bd01 (tree 05236a5; was b20bbf1 before the author-name rewrite of 2026-11-17), pushed at 09:10:02 IST, before the first run
 # Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
 # Toolchain: rustc 1.92.0, release profile, target-cpu=native
 # Power:     battery, Low Power Mode off, Docker not running, no thermal or

@@ -1,5 +1,5 @@
 The cost of immediacy over one fixed population, and the depth shape (H60)
-Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit e052fc5, 2026-11-15 12:34 IST.
+Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit 9edd22b (tree 469c609; was e052fc5 before the author-name rewrite of 2026-11-17), 2026-11-15 12:34 IST.
 No PMU and no timing hypothesis in this batch, so the run needed no elevated privilege
 and thermal state does not bear on any verdict here: every quantity is an exact count or
 mean over a stated population. Real feed: NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, all

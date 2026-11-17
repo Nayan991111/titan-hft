@@ -1,7 +1,7 @@
 # Summaries of the 2026-11-14 measurement run (statistics only; raw epoch
 # lines stay on the measurement machine; no NASDAQ data is reproduced).
 #
-# Code:      commit ba0bba8, pushed by an earlier attempt of the run script
+# Code:      commit f99db57 (tree 83517b1; was ba0bba8 before the author-name rewrite of 2026-11-17), pushed by an earlier attempt of the run script
 #            that a power failure stopped before any measurement (GitHub
 #            confirmed at ba0bba8 before this run); this run measured only.
 # Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt

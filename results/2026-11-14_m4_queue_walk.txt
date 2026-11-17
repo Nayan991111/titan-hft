@@ -1,5 +1,5 @@
 Queue position and the cost of immediacy (H57, H58)
-Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit f5be2d4, 2026-11-14 21:26 IST.
+Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit 3241667 (tree 7e0f447; was f5be2d4 before the author-name rewrite of 2026-11-17), 2026-11-14 21:26 IST.
 AC power, Low Power Mode off, Docker quit, no thermal or performance warning recorded
 before, during or after the run. 10 epochs per design, stage order rotated per epoch,
 PMU on the measuring thread. Real feed: NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, first

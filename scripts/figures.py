@@ -135,7 +135,7 @@ def fig_stages():
             b.append(bar(left, by, cyc * scale, bh, cls))
             b.append(text(left + cyc * scale + 6, by + bh - 3, f"{cyc:.0f}  ({ns:.1f} ns)", "t2", 11.5))
     b.append(f'<line class="axis" x1="{left}" y1="{top - 6}" x2="{left}" y2="{top + band * len(stages)}"/>')
-    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4.txt (commit c3b850d, battery power, preliminary)",
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4.txt (commit 0d8b78d (tree b664c19), battery power, preliminary)",
                   "t3", 11, "end"))
     full = data["20190730_BX_ITCH_50"]["full"]
     desc = (f"Grouped bar chart. Full trading path: {data['synthetic_default']['full'][0]:.0f} cycles synthetic, "
@@ -219,7 +219,7 @@ def fig_pingpong():
         b.append(bar(left, y, rtt * scale, bh, "s1"))
         b.append(text(left + rtt * scale + 6, y + bh - 4, f"{rtt:.1f}", "t2", 11.5))
     b.append(f'<line class="axis" x1="{left}" y1="{top - 6}" x2="{left}" y2="{top + band * len(rows)}"/>')
-    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4_spsc.txt (commit abc7890, 128-byte index "
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4_spsc.txt (commit af55312 (tree 97cd2af), 128-byte index "
                   "padding, battery power, preliminary)", "t3", 11, "end"))
     desc = f"Bar chart of round trips; fastest {rows[0][0]} at {rows[0][1]} ns."
     return svg(W, H, b, "Cross-core ping-pong", desc)
@@ -386,7 +386,7 @@ def fig_replay():
                           "t2", 12, "middle"))
         ratio = d["ref"][key] / d["l3"][key]
         b.append(text(x, base + 22, f"{ratio:.1f}x fewer with Titan", "t3", 12))
-    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4.txt (titan-replay with PMU, commit c3b850d)",
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-11_m4.txt (titan-replay with PMU, commit 0d8b78d (tree b664c19))",
                   "t3", 11, "end"))
     desc = "; ".join(f"{name}: Titan {d['l3'][k]:.3g}, reference {d['ref'][k]:.3g}" for k, name in panels)
     return svg(W, H, b, "L3 book vs reference book", desc)
@@ -492,7 +492,7 @@ def fig_pipeline():
     b.append(text(28, H - 40, f"At the real open the p99 is {real['p99'] / syn['p99']:.1f}x the constant-rate p99, "
                   f"while the p99.99 is {real['p99.99'] / syn['p99.99']:.1f}x; the penalty sits in the p99 to p99.9 band.",
                   "t2", 12.5))
-    b.append(text(W - 28, H - 14, "Source: results/2026-11-12_m4.txt (commit b20bbf1, battery power, preliminary)",
+    b.append(text(W - 28, H - 14, "Source: results/2026-11-12_m4.txt (commit 453bd01 (tree 05236a5), battery power, preliminary)",
                   "t3", 11, "end"))
     desc = (f"Percentile ladder for three schedules. p99: {syn['p99']:.0f} ns at 1M msg/s, "
             f"{rows[series[1][0]]['p99']:.0f} ns at 10M msg/s, {real['p99']:.0f} ns at the real BX open.")

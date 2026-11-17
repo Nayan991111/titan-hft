@@ -2,7 +2,7 @@
 # only, transcribed from the run reports; the raw epoch lines stay on the
 # measurement machine).
 #
-# Code:      commit abc7890 (`titan-pingpong 200000 3`), PMU rows from 5eb9182
+# Code:      commit af55312 (tree 97cd2af; was abc7890 before the author-name rewrite of 2026-11-17) (`titan-pingpong 200000 3`), PMU rows from 5eb9182
 #            (`titan-pingpong 200000 5` and `... 3 pmu`)
 # Machine:   MacBook Air (Mac16,13), Apple M4, macOS 27.2; battery, Low Power
 #            Mode off; both threads QoS USER_INTERACTIVE (P-cores)

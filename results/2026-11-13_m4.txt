@@ -1,7 +1,7 @@
 # Summaries of the 2026-11-13 measurement run (statistics only; raw epoch
 # lines stay on the measurement machine; no NASDAQ data is reproduced).
 #
-# Code:      commit 48c16f3, pushed at 16:34:51 IST by the run script, before
+# Code:      commit 5e43973 (tree ae9664d; was 48c16f3 before the author-name rewrite of 2026-11-17), pushed at 16:34:51 IST by the run script, before
 #            its first measurement
 # Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
 # Toolchain: rustc 1.92.0, release profile, target-cpu=native

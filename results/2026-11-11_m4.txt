@@ -1,7 +1,7 @@
 # Summaries of the 2026-11-11 measurement run (statistics only; raw epoch
 # lines stay on the measurement machine, and no NASDAQ data is reproduced).
 #
-# Code:      commit c3b850d (tree b664c191f7b051aebe63b7b8986f3c3af8e4b689)
+# Code:      commit 0d8b78d (tree b664c19; was c3b850d before the author-name rewrite of 2026-11-17)
 # Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
 # Toolchain: rustc 1.92.0, release profile (opt-level 3, fat LTO, 1 codegen unit), target-cpu=native
 # Power:     battery, Low Power Mode off, Docker not running, no thermal or

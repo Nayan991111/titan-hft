@@ -1,5 +1,5 @@
 The independent-launch protocol: padding by memory ordering, and the noise floor (H61, H62)
-Apple M4 MacBook Air (Mac16,13), macOS 27.2, rustc 1.92.0, commit 812c543, 2026-11-15 19:59 IST.
+Apple M4 MacBook Air (Mac16,13), macOS 27.2, rustc 1.92.0, commit c1b20d6 (tree 3cece37; was 812c543 before the author-name rewrite of 2026-11-17), 2026-11-15 19:59 IST.
 AC POWER, Low Power Mode off, Docker quit, no thermal or performance warning recorded at any
 point. PMU via kperf on the measuring thread. Placement verified in the output, not assumed
 from the type: every pad=64 case reported same_line=1 and every pad=128 case same_line=0.

@@ -82,5 +82,5 @@
 <path class="s2" d="M238.0,316.0 H579.6 Q583.6,316.0 583.6,320.0 V326.0 Q583.6,330.0 579.6,330.0 H238.0 Z"/>
 <text x="589.6" y="327.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start">135  (32.3 ns)</text>
 <line class="axis" x1="238" y1="106" x2="238" y2="342"/>
-<text x="792.0" y="412.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-11_m4.txt (commit c3b850d, battery power, preliminary)</text>
+<text x="792.0" y="412.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: results/2026-11-11_m4.txt (commit 0d8b78d (tree b664c19), battery power, preliminary)</text>
 </svg>

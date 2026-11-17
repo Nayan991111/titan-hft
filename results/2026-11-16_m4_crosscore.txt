@@ -1,5 +1,5 @@
 The cross-core handoff under the independent-launch protocol (H64)
-Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 33852a5, 2026-11-16 08:11 IST.
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 5bc0519 (tree 468c3c2; was 33852a5 before the author-name rewrite of 2026-11-17), 2026-11-16 08:11 IST.
 AC power, Low Power Mode off, Docker quit, powermetrics and Instruments killed before the
 run, no thermal or performance warning recorded at any point. 30 independent launches of
 `titan-pingpong 200000 3 ui pmu` and 30 of the same with `bg`, 16 cases each, 3 epochs per

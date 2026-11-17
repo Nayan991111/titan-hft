@@ -2,7 +2,7 @@
 # raw epoch lines stay on the measurement machine; no NASDAQ data is
 # reproduced).
 #
-# Code:      commit f5544e6, pushed by this run's script before measuring
+# Code:      commit f3e015a (tree 8f06db0; was f5544e6 before the author-name rewrite of 2026-11-17), pushed by this run's script before measuring
 #            (GitHub confirmed at f5544e6; 72 tests passed on macOS).
 # Machine:   the MacBook Air (Apple M4, 16 GB) of 2026-11-13_m4.txt
 # Toolchain: rustc 1.92.0 (ded5c06cf 2025-12-08), release, target-cpu=native

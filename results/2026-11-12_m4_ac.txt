@@ -1,7 +1,7 @@
 # Summaries of the second 2026-11-12 measurement run (statistics only; raw
 # epoch lines stay on the measurement machine; no NASDAQ data is reproduced).
 #
-# Code:      commit d4e2272, pushed at 10:38:31 IST, before the first run
+# Code:      commit 471812c (tree 68ac6d5; was d4e2272 before the author-name rewrite of 2026-11-17), pushed at 10:38:31 IST, before the first run
 # Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
 # Toolchain: rustc 1.92.0, release profile, target-cpu=native
 # Power:     wall power (70 W adapter, battery charging at 76%), Low Power

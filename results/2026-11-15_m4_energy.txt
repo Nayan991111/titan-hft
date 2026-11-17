@@ -1,5 +1,5 @@
 What waiting costs in energy on a fanless chip (H63)
-Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 6692228, 2026-11-15 20:52 IST.
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit 464c0a4 (tree 7eb2439; was 6692228 before the author-name rewrite of 2026-11-17), 2026-11-15 20:52 IST.
 AC power, Low Power Mode off, Docker quit, no thermal or performance warning recorded at any
 point across all three launches. No PMU in the binary at all: powermetrics seizes the Apple
 Silicon counters, so the pipeline ran without kperf and power was measured from outside the

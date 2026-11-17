@@ -1,5 +1,5 @@
 The whole session, and order chains rather than order references (H59)
-Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit ebccd96, 2026-11-15 11:51 IST.
+Apple M4 MacBook Air, macOS 27.2, rustc 1.92.0, commit df74e37 (tree b15b006; was ebccd96 before the author-name rewrite of 2026-11-17), 2026-11-15 11:51 IST.
 AC power, Low Power Mode off, Docker quit, no thermal or performance warning recorded at
 any point in the run. 10 epochs per design on the full feeds, stage order rotated per
 epoch, PMU on the measuring thread. Real feed: NASDAQ BX TotalView-ITCH 5.0, 2019-07-30,

@@ -1,7 +1,7 @@
 # Summaries of the sixth 2026-11-12 measurement run (statistics only; raw
 # epoch lines stay on the measurement machine; no NASDAQ data is reproduced).
 #
-# Code:      commit 8cbe992 (created 12:35 IST), pushed at 16:39:55 IST by the
+# Code:      commit 1337c6b (tree a5bfda1; was 8cbe992 before the author-name rewrite of 2026-11-17) (created 12:35 IST), pushed at 16:39:55 IST by the
 #            run script, before its first measurement
 # Machine:   MacBook Air (Mac16,13), Apple M4, 16 GB, macOS 27.2 (26B123)
 # Toolchain: rustc 1.92.0, release profile, target-cpu=native

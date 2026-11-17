@@ -6,7 +6,13 @@ results/2026-11-17_x86_barrier.txt. Registration in full in docs/experiments.md.
 MACHINE   : Apple M4, Mac16,13
 OS        : ProductVersion 27.2, BuildVersion 26B123
 RUSTC     : rustc 1.92.0 (ded5c06cf 2025-12-08)
-COMMIT    : 50fad9f789dca23ae06e222950e9e5427bc09274
+COMMIT    : 7cb5450c910a1f0cfb079a458779027afe69a6f7
+            tree 7c90231d803228f8ece927284b83fb446c789657
+            The run was made at 50fad9f789dca23ae06e222950e9e5427bc09274,
+            which the author-name rewrite of 2026-11-17 replaced with the commit
+            SHA above. The TREE is unchanged by that rewrite and is the durable
+            identifier: git cat-file -p <tree> resolves in any clone, before or
+            after. Every results file in this repository now records both.
 POWER     : start [Now drawing from 'AC Power'] end [Now drawing from 'AC Power']
 LOWPOWER  : 0
 LAUNCHES  : 30 of 30 registered

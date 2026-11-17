@@ -1,5 +1,5 @@
 RQ1 re-measured at a realistic run length (H68)
-Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit a20c744, 2026-11-16 20:27
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit f293667 (tree cc28115; was a20c744 before the author-name rewrite of 2026-11-17), 2026-11-16 20:27
 IST. AC power confirmed by pmset at the start and at the end, Low Power Mode 0, Docker not
 running. 30 independent launches of `titan-stream 10000000 3 pmu`. Three epochs, so each
 launch reduces to the median of its warm middle epoch rather than to the mean of a cold one

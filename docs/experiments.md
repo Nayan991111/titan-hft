@@ -116,7 +116,7 @@ are added afterwards and are never edited away when a prediction fails.
   means, not per-message tail latency.
 * `full` and `direct` must produce the same intents and checksum; the
   harness aborts if they differ.
-* Results of 2026-11-11 (commit c3b850d): `results/2026-11-11_m4.txt`. Code
+* Results of 2026-11-11 (commit 0d8b78d (tree b664c19; was c3b850d before the author-name rewrite of 2026-11-17)): `results/2026-11-11_m4.txt`. Code
   changed after that run (hostile-input hardening adds a branch to order
   lookup and to adds), so later figures are measured again, not reused.
 
@@ -1615,7 +1615,7 @@ measuring what it claims and the run says so before any number is quoted.
 
 ## Note on the 2026-11-14 run
 
-H42 to H49 were measured on 2026-11-14 at commit ba0bba8 (summaries in
+H42 to H49 were measured on 2026-11-14 at commit f99db57 (tree 83517b1; was ba0bba8 before the author-name rewrite of 2026-11-17) (summaries in
 results/2026-11-14_m4.txt). The first attempt of the run script lost power
 after it had pushed the code and before it measured anything (GitHub was
 confirmed at ba0bba8); the measuring run that followed used the same
@@ -2254,3 +2254,48 @@ in this project compares a cached arm against an uncached one.
 were written once the arms already existed, at which point the per-arm cost
 spread was knowable and was not looked at. Looking at it costs one query
 against a previous run.
+
+## Erratum: the author-name rewrite of 2026-11-17 orphaned 31 provenance references
+
+**The defect.** Normalising the git author name on three early commits rewrote
+every commit SHA in the repository, because those three were the first three
+commits. Twenty-five distinct commit SHAs were recorded as provenance across
+twenty-five results files, two sections of this document, four SVG figures and
+`scripts/figures.py`, thirty-one sites in all. **Every one of them became
+unreachable in a fresh clone the moment the rewrite was pushed.** A reviewer
+cloning the repository and trying to check out the commit a measurement was
+made at would have got a fatal error, on every results file in the project.
+
+**This was foreseeable and was not foreseen.** The rewrite was validated against
+five checks, all of which passed and all of which were about the rewrite's own
+correctness: identical tree, identical commit count, one author, one email,
+empty diff. None of them asked what else in the repository referred to a commit
+SHA. The question "what points at the thing I am about to renumber" is the first
+question an author rewrite should raise, and the validation did not contain it.
+The five checks were sound and the set of checks was incomplete, which is a
+different and harder failure than a wrong check.
+
+**The repair.** Trees are not changed by an author rewrite: only commit objects
+are. So each stale SHA was resolved to its tree in a clone that still held the
+orphaned objects, and that tree was matched against `git log --all --format='%T
+%H'` on the rewritten history to recover the new SHA. All twenty-five mapped
+with no ambiguity and none was unresolvable. Every site now reads
+`commit <new> (tree <tree>; was <old> before the author-name rewrite of
+2026-11-17)`, with the compact `commit <new> (tree <tree>)` form in figure
+captions where the canvas width is fixed. Verified against a fresh clone of the
+published remote: 26 of 26 commit references and 26 of 26 tree references
+resolve, 0 missing.
+
+**The durable fix, which is the part worth keeping.** Every results file now
+records the **tree** alongside the commit. A tree hash is invariant under any
+rewrite of authorship, committer, dates or messages, so it identifies the exact
+source state in any clone of any version of the history. The one file that had
+recorded a tree all along, `results/2026-11-11_m4.txt`, was the only one that
+was never ambiguous. Future results files record both, and the reproduce script
+should be checked for this before the Zenodo snapshot is minted.
+
+**What this changes about the remaining work.** The rewrite was done on the
+argument that it was free before a DOI exists. That argument was right about the
+DOI and wrong about the repository's own internal references, which cost thirty
+one edits to repair. No further history rewrite is to be performed on this
+repository for any reason.

@@ -1,5 +1,5 @@
 What a pricing kernel costs (H65)
-Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit a08c9e2,
+Apple M4 MacBook Air (Mac16,13), macOS 26B123, rustc 1.92.0, commit f08f344 (tree e22f80b; was a08c9e2 before the author-name rewrite of 2026-11-17),
 2026-11-16 10:09 IST. AC power confirmed by pmset, Low Power Mode 0, Docker not running,
 no profiler attached. 30 independent launches of `titan-greeks 3 ui pmu` and 30 of the same
 with `bg`, 3 epochs per launch, 7 arms, 2 strike ladders, 4096 contracts per arm per epoch,
