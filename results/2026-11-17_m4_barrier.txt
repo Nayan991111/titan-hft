@@ -1,8 +1,7 @@
 H69: BARRIER-PLACEMENT DECOMPOSITION ON APPLE M4. Run 2026-11-17 20:40 IST.
-ANALYSIS OUTPUT ONLY. Verdicts against the registered thresholds are not yet
-written into this file; the registration is in docs/experiments.md and the
-thresholds were fixed before this run, with (f) and (g) revised before it
-after the x86 control in results/2026-11-17_x86_barrier.txt.
+VERDICTS RECORDED 2026-11-17 against thresholds fixed before the run, with (f)
+and (g) revised before it on the evidence of the x86 control in
+results/2026-11-17_x86_barrier.txt. Registration in full in docs/experiments.md.
 
 MACHINE   : Apple M4, Mac16,13
 OS        : ProductVersion 27.2, BuildVersion 26B123
@@ -18,6 +17,181 @@ was wrong and this run took far less: at 221 cycles per message uncached and
 a ramped clock, one 10,000,000-message epoch is about half a second, so 30
 launches of 3 epochs over 10 arms is single-digit minutes. The estimate was
 logistics and not a hypothesis, so nothing registered is affected.
+
+
+================================================================================
+INTEGRITY OF THE RUN, CHECKED BEFORE ANY VERDICT WAS READ
+================================================================================
+
+900 data lines, 30 of 30 registered launches, 3 epochs, 10 cases. AC power held
+at both ends. Low Power Mode off. No Chrome, no Docker, no powermetrics, no
+Instruments.
+
+The 180 sum_ok=0 lines are ALL the unordered arm, 90 uncached and 90 cached,
+which is every one of its 30 launches times 3 epochs. The four ordered arms
+reported sum_ok=1 in 180 of 180 lines each. No correct ring lost or duplicated
+a message.
+
+THAT IS A RESULT AND NOT ONLY A CHECK. The unordered arm is the same source
+code on both machines. On this M4 it lost or corrupted data in 180 of 180
+epochs. On the virtualized x86-64 host (E2) it reported sum_ok=1 in all 30
+launches. Weak ordering breaks the ring observably on AArch64 and total store
+order masks the same bug on x86-64. The premise that the ordering in this loop
+is load-bearing is therefore measured, not assumed.
+
+THE CLOCK, WHICH IS WHAT THE DURATION CHECK EXISTS TO PROTECT. Per-arm medians
+over all 900 lines:
+
+    arm                     GHz med   GHz min   GHz max   ms med   cyc med
+    acqrel      uncached      4.389     4.195     4.414    500.6   218.880
+    fencedload  uncached      4.348     4.088     4.413    422.8   183.800
+    fenced      uncached      4.376     4.304     4.388    216.8    94.336
+    fencedstore uncached      4.368     4.035     4.408    194.6    85.269
+    unordered   uncached      3.694     3.504     3.733     27.6    10.185
+    acqrel      cached        3.589     3.309     3.779     22.9     8.053
+    fencedload  cached        3.509     3.180     3.918     22.8     8.021
+    fenced      cached        3.936     3.744     3.995     52.3    20.567
+    fencedstore cached        3.747     3.592     3.904     58.8    22.120
+    unordered   cached        3.525     3.365     3.923     18.9     6.646
+
+The four ORDERED UNCACHED arms, which carry the headline, ran within 1.094x of
+each other across all 540 of their lines (4.035 to 4.414 GHz). That comparison
+is clock-clean. Within the cached set the spread is 1.122x, and across the
+cached and uncached sets together it is 1.388x. Nothing in this registration
+compares a cached arm against an uncached one, so the 1.388x never enters a
+figure; it is recorded because it is the reason the two reporting units
+disagree on (c) below.
+
+================================================================================
+VERDICTS
+================================================================================
+
+H69 (a) THE SAVING IS STORE-DOMINANT.                               SUPPORTED
+    Uncached, store-side share S = 1.0702 [1.0621, 1.0866] on cycles and
+    1.0717 [1.0643, 1.0846] on nanoseconds, at or above the registered 0.70 in
+    30 of 30 launches. The paired sign test on A - FS > 0 is 30 of 30,
+    p < 0.00001, against the registered 21 of 30.
+
+H69 (b) THE SAVING IS LOAD-DOMINANT.                                  REFUTED
+    Uncached, load-side share L = 0.2797 [0.2729, 0.3479] on cycles, at or
+    above 0.70 in 0 of 30 launches. The thresholds were set so that (a) and
+    (b) could not both hold; they did not, and the design was forced to pick a
+    side rather than report a direction.
+
+H69 (c) THE TWO SIDES ARE ADDITIVE.                     REFUTED, AND SPLIT
+    Uncached, S + L = 1.3587 [1.3461, 1.4063] on cycles and 1.3588 on
+    nanoseconds, within the registered 0.15 of 1 in 1 of 30 launches. Strongly
+    sub-additive: the two substitutions save 168.691 cycles separately and
+    124.544 together.
+    Cached, THE TWO REPORTING UNITS DISAGREE. On cycles S + L = 1.1133
+    [1.1048, 1.1216], inside 0.15 of 1 in 28 of 30 launches, which is
+    SUPPORTED. On nanoseconds S + L = 1.2333 [1.2059, 1.2470], inside in 1 of
+    30, which is REFUTED. The cause is in the table above: the cached arms ran
+    at 3.509 to 3.936 GHz, a 1.122x spread, so a ratio of differences in time
+    is not a ratio of differences in work. Cycles are the primary unit for
+    this project and the cached verdict is therefore SUPPORTED on cycles, with
+    the disagreement recorded rather than resolved by preference.
+
+H69 (d) EACH SIDE ALONE IS A MEASURABLE EFFECT.                     SUPPORTED
+    Uncached, A - FL and A - FS both reach 30 of 30 in the same direction,
+    both p < 0.00001, against the registered 21 of 30. The load side alone
+    saves 35.080 cycles and the store side alone saves 133.611.
+
+H69 (e) THE SIGN CHANGE REPRODUCES AND LOCALISES TO THE SAME SIDE.  SUPPORTED
+    Cached F / A = 20.567 / 8.053 = 2.554, above the registered 2.0 and
+    consistent with H68's 2.449. S is 1.1207 cached and 1.0702 uncached, both
+    at or above 0.70, so the same side carries the effect on both sides of the
+    sign change. One mechanism, not two.
+
+H69 (f) THE UNORDERED ARM IS A USABLE FLOOR AT ALL.                 SUPPORTED
+    Uncached (A - U) / A = +0.9534 [0.9532, 0.9539], positive in 30 of 30.
+    Positive was the whole hypothesis after the x86 control measured the same
+    quantity at -0.3596 and showed the original 0.30 size threshold to be
+    malformed. On this machine the arm is a floor, and the figure it yields is
+    large: ORDERING IS 95.3 PERCENT OF THE UNCACHED LOOP, 218.880 cycles
+    against 10.185. Cached it is 17.5 percent.
+
+H69 (g) THE RUN IS LONG ENOUGH TO BE READ.                 FAILED, AND THE
+                                                           CHECK IS DEFECTIVE
+    99 of 150 uncached arm-launches exceeded 200 ms, not 150 of 150.
+    THE CHECK IS AT FAULT, FOR THE FIFTH TIME, AND THE FAULT IS THE ONE THAT
+    WAS NAMED IN WRITING WHEN IT WAS REVISED. The revision of (g) stated the
+    recurring error as "writing one global threshold for a quantity that
+    differs per arm by design", and then set one global 200 ms threshold
+    across five uncached arms that differ in cost by 21x by design. It failed
+    on fencedstore at a 194.6 ms median, an arm whose clock was 4.368 GHz,
+    squarely with the other three. So the check failed an arm that was
+    perfectly ramped, while the arm it should have flagged, unordered at 27.6
+    ms and 3.694 GHz, would also have failed for the right reason by accident.
+    WHAT THE CHECK SHOULD HAVE BEEN, stated now and not applied to this run
+    retroactively: the hazard is arms being compared at different clocks, so
+    the threshold belongs on the clock spread across the arms in one
+    comparison, not on the duration of any single arm. The measured spread is
+    1.094x for the four ordered uncached arms and 1.122x within the cached
+    set. The next registration that needs this check will state a clock-spread
+    bound, pre-register it, and not reuse a duration threshold.
+    THE VERDICTS ABOVE DO NOT DEPEND ON (g) PASSING. (g) is a validity gate on
+    the clock, the clock table above answers the question directly and
+    favourably for every comparison actually made, and the gate's failure is a
+    defect in its own formulation rather than evidence against the run. This
+    is stated as a limitation and not as a dismissal: a gate that has to be
+    argued around after the fact is worth less than one that passes, and five
+    failed attempts at this single check is the clearest measurement in this
+    project of where its weakness lies.
+
+================================================================================
+WHAT THE DECOMPOSITION FOUND
+================================================================================
+
+Median cycles per message, 30 launches, pad=128, performance cores:
+
+    UNCACHED                        CACHED
+    unordered       10.185          unordered        6.646
+    fencedstore     85.269          fencedload       8.021
+    fenced          94.336          acqrel           8.053
+    fencedload     183.800          fenced          20.567
+    acqrel         218.880          fencedstore     22.120
+
+THE ORDER OF THE FOUR ORDERED ARMS REVERSES COMPLETELY BETWEEN THE TWO
+CONFIGURATIONS. The cheapest ordered ring when the cursor line is contended is
+the dearest when it is in L1, and the other way round. fencedstore is 2.57x
+cheaper than acqrel uncached and 2.75x dearer cached.
+
+THE EFFECT IS ENTIRELY ON THE STORE SIDE. Replacing the release store `stlr`
+with `dmb ish` and a plain `str` accounts for 133.611 of the 124.544 cycles
+saved. Replacing the acquire load `ldapr` with `ldr` and `dmb ish` saves
+35.080, which is real at 30 of 30 but is a quarter of the size and is the
+secondary effect, not the mechanism.
+
+POST HOC, NOT REGISTERED, AND LABELLED SO BECAUSE THE NUMBERS ASKED FOR IT.
+The registration compares every arm against acqrel and never fenced against
+fencedstore. That comparison is the sharpest thing in the run:
+    uncached  fencedstore is 8.829 cycles CHEAPER than fenced, 29 of 30,
+              p < 0.00001. Adding the load-side barrier on top of the
+              store-side barrier COSTS 9.067 cycles, 10.6 percent.
+    cached    fencedstore is 1.531 cycles DEARER than fenced, 0 of 30,
+              so there the extra load-side barrier HELPS by 7.0 percent.
+Being post hoc, this is reported as an observation requiring its own
+registration before it is quoted as a tested result.
+
+MECHANISM: A HYPOTHESIS, NOT A FINDING. A release store must not become visible
+before prior accesses are observable. When the cursor line is being taken by
+the other core, that obligation is discharged with a coherence miss in flight,
+and the measured cost is consistent with the store stalling until it completes.
+A `dmb ish` followed by a plain store pays a fixed barrier and then lets the
+store retire into the store buffer with no further per-store obligation. That
+would explain both the 2.57x saving when the line is contended and the 2.75x
+penalty when it is not, since with the line in L1 there is nothing for the
+release store to wait on and the barrier is pure overhead. IT IS NOT
+ESTABLISHED. Confirming it needs either store-buffer occupancy counters or an
+arm that varies the contention continuously, and neither is in this run.
+
+WHAT THIS RUN CANNOT SETTLE. It cannot exclude a queue-occupancy explanation: a
+barrier changes how far the producer runs ahead, so part of the difference
+between these arms may be a difference in how full the ring sits rather than in
+the cost of an instruction. Instrumenting occupancy inside the hot loop would
+perturb what is being measured, so the alternative stays open. It is one Apple
+part, one ring, one padding, one wait strategy, and performance cores only.
 
 ================================ ANALYSIS ================================
 ## bd: order=acqrel against order=fencedload on msg_cycles, paired inside each launch

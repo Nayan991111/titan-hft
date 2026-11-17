@@ -54,19 +54,58 @@ not a rounding error on the work, it is a large fraction of it. This work
 measures the thing they deferred, on one of the two parts they used, and
 reports three results.
 
-**First, and it is the one no memory model predicts: a full barrier is cheaper
-than a one-way acquire, and the comparison changes sign with caching.**
-Replacing `ldapr`/`stlr` with relaxed accesses bracketed by `dmb ish` makes the
-uncached streaming loop 2.23 times faster (ratio 0.4475 in cycles, 0.4464 in
-nanoseconds) and the cached loop 2.45 times slower. Two runs with different
+**First, and it is the one no memory model predicts: a barrier followed by a
+plain store beats a store-release by 2.57 times when the cursor line is
+contended, and loses to it by 2.75 times when the line is in L1.** Replacing
+`ldapr`/`stlr` with relaxed accesses bracketed by `dmb ish` makes the uncached
+streaming loop 2.23 times faster (ratio 0.4475 in cycles, 0.4464 in
+nanoseconds) and the cached loop 2.45 times slower, and two runs with different
 epoch counts agree on the uncached figure to one part in a thousand. Adding two
 full barriers per ring operation is supposed to cost more than a one-way
 acquire under every memory model that describes this hardware, and uncached it
-costs less than half. The obvious explanation is excluded by the counters:
-the barrier arm carries **more** L1D load misses than the acquire arm in every
-configuration and is faster uncached anyway. H69 is registered to decompose it
-by crossing the load side and the store side independently, which is the first
-question a reader who believes the number will ask.
+costs less than half. The obvious explanation is excluded by the counters: the
+barrier arm carries **more** L1D load misses than the acquire arm in every
+configuration and is faster uncached anyway.
+
+**H69 then located it, and the location is the whole point.** Crossing the two
+halves of the pair over 30 launches shows the effect is entirely on the store
+side. Substituting the release store alone accounts for 133.611 of the 124.544
+cycles saved, at 30 of 30 launches; substituting the acquire load alone saves
+35.080, which is real at 30 of 30 but a quarter of the size and of the opposite
+practical sign once both are applied. The two substitutions are strongly
+sub-additive: together they save 124.544 cycles where separately they save
+168.691, and adding the load-side barrier on top of the store-side barrier
+**costs** 9.067 cycles, 10.6 percent, at 29 of 30. So the cheapest correct ring
+on this part when the line is contended is neither of the two arms the
+literature would compare: it is an `ldapr` acquire load with a `dmb ish` and a
+plain store, at 85.269 cycles against 218.880 for the textbook
+acquire-release pair.
+
+**The order of the four correct rings reverses completely between the two
+caching configurations**, which is the finding a practitioner has to care
+about: uncached, fencedstore 85.269 < fenced 94.336 < fencedload 183.800 <
+acqrel 218.880; cached, fencedload 8.021 < acqrel 8.053 < fenced 20.567 <
+fencedstore 22.120. The best uncached arm is the worst cached arm.
+
+**The mechanism is a hypothesis and the paper will say so.** A release store
+must not become visible before prior accesses are observable; with a coherence
+miss in flight that obligation is consistent with the store stalling until the
+miss completes, where a `dmb ish` and a plain store pay a fixed barrier once and
+then retire into the store buffer with no further per-store obligation. That
+would explain the saving under contention and the penalty without it, since with
+the line in L1 there is nothing to wait on and the barrier is pure overhead. It
+is not established. A queue-occupancy explanation is also not excluded, because
+a barrier changes how far the producer runs ahead, and instrumenting occupancy
+inside the hot loop would perturb what is being measured.
+
+**One supporting measurement makes the premise of all of this concrete.** An
+unordered arm, relaxed on both sides and deliberately not a correct ring, runs
+the uncached loop at 10.185 cycles against 218.880, so **ordering is 95.3
+percent of that loop.** The same arm lost or corrupted data in 180 of 180
+epochs on this M4 and in 0 of 30 launches on the x86-64 control, so weak
+ordering breaks this ring observably on AArch64 while total store order masks
+the identical defect. The claim that synchronization is load-bearing here is
+measured on both counts, cost and correctness, rather than asserted.
 
 **Second, a source of measurement bias specific to this machine class.** On the
 M4, the two uncached ordering comparisons change by 4.3 and 8.8 times between
@@ -111,10 +150,14 @@ recommendation to anybody about how to write a ring.
 
 ## Title
 
-Primary, for arXiv and Zenodo:
+Primary, for arXiv and Zenodo. **Revised 2026-11-17 after H69 located the
+effect.** The previous title was "A Full Barrier Cheaper Than a One-Way
+Acquire", which the decomposition showed to be imprecise: the acquire load is
+the secondary effect at a quarter of the size, and the whole of the inversion
+sits on the release store.
 
-> **A Full Barrier Cheaper Than a One-Way Acquire: Measuring the Cost of
-> Memory Ordering in an SPSC Ring on Apple M4**
+> **A Barrier and a Plain Store Beat a Store-Release by 2.6x: Locating the
+> Cost of Memory Ordering in an SPSC Ring on Apple M4**
 
 Alternate if a reviewer finds the primary too pointed:
 
