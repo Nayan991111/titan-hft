@@ -1,0 +1,89 @@
+H69: BARRIER-PLACEMENT DECOMPOSITION ON APPLE M4. Run 2026-11-17 20:40 IST.
+ANALYSIS OUTPUT ONLY. Verdicts against the registered thresholds are not yet
+written into this file; the registration is in docs/experiments.md and the
+thresholds were fixed before this run, with (f) and (g) revised before it
+after the x86 control in results/2026-11-17_x86_barrier.txt.
+
+MACHINE   : Apple M4, Mac16,13
+OS        : ProductVersion 27.2, BuildVersion 26B123
+RUSTC     : rustc 1.92.0 (ded5c06cf 2025-12-08)
+COMMIT    : 50fad9f789dca23ae06e222950e9e5427bc09274
+POWER     : start [Now drawing from 'AC Power'] end [Now drawing from 'AC Power']
+LOWPOWER  : 0
+LAUNCHES  : 30 of 30 registered
+SUM_OK=0  : 180 lines
+
+NOTE ON TIMING: the registration estimated 30 to 40 minutes. That estimate
+was wrong and this run took far less: at 221 cycles per message uncached and
+a ramped clock, one 10,000,000-message epoch is about half a second, so 30
+launches of 3 epochs over 10 arms is single-digit minutes. The estimate was
+logistics and not a hypothesis, so nothing registered is affected.
+
+================================ ANALYSIS ================================
+## bd: order=acqrel against order=fencedload on msg_cycles, paired inside each launch
+   positive difference and ratio above 1 favour fencedload being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +35.058 [+33.486, +42.385], median of per-launch ratios 1.189, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff +0.111 [+0.072, +0.155], median of per-launch ratios 1.014, acqrel larger in 23/30 launches, sign p = 0.0052
+
+## bd: order=acqrel against order=fencedstore on msg_cycles, paired inside each launch
+   positive difference and ratio above 1 favour fencedstore being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +134.340 [+132.872, +135.952], median of per-launch ratios 2.582, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff -14.051 [-14.138, -13.927], median of per-launch ratios 0.363, acqrel larger in 0/30 launches, sign p = 0.0000
+
+## bd: order=acqrel against order=fenced on msg_cycles, paired inside each launch
+   positive difference and ratio above 1 favour fenced being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +124.756 [+122.861, +126.474], median of per-launch ratios 2.317, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff -12.533 [-12.598, -12.308], median of per-launch ratios 0.393, acqrel larger in 0/30 launches, sign p = 0.0000
+
+## bd: order=acqrel against order=unordered on msg_cycles, paired inside each launch
+   positive difference and ratio above 1 favour unordered being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +208.678 [+207.543, +211.249], median of per-launch ratios 21.446, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff +1.407 [+1.375, +1.552], median of per-launch ratios 1.212, acqrel larger in 30/30 launches, sign p = 0.0000
+
+## bd: order=acqrel against order=fencedload on ns_per_msg, paired inside each launch
+   positive difference and ratio above 1 favour fencedload being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +7.550 [+7.104, +9.934], median of per-launch ratios 1.177, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff -0.011 [-0.036, +0.007], median of per-launch ratios 0.995, acqrel larger in 12/30 launches, sign p = 0.3616
+
+## bd: order=acqrel against order=fencedstore on ns_per_msg, paired inside each launch
+   positive difference and ratio above 1 favour fencedstore being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +30.569 [+30.293, +30.763], median of per-launch ratios 2.570, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff -3.614 [-3.643, -3.563], median of per-launch ratios 0.387, acqrel larger in 0/30 launches, sign p = 0.0000
+
+## bd: order=acqrel against order=fenced on ns_per_msg, paired inside each launch
+   positive difference and ratio above 1 favour fenced being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +28.385 [+27.890, +28.679], median of per-launch ratios 2.303, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff -2.972 [-3.008, -2.921], median of per-launch ratios 0.435, acqrel larger in 0/30 launches, sign p = 0.0000
+
+## bd: order=acqrel against order=unordered on ns_per_msg, paired inside each launch
+   positive difference and ratio above 1 favour unordered being cheaper than acqrel
+  pad=128 cached=0 wait=isb: median diff +47.252 [+46.995, +47.537], median of per-launch ratios 18.044, acqrel larger in 30/30 launches, sign p = 0.0000
+  pad=128 cached=1 wait=isb: median diff +0.397 [+0.355, +0.436], median of per-launch ratios 1.210, acqrel larger in 30/30 launches, sign p = 0.0000
+
+## bd: barrier-side shares, uncached, on msg_cycles
+  H69 (f) (A-U)/A: median +0.9534 [+0.9532, +0.9539] over 30 launches, positive in 30/30, usable as a floor
+  S store-side: median +1.0702 [+1.0621, +1.0866], H69 (a) at or above 0.70 in 30/30 launches
+  L load-side: median +0.2797 [+0.2729, +0.3479], H69 (b) at or above 0.70 in 0/30 launches
+  S+L: median 1.3587 [1.3461, 1.4063], H69 (c) within 0.15 of 1 in 1/30 launches
+
+## bd: barrier-side shares, cached, on msg_cycles
+  H69 (f) (A-U)/A: median +0.1747 [+0.1715, +0.1892] over 30 launches, positive in 30/30, usable as a floor
+  S store-side: median +1.1207 [+1.1102, +1.1313], H69 (a) at or above 0.70 in 30/30 launches
+  L load-side: median -0.0090 [-0.0122, -0.0058], H69 (b) at or above 0.70 in 0/30 launches
+  S+L: median 1.1133 [1.1048, 1.1216], H69 (c) within 0.15 of 1 in 28/30 launches
+
+## bd: barrier-side shares, uncached, on ns_per_msg
+  H69 (f) (A-U)/A: median +0.9446 [+0.9444, +0.9451] over 30 launches, positive in 30/30, usable as a floor
+  S store-side: median +1.0717 [+1.0643, +1.0846], H69 (a) at or above 0.70 in 30/30 launches
+  L load-side: median +0.2652 [+0.2537, +0.3485], H69 (b) at or above 0.70 in 0/30 launches
+  S+L: median 1.3588 [1.3349, 1.3975], H69 (c) within 0.15 of 1 in 1/30 launches
+
+## bd: barrier-side shares, cached, on ns_per_msg
+  H69 (f) (A-U)/A: median +0.1739 [+0.1583, +0.1875] over 30 launches, positive in 30/30, usable as a floor
+  S store-side: median +1.2124 [+1.2004, +1.2366], H69 (a) at or above 0.70 in 30/30 launches
+  L load-side: median +0.0037 [-0.0025, +0.0120], H69 (b) at or above 0.70 in 0/30 launches
+  S+L: median 1.2333 [1.2059, 1.2470], H69 (c) within 0.15 of 1 in 1/30 launches
+
+## bd: H69 (g) epoch duration, threshold on the uncached arms only
+  uncached: shortest epoch 26.336 ms in ('unordered', '128', '0', 'isb'), 99/150 arm-launches above 200 ms, THRESHOLD BINDS
+  cached: shortest 18.594 ms, median 23.280 ms, recorded without a pass or fail (these arms run short by construction)
