@@ -233,10 +233,42 @@ impl Kperf {
     }
 
     /// Every event in the database, sorted by name.
+    ///
+    /// GitHub code scanning raises rust/access-invalid-pointer here. The
+    /// pointers are dereferenced by `info`, and the analyser cannot see the
+    /// contract of a function loaded at runtime out of a private framework,
+    /// so it assumes the worst. The invariant it cannot see is written out
+    /// below and the one case it was right to worry about, an empty database,
+    /// no longer reaches the call at all.
     pub fn events(&self) -> Result<Vec<EventInfo>, KperfError> {
         let mut n = 0usize;
         check("kpep_db_events_count", unsafe { (self.api.kpep_db_events_count)(self.db, &mut n) })?;
+        // An empty Vec yields a dangling, although aligned and non-null,
+        // pointer from as_mut_ptr. Passing that to C with a length of zero is
+        // permitted by convention and relies on the callee honouring the
+        // length. There is no reason to rely on it: a database with no events
+        // has no events to report.
+        if n == 0 {
+            return Ok(Vec::new());
+        }
         let mut evs: Vec<*mut Event> = vec![std::ptr::null_mut(); n];
+        // SAFETY, and the four things that have to hold.
+        //
+        // 1. The buffer is exactly n elements and the third argument is the
+        //    size in BYTES, which is what kpep_db_events takes. Passing a
+        //    count instead would let the callee write n times further than
+        //    the allocation, which is the overflow the analyser is shaped to
+        //    look for. `n * size_of::<*mut Event>()` is the byte count.
+        // 2. `check` converts a non-zero return into an error and returns
+        //    before anything is read, so a failed call never reaches a
+        //    dereference.
+        // 3. The pointers written back are owned by the database, not by this
+        //    Vec. `self.db` is alive for the whole of `&self`, so each one
+        //    outlives the `info` call that reads it. Nothing here frees them.
+        // 4. Entries the library leaves null are removed by `NonNull::new`
+        //    before `info` is reached, so `info` takes a `NonNull<Event>` and
+        //    the non-null requirement is carried by the type rather than by a
+        //    comment.
         check("kpep_db_events", unsafe {
             (self.api.kpep_db_events)(self.db, evs.as_mut_ptr(), n * std::mem::size_of::<*mut Event>())
         })?;

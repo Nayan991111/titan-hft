@@ -1,6 +1,6 @@
 H70: WHAT ARRIVAL CLUSTERING ALONE COSTS THE TAIL. Apple M4.
 Run 2026-11-18 17:38 IST. Thresholds fixed before the run;
-the registration is in docs/experiments.md. Verdicts not yet written.
+the registration is in docs/experiments.md. Verdicts recorded 2026-11-18, below.
 
 MACHINE : Mac16,13, 10 cpus
 OS      : ProductVersion 27.2, BuildVersion 26B123
@@ -10,6 +10,138 @@ TREE    : 9378be814d18edb575c2150652c3d6842ca1ea3a
 POWER   : start [Now drawing from 'AC Power'] end [Now drawing from 'AC Power']
 LAUNCHES: 30 of 30
 SATURATED LINES: 1
+
+================================================================================
+UTILISATION, WHICH SCOPES EVERYTHING BELOW
+================================================================================
+
+The full path saturates between 10,000,000 and 15,000,000 messages per second
+on this machine: every earlier sweep records saturated=0 at 10,000,000 and
+saturated=1 at 15,000,000, for all three wait strategies. This run offered
+5,000,000, so it ran at roughly one third to one half of capacity. Every
+verdict below is a statement about that operating point and not about the
+system at its limit.
+
+================================================================================
+VERDICTS
+================================================================================
+
+H70 (a) BURSTINESS INFLATES THE TAIL AT A FIXED MEAN RATE.          REFUTED
+    Registered: p99.9 at branching 0.8 at or above 2.0 times p99.9 at
+    branching 0.0, with 21 of 30 on the paired sign test.
+    Measured, p99.9 ratio by wait strategy:
+        spin  1.0060   at or above 2.0 in  1/30   sign 16/30  p = 0.856
+        isb   0.9872   at or above 2.0 in  2/30   sign 17/30  p = 0.585
+        wfe   1.0285   at or above 2.0 in  1/30   sign 20/30  p = 0.099
+    Not one wait strategy reaches the threshold and not one reaches
+    significance. The registered effect is absent, and absent by a factor of
+    two, not by a margin.
+
+H70 (b) THE INFLATION GROWS WITH THE BRANCHING RATIO.               REFUTED
+    Registered: median p99.9 ordered 0.0 below 0.5 below 0.8 in at or above 24
+    of 30 launches. Measured: 5 of 30 for spin, isb and wfe alike, which is
+    what chance alone produces from three interchangeable arms.
+
+H70 (c) THE MEDIAN IS ALMOST UNTOUCHED.                             SUPPORTED
+    p50 ratio 0.8 against 0.0: 1.0113 spin, 1.0000 isb, 1.0081 wfe, against a
+    registered 1.25. THIS IS THE VERDICT THAT MAKES (a) MEAN SOMETHING. The
+    arms are not differing in throughput and then being compared on tail; they
+    are doing identical work at identical speed, and the clustering still does
+    not move the tail.
+
+H70 (d) RANDOMNESS ALONE IS NOT THE EFFECT.    SUPPORTED AT THE REGISTERED
+                                               DEPTH, AND THE REGISTRATION
+                                               CHOSE THE WRONG DEPTH
+    Registered: p99.9 at branching 0.0 within 1.5 times the periodic arm.
+    Measured at p99.9: 1.0517 spin, 1.0574 isb, 1.0311 wfe. Passes easily.
+    MEASURED AT OTHER DEPTHS, SAME TWO ARMS, SAME LAUNCHES, PAIRED:
+        percentile   ratio   sign     p
+        50.00        1.292   30/30    1.9e-09
+        85.39        1.761   30/30    1.9e-09
+        95.73        2.122   30/30    1.9e-09
+        98.75        2.535   29/30    5.8e-08
+        99.64        2.604   27/30    8.4e-06
+        99.89        1.052   22/30    1.6e-02
+    The control passed only because p99.9 is the one depth at which the two
+    curves have converged. Half a decade earlier the same comparison is 2.12
+    times at 30 of 30. The threshold was not wrong; the single quantile it was
+    read at was.
+
+H70 (e) THE CURVES ARE RESOLVED WHERE THEY ARE READ.                SUPPORTED
+    Minimum observations beyond the p99.9 level: 10,656, against a registered
+    100. Two orders of magnitude of margin.
+
+H70 (f) NO ARM SATURATED.                              FAILED ON ONE LINE
+                                                       OF ONE THOUSAND EIGHTY
+    One line reports saturated=1: launch 25, hawkes_0.5, wait=isb, epoch 2,
+    offered 5.002 against achieved 0.421. The registration says a saturating
+    arm is dropped and the fact reported rather than the rate lowered until it
+    passes. Reported here, and checked rather than argued: each launch is the
+    median of its three epochs, so one outlying epoch cannot move its launch
+    median unless it is the middle value. Recomputing (a) for isb with launch
+    25 removed entirely gives ratio 0.9853 against 0.9872, and 17 of 29
+    against 17 of 30. The verdict does not depend on it.
+
+================================================================================
+WHAT WAS ACTUALLY FOUND, WHICH IS NOT WHAT WAS REGISTERED
+================================================================================
+
+Median microseconds, wait=spin, 30 launches, median across epochs then across
+launches:
+
+    survival    percentile   periodic   hawkes 0.0   hawkes 0.5   hawkes 0.8
+    5.000e-01      50.00        0.205        0.264        0.265        0.267
+    1.461e-01      85.39        0.261        0.460        0.462        0.469
+    4.270e-02      95.73        0.311        0.660        0.665        0.680
+    1.248e-02      98.75        0.347        0.882        0.892        0.925
+    3.646e-03      99.64        0.497        1.296        1.305        1.532
+    1.066e-03      99.89        4.358        4.671        4.606        4.648
+    9.100e-05      99.99       18.748       20.988       19.480       20.268
+    1.000e-06      99.9999     36.256       36.928       36.344       36.280
+
+RESULT 1. CLUSTERING IS ABSORBED COMPLETELY, AT EVERY DEPTH. The ratio of
+branching 0.8 to branching 0.0 stays between 0.98 and 1.07 across the whole
+curve, with its largest value 1.066 at the 99.64th percentile and no
+significance at all past p99.9 (16 of 30, p = 0.86 at p99.9; 17 of 30,
+p = 0.59 at p99.9999). Fano factors of 0.900 and 13.920 produce the same
+latency distribution. At one third to one half of capacity, this ring and this
+book do not care how the arrivals are bunched.
+
+RESULT 2, AND IT IS THE LARGE ONE. RANDOMNESS COSTS UP TO 2.6 TIMES, AND IT
+COSTS IT IN THE BODY RATHER THAN THE TAIL. A Poisson schedule against a
+perfectly periodic one at the same mean rate: 1.29 times at the median, rising
+to 2.60 times at the 99.64th percentile, then collapsing to 1.05 by p99.9 and
+to 1.02 in the far tail. All at 30 of 30 or 29 of 30, p below 1e-5, and
+reproduced independently under all three wait strategies with ratios within
+0.1 of each other.
+
+RESULT 3, METHODOLOGICAL, AND THE REASON THE INSTRUMENT WAS BUILT. The effect
+in Result 2 is invisible at p99.9, modest at p50, and maximal between p95 and
+p99.6. A registration that reads one quantile can therefore pass a control
+that a curve fails by a factor of two. That is what happened here to H70 (d),
+in a registration written by the same person who built the CCDF emitter to
+avoid exactly this. The seven-point percentile ladder this project reported
+before would have caught it at p99 and missed it at p99.9; the choice between
+those two is arbitrary and the curve removes the choice.
+
+================================================================================
+WHAT THIS RUN CANNOT SETTLE
+================================================================================
+
+It cannot say whether clustering is absorbed at a rate near saturation. One
+third to one half of capacity leaves room for a burst to drain before the next
+one arrives, and the obvious next measurement is the same sweep at 10,000,000
+messages per second, the highest rate at which this path has been observed not
+to saturate. That is a new registration, not a re-reading of this one.
+
+It cannot say why a random schedule costs what it does, only that it does and
+that clustering on top of it does not. A queueing explanation is available and
+untested: a periodic schedule never presents two messages at once, while a
+Poisson schedule does so constantly, and at half utilisation the queue formed
+by a Poisson coincidence drains before a Hawkes burst can add to it.
+
+It is one mean rate, one instrument count, one machine, one feed, and
+performance cores only.
 
 pl_ccdf launch=1 feed=synthetic_default load=rate_5000000 wait=spin epoch=0 messages=10000000 q=0.500000000 survival=5.000000e-1 ns=200.0 beyond=5000000
 pl_ccdf launch=1 feed=synthetic_default load=rate_5000000 wait=spin epoch=0 messages=10000000 q=0.592691383 survival=4.073086e-1 ns=210.0 beyond=4073086
