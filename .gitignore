@@ -8,3 +8,12 @@ __pycache__/
 
 # Output of scripts/reproduce_paper_artifacts.sh: run output, not source.
 artifacts/
+
+# LaTeX build artifacts. main.bbl is deliberately NOT ignored: arXiv runs
+# neither bibtex nor biber on an uploaded .bib, so the tarball must carry a
+# prebuilt .bbl and it has to be in the repository to be bundled.
+docs/paper/*.aux
+docs/paper/*.log
+docs/paper/*.out
+docs/paper/*.blg
+docs/paper/*.pdf

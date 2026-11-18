@@ -1,0 +1,240 @@
+\pdfoutput=1
+% arXiv requires \pdfoutput=1 inside the first five lines to select pdfTeX.
+% IEEEtran V1.8b (2015/08/26). Bundle IEEEtran.cls and main.bbl in the arXiv
+% tarball: arXiv runs neither bibtex nor biber on an uploaded .bib file.
+%
+% No em dash or en dash appears in this document. In LaTeX source that means
+% the triple-hyphen and double-hyphen ligatures are never used, including in
+% bibliography page ranges, where a single hyphen is used instead.
+\documentclass[conference]{IEEEtran}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\title{A Barrier and a Plain Store Beat a Store-Release by 2.6x:\\
+Locating the Cost of Memory Ordering in an SPSC Ring on Apple M4}
+
+\author{\IEEEauthorblockN{Nayan Pandit}
+\IEEEauthorblockA{Indian Institute of Technology Patna, India\\
+nayanpandit993281@gmail.com}}
+
+\maketitle
+
+\begin{abstract}
+The single-producer single-consumer ring is the hot path of a market-data feed
+handler, and its loop body is small enough that the memory-ordering operation
+is a large fraction of the work rather than a rounding error on it. We measure
+that fraction on an Apple M4 and find it is 95.3 percent: the same ring with
+all ordering removed runs at 10.185 cycles per message against 218.880 for an
+acquire-release pair when the cursor line is contended. Within that budget, the
+choice of ordering construct behaves in a way no memory model describing this
+hardware predicts. Replacing the release store \texttt{stlr} with a \texttt{dmb
+ish} barrier followed by a plain store makes the contended loop 2.57 times
+faster, and the same substitution makes the loop 2.75 times slower once the
+cursor line is resident in L1. Crossing the two halves of the acquire-release
+pair over 30 independent launches localises the effect entirely to the store
+side: substituting the release store alone accounts for 133.611 of the 124.544
+cycles saved, at 30 of 30 launches, while substituting the acquire load alone
+saves 35.080, which is real at 30 of 30 but a quarter of the size and is paid
+back when both are applied. The ranking of all four correct rings reverses
+between the two caching configurations. We also report a measurement hazard
+specific to this machine class: the core clock tracks how long a core has been
+busy rather than how much work it was given, so the same comparison on the same
+binary moves by a stated 16.33 times between 200,000 and 10,000,000 messages,
+and the cheapest ordering at the short run length is the dearest at the long
+one. All results come from a pre-registered protocol of 74 hypotheses with
+thresholds fixed before each run, 30 independent launches per comparison,
+within-launch pairing and an exact two-sided sign test. The artifact
+reproduces every figure and table with one command.
+\end{abstract}
+
+\begin{IEEEkeywords}
+memory consistency, Apple silicon, AArch64, lock-free queues, performance
+measurement, measurement bias, hardware performance counters
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+A feed handler that reconstructs a limit order book from an exchange multicast
+feed spends its time in a loop of a few instructions: read the producer's
+cursor, read a slot, update book state, publish the consumer's cursor. The
+cursors are shared between two cores, so each read and each publish carries a
+memory-ordering obligation, and on a weakly ordered architecture that
+obligation is discharged by a specific instruction chosen by the programmer
+through a source-level annotation.
+
+The prevailing guidance for such a loop is that the weak orderings are cheap
+and should be preferred to sequential consistency, and that an explicit full
+barrier is the expensive option of last resort. That guidance is sound as a
+summary of the architecture manuals. It is also, on the machine measured here,
+wrong about which of two correct rings is faster, wrong by a factor of 2.57,
+and wrong in the opposite direction depending on whether a single cache line
+happens to be resident.
+
+The nearest prior work makes the gap explicit. Khayet and
+Morrison~\cite{khayet2026arm} measure Apple M1 and M4 under Apple's
+runtime-configurable total store order mode against native Arm mode across 49
+application workloads, and conclude that the Arm memory model carries no
+inherent performance advantage on Apple silicon, with typical execution times
+within about 3 percent. They state that they leave the performance of atomic
+read-modify-write operations and memory barriers to future work, on the stated
+assumption that modern concurrent software is not bottlenecked on
+synchronization. For the workloads they measure, that assumption is reasonable.
+For the loop measured here it is false, and we measure the fraction rather than
+asserting it: with ordering removed entirely the loop runs at 10.185 cycles per
+message against 218.880 with an acquire-release pair, so 95.3 percent of the
+contended loop is ordering.
+
+\subsection{Contributions}
+
+\begin{itemize}
+\item \textbf{A full barrier plus a plain store is cheaper than a store-release
+on this part, and the comparison changes sign with caching.} Substituting
+\texttt{dmb ish} and a plain store for \texttt{stlr} makes the contended loop
+2.57 times faster and the L1-resident loop 2.75 times slower. Two runs with
+different epoch counts agree on the contended figure to one part in a thousand.
+The obvious explanation is excluded by the counters: the barrier arm carries
+more L1D load misses than the acquire-release arm in every configuration and is
+faster when contended anyway.
+
+\item \textbf{The effect is localised to the store side, by a pre-registered
+cross of the two halves.} We measure four correct rings formed by crossing the
+load side and the store side independently, so that each arm still carries
+acquire semantics on every cursor read and release semantics on every publish,
+whether from the instruction or from an adjacent barrier. The store-side share
+of the total difference is 1.0702 with a bootstrap interval of [1.0621,
+1.0866], at or above the pre-registered 0.70 in 30 of 30 launches; the
+load-side share is 0.2797 and reaches that threshold in 0 of 30. The two
+substitutions are strongly sub-additive, and adding the load-side barrier on
+top of the store-side barrier costs 9.067 cycles.
+
+\item \textbf{The ranking of all four correct rings reverses between caching
+configurations.} Contended, the order is 85.269, 94.336, 183.800 and 218.880
+cycles per message; L1-resident, it is 8.021, 8.053, 20.567 and 22.120. The
+cheapest contended ring is the dearest resident one.
+
+\item \textbf{A measurement hazard specific to heterogeneous consumer silicon.}
+The core clock on this part tracks elapsed busy time rather than work
+completed. A comparison that is stable in principle therefore moves by a stated
+16.33 times between 200,000 and 10,000,000 messages, and the ordering that is
+cheapest at the short run length is the dearest at the long one. This is a
+post-2009 instance of the general phenomenon named by Mytkowicz et
+al.~\cite{mytkowicz2009wrong}, whose demonstrated bias sources were UNIX
+environment size and link order; duration-driven frequency scaling and
+heterogeneous core residency did not exist on a general-purpose CPU at that
+time.
+
+\item \textbf{A protocol built so the conclusions survive the hazard.} Every
+comparison here is pre-registered with pass and fail thresholds fixed before
+the run, measured over 30 independent process launches, paired within each
+launch, and tested with an exact two-sided sign test for which 21 of 30 is the
+p < 0.05 threshold. Every figure and table regenerates from the recorded data
+with one command.
+\end{itemize}
+
+\subsection{What this paper does not claim}
+
+The mechanism behind the store-side result is a hypothesis and is reported as
+one. A release store must not become visible before prior accesses are
+observable, and with a coherence miss in flight the measured cost is consistent
+with the store stalling until that miss completes, where a barrier followed by
+a plain store pays a fixed cost once and then retires into the store buffer.
+That account would explain both the saving when the line is contended and the
+penalty when it is not. It is not established here, and a queue-occupancy
+explanation is not excluded: a barrier changes how far the producer runs ahead
+of the consumer, and instrumenting ring occupancy inside the hot loop would
+perturb the quantity being measured.
+
+The results are from one Apple M4 in one fanless chassis, one ring, one padding
+and one wait strategy, on performance cores. A cross-architecture control on
+x86-64 is reported, and it is reported with the limitation that the host is
+virtualized and exposes no frequency-scaling interface at all, so on that host
+the absence of the run-length effect and the invisibility of the clock cannot
+be told apart.
+
+\section{Related Work}
+
+\subsection{Measurement bias}
+
+Mytkowicz et al.~\cite{mytkowicz2009wrong} established that measurement bias in
+systems evaluation is both significant, in the sense that it can reverse a
+conclusion, and commonplace. They demonstrated it from two sources, the size of
+the UNIX environment and link order, and surveyed 133 papers from ASPLOS, PACT,
+PLDI and CGO without finding one that adequately considered it.
+
+The second result of this paper is an instance of that phenomenon rather than a
+rediscovery of it, and the distinction is the bias source. The frequency a core
+runs at on this part is a function of how long the core has been busy, not of
+how much work it was given, so two implementations handed identical message
+counts are measured at different clocks and the comparison between them moves
+with run length. Neither that source nor heterogeneous core residency existed
+on a general-purpose CPU in 2009. What is new is the specific source, its
+measured size, and direct clock evidence for the mechanism.
+
+\subsection{Total store order on Apple silicon}
+
+Apple silicon implements a runtime-switchable total store order mode alongside
+standard AArch64 weak ordering, used by the Rosetta 2 binary translator.
+Wrenger et al.~\cite{wrenger2023tosting,wrenger2024m1} exploit that switch to
+compare the two memory models with the rest of the machine held constant, and
+report that total store order costs on average 8.94 percent on multi-threaded
+SPEC CPU 2017 floating-point workloads on an M1.
+
+That is a comparison of two hardware memory models with the program held fixed.
+This paper compares ordering annotations and barrier placements within one
+memory model with the hardware held fixed. The axes are orthogonal: a
+whole-application figure for switching the machine's model does not predict a
+2.57 times difference between two correct ways of writing the same ring under
+the weak model.
+
+\subsection{The deferred measurement}
+
+Khayet and Morrison~\cite{khayet2026arm} extend that line to M1 and M4 with
+microbenchmarks for load-load reordering, store-store reordering,
+store-to-load forwarding and SIMD load throughput, and 49 application workloads
+from SPEC CPU 2017, PARSEC, SPLASH-2x and OpenBenchmarking. Their statistical
+practice is careful: at least eight runs per benchmark, continued until the 95
+percent confidence interval falls within 1 percent of the median, with
+randomized run order and non-parametric tests. Their conclusion is that the Arm
+model has no inherent performance advantage on Apple silicon, that typical
+execution times are within about 3 percent, and that the few severe cases are
+attributable to Apple implementation artifacts rather than to the ordering
+requirements of total store order.
+
+Three relations to this work define its contribution.
+
+First, they explicitly leave the performance of atomic read-modify-write
+operations and memory barriers to future work; barriers appear in their study
+only as experimental controls, and acquire, release and sequentially consistent
+orderings are not measured. This paper measures exactly that, on one of the two
+parts they used.
+
+Second, the assumption under which that deferral is made, that modern
+concurrent software is not bottlenecked on synchronization, holds for their
+workloads and fails for this one. In SPEC and PARSEC the synchronization
+operation is a small fraction of a large loop body; in a ring carrying market
+data the loop body is a cursor load, a slot access, a cursor store and a
+branch. We therefore test the premise rather than dispute the conclusion drawn
+under it, and we measure the fraction rather than assert it.
+
+Third, two methodological points, offered as complements. Their only
+performance metric is execution time, which they state. On a part whose
+performance and efficiency clusters run at fixed and very different clocks,
+execution time and cycle count are not interchangeable: we measure a case in
+which the efficiency cores take fewer cycles, between 0.808 and 0.984 of the
+performance-core figure, and 3.057 times the wall time, so the two units order
+the same pair of implementations oppositely. Separately, frequency scaling is
+not discussed in their study, and a bias that is a function of run duration is
+reproducible, so a protocol of repeating a run until its confidence interval is
+tight does not by itself address it: repeating a short run faithfully
+reproduces the short run's answer.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
