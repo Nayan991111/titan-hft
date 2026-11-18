@@ -16,6 +16,14 @@
 //!
 //! Schedules:
 //!   rates=R1,R2,...   constant offered load, messages per second
+//!   hawkes=B1,B2,...  self-exciting arrivals at a fixed mean rate, one run
+//!                     per branching ratio B in [0, 0.95]. Burstiness rises
+//!                     with B while the mean rate is held constant, so the
+//!                     cost of clustering is separated from the cost of load.
+//!                     B=0 is the Poisson control.
+//!   poisson           independent exponential gaps at the same mean rate
+//!   burstrate=R       mean rate for hawkes and poisson (default 5000000)
+//!   burstbeta=BETA    decay rate of a burst, per second (default 10000)
 //!   speed=S           the feed's own ITCH timestamps, replayed S times faster
 //!                     (needs file=; keeps the real burst structure)
 //! The trading thread waits for the next message with `spin` (reload only),
@@ -689,6 +697,28 @@ fn main() {
             let rate: f64 = r.parse().expect("rate");
             let sched = (0..n).map(|i| (i as f64 * freq as f64 / rate) as u64).collect();
             loads.push((format!("rate_{r}"), sched));
+        }
+        // Burstiness as an explicit parameter, with the message content and
+        // the mean rate held fixed. A constant rate has no burstiness and the
+        // real session has burstiness tangled with every other property of
+        // that day, so neither isolates it. The seed is fixed per schedule so
+        // a launch is reproducible, and the branching ratio of zero is kept
+        // available because it is the Poisson control for the Hawkes arm
+        // rather than a separate implementation of one.
+        let burst_rate: f64 = kv(&args, "burstrate").unwrap_or("5000000").parse().expect("burstrate");
+        let burst_beta: f64 = kv(&args, "burstbeta").unwrap_or("10000").parse().expect("burstbeta");
+        if let Some(bs) = kv(&args, "hawkes") {
+            for b in bs.split(',') {
+                let branching: f64 = b.parse().expect("branching ratio");
+                let h = titan_itch::arrivals::Hawkes::with_mean_rate(burst_rate, branching, burst_beta);
+                loads.push((format!("hawkes_{b}"), h.schedule(n, freq, 0x011A_76E5)));
+            }
+        }
+        if args.iter().any(|a| a == "poisson") {
+            loads.push((
+                "poisson".to_string(),
+                titan_itch::arrivals::poisson(n, burst_rate, freq, 0x9015_5074),
+            ));
         }
     }
 

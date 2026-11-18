@@ -30,6 +30,7 @@ pub mod fanout;
 pub mod gateway;
 pub mod gen;
 pub mod arb;
+pub mod arrivals;
 pub mod combine;
 pub mod heapbook;
 pub mod mold;
