@@ -300,11 +300,30 @@ below.
 
 Three facts corrected against what I told you earlier today.
 
-* **I said JSys has no deadline. That was wrong.** It opens a new submission
-  forum per deadline, with recent ones listed as May, August and October. I
-  could not retrieve the current one: the instructions page is script-driven
-  and did not render. That has to be read off `jsys.org/instructions`
-  directly before anything is submitted.
+* **I said JSys has no deadline. That was wrong, and the deadline is now
+  retrieved: the next usable paper deadline is 1 March 2027.** JSys runs four
+  deadlines a year, each at 11:59 PM GMT, and commits to initial reviews within
+  1.5 months of each. Retrieved 2026-11-18.
+
+  **The two JSys pages disagree about which four dates those are, and the
+  discrepancy is recorded rather than resolved.** The call-for-papers page
+  gives March 1, May 1, August 1 and October 1. The Artifact Evaluation Board
+  page gives February 1, May 1, August 1 and November 1. Two dates of the four
+  differ. The call-for-papers page also lists its most recent forums as "August
+  2026" and "May 2026 (closed)", with no October 2026 entry, which is weak
+  evidence for the February/May/August/November calendar having superseded the
+  other. Either way the next opportunity is in 2027, so the paper is not racing
+  a deadline, and the **exact submission forum link must still be read off
+  `jsys.org/instructions` at submission time**, because JSys opens a new forum
+  for each deadline and the links live only on that page.
+
+  **Consequence for sequencing, which is favourable.** With no JSys deadline
+  before March, there is no reason to rush the manuscript to hit a window. The
+  arXiv and Zenodo track remains the fast path for a citable DOI, and JSys
+  becomes the peer-reviewed follow-up with roughly three months of slack for
+  the artifact to be properly documented, which matters because artifact
+  evaluation at JSys is mandatory for Tool/Benchmark and Solution papers and
+  runs in parallel with the paper review rather than after acceptance.
 * **JSys review is double blind.** A public repository named for the system
   cannot be linked from the submission.
 * **A paper already on arXiv may be submitted, but the JSys title must differ
@@ -425,7 +444,15 @@ switching the machine's model predicts a 2.23 times difference between two
 correct ways of writing the same ring under the weak model.
 
 **Khayet, Y., and Morrison, A. "Arm Weak Memory Consistency on Apple Silicon:
-What Is It Good For?" ASPLOS 2026, Pittsburgh, PA, March 22 to 26, 2026.** The
+What Is It Good For?" ASPLOS '26: Proceedings of the 31st ACM International
+Conference on Architectural Support for Programming Languages and Operating
+Systems, Volume 2, pages 191 to 207. ACM, 2026. doi:10.1145/3779212.3790129,
+ISBN 979-8-4007-2359-9. Pittsburgh, PA, March 22 to 26, 2026. Both authors at
+Tel Aviv University; ORCIDs 0009-0003-2728-1893 and 0000-0002-5586-2615.**
+Verified 2026-11-18 against three independent sources: the ACM Digital Library
+proceedings entry, the dblp record for ASPLOS 2026 Volume 2, and the ASPLOS
+2026 program page, which agree on the DOI, the page range and the affiliation.
+The
 nearest prior work and the paper this one is positioned against. Measures
 Apple M1 and M4 under the TSO toggle against native Arm mode: microbenchmarks
 for load-load reordering, store-store reordering, store-to-load forwarding and
@@ -495,9 +522,11 @@ correction, and the paper will say it in those words.
   ring itself rather than for ordering cost. Not surveyed this session.
 * **Apple silicon characterisation.** Independent microarchitectural
   measurement of the M-series beyond the two papers above. Not surveyed.
-* **The ASPLOS 2026 DOI.** Khayet and Morrison was read as an author-hosted
-  PDF. The proceedings DOI and final page numbers must be filled in from the
-  ACM record before submission.
+* **CLOSED 2026-11-18. The ASPLOS 2026 DOI is 10.1145/3779212.3790129,
+  pages 191 to 207, Volume 2.** It was read as an author-hosted PDF and the
+  proceedings record has now been confirmed against the ACM Digital Library,
+  dblp and the conference program. The full entry is in the verified section
+  above.
 
 ### What this section means for the submission
 
