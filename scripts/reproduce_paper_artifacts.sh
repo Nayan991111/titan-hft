@@ -162,6 +162,21 @@ echo "statistics:   $OUT/launches.txt and $OUT/analyze.txt"
 echo "environment:  $OUT/environment.txt"
 echo
 echo "The verdicts these numbers are judged against are pre-registered in"
+
+# The publication figures. They read only from results/, so they regenerate
+# whether or not this run measured anything, and they belong in the
+# one-command path: a reviewer who can reproduce the numbers but not the
+# figures cannot check that the figures show the numbers.
+echo
+echo "=== publication figures (Type 42, for IEEE PDF eXpress and arXiv) ==="
+if command -v python3 >/dev/null 2>&1 && python3 -c "import matplotlib" 2>/dev/null; then
+  python3 scripts/figures_paper.py
+else
+  echo "matplotlib not installed, so docs/figures/fig-*.pdf were not regenerated."
+  echo "  python3 -m pip install --user matplotlib"
+  echo "The committed PDFs are unchanged and were verified as CID TrueType."
+fi
+echo
 echo "docs/experiments.md, written before each run and never edited afterwards."
 echo "Every row there cites the results file holding its data, except two that"
 echo "record findings about the counter interface itself, where the row is the"
