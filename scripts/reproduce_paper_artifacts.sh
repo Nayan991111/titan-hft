@@ -168,6 +168,17 @@ echo "The verdicts these numbers are judged against are pre-registered in"
 # one-command path: a reviewer who can reproduce the numbers but not the
 # figures cannot check that the figures show the numbers.
 echo
+echo
+echo "=== manuscript provenance: every number traced to a measurement ==="
+if [ -f docs/paper/main.tex ]; then
+  python3 scripts/check_provenance.py || echo "PROVENANCE FAILED: a number in the manuscript is not supported by any results file"
+else
+  echo "no manuscript yet, nothing to trace"
+fi
+echo
+echo "=== dash rule ==="
+python3 scripts/check_dashes.py || echo "DASH CHECK FAILED"
+echo
 echo "=== publication figures (Type 42, for IEEE PDF eXpress and arXiv) ==="
 if command -v python3 >/dev/null 2>&1 && python3 -c "import matplotlib" 2>/dev/null; then
   python3 scripts/figures_paper.py

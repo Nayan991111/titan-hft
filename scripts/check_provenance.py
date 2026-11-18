@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""Every number in the manuscript must trace to a measurement, and this proves it.
+
+The rule this project works under is that no figure in the paper may be typed
+in. That rule is only worth something if it is checkable, so this script takes
+every number the manuscript asserts and places it in exactly one of three
+categories. Anything that lands in none of them fails the build.
+
+    MEASURED  the value appears verbatim in a file under results/, which is
+              where terminal output from the measuring machine is recorded.
+              The script reports which file.
+
+    DERIVED   the value is computed from measured values. The formula is
+              recorded here, the script evaluates it from the measured inputs
+              and checks that it rounds to the value the manuscript prints. A
+              derivation that stops agreeing is a failure, not a warning.
+
+    EXTERNAL  the value is quoted from a cited work rather than measured here.
+              The citation key is recorded and must exist in refs.bib, so a
+              number attributed to a paper cannot drift away from its source.
+
+A fourth outcome, a number in none of the three, is the one that matters: it
+means a figure was typed into the manuscript that no measurement supports.
+
+    python3 scripts/check_provenance.py
+
+Exit 0 when every number is accounted for, 1 otherwise.
+
+It also reports, without failing, any measured value whose only mentions in
+docs/experiments.md are on rows flagged PRELIMINARY PROTOCOL. Those rows were
+measured with epochs inside one process rather than over independent launches.
+Nineteen rows carry that flag. No value quoted in the manuscript depends on
+one at present; the report exists so that if one ever does, it is noticed at
+the time rather than at review.
+"""
+from __future__ import annotations
+
+import glob
+import os
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+TEX = ROOT / "docs" / "paper" / "main.tex"
+BIB = ROOT / "docs" / "paper" / "refs.bib"
+EXPERIMENTS = ROOT / "docs" / "experiments.md"
+
+# Values computed from measured ones. Each entry is the expression, the
+# measured inputs it uses, and the number of decimals the manuscript prints.
+# The script evaluates the expression and requires it to round to the printed
+# value, so an edit to either side is caught.
+DERIVED: dict[str, tuple[str, int]] = {
+    "2.57": ("218.880 / 85.269", 2),
+    "2.75": ("22.120 / 8.053", 2),
+}
+
+# Values quoted from a cited work. The key must resolve in refs.bib.
+EXTERNAL: dict[str, str] = {
+    "8.94": "wrenger2024m1",
+}
+
+# Numbers that are part of the typesetting rather than the science. Each needs
+# a reason, so the list cannot quietly become a place to hide a figure.
+TYPESETTING: dict[str, str] = {}
+
+
+def manuscript_numbers() -> list[tuple[int, str]]:
+    """Every decimal number in the body, with its line. Comments excluded."""
+    out: list[tuple[int, str]] = []
+    for n, line in enumerate(TEX.read_text(encoding="utf-8").splitlines(), 1):
+        if line.lstrip().startswith("%"):
+            continue
+        # Drop trailing comments, but not an escaped percent sign.
+        line = re.sub(r"(?<!\\)%.*$", "", line)
+        for m in re.finditer(r"(?<![\w.])\d+\.\d+(?![\w.])", line):
+            out.append((n, m.group(0)))
+    return out
+
+
+def results_corpus() -> dict[str, str]:
+    return {
+        os.path.basename(f): Path(f).read_text(encoding="utf-8", errors="replace")
+        for f in sorted(glob.glob(str(ROOT / "results" / "*.txt")))
+    }
+
+
+def find_measured(value: str, corpus: dict[str, str]) -> list[str]:
+    """Files containing the value.
+
+    A trailing unit is allowed: the results files write ratios as 16.33x and
+    percentages as 95.3 percent. Requiring a non-word character after the
+    number would reject the first of those, which is how an earlier version of
+    this check reported a sourced figure as unsourced.
+    """
+    pat = re.compile(r"(?<![\w.])" + re.escape(value) + r"(?![\d.])")
+    return [name for name, text in corpus.items() if pat.search(text)]
+
+
+def preliminary_only(value: str) -> bool:
+    """True when every experiment row mentioning the value is preliminary."""
+    rows = [
+        line
+        for line in EXPERIMENTS.read_text(encoding="utf-8").splitlines()
+        if re.match(r"^\| [HE]\d+[a-c]? \|", line)
+        and re.search(r"(?<![\w.])" + re.escape(value) + r"(?![\d.])", line)
+    ]
+    if not rows:
+        return False
+    # The flag on a row is the phrase followed by a colon introducing the
+    # explanation. H65 and H67 use the same phrase as a noun, describing
+    # preliminary figures they re-measured under the launch protocol, and an
+    # earlier version of this check counted those as flagged and reported a
+    # launch-protocol figure as preliminary.
+    return all("PRELIMINARY PROTOCOL:" in r for r in rows)
+
+
+def main() -> int:
+    if not TEX.exists():
+        print(f"no manuscript at {TEX}, nothing to check")
+        return 0
+    corpus = results_corpus()
+    bib = BIB.read_text(encoding="utf-8") if BIB.exists() else ""
+
+    seen: dict[str, list[int]] = {}
+    for line, value in manuscript_numbers():
+        seen.setdefault(value, []).append(line)
+
+    measured: list[tuple[str, str]] = []
+    derived: list[tuple[str, str]] = []
+    external: list[tuple[str, str]] = []
+    unsourced: list[tuple[str, list[int]]] = []
+    broken: list[str] = []
+    prelim: list[str] = []
+
+    for value in sorted(seen, key=float):
+        if value in DERIVED:
+            expr, places = DERIVED[value]
+            try:
+                got = round(eval(expr, {"__builtins__": {}}, {}), places)  # noqa: S307
+            except Exception as exc:
+                broken.append(f"{value}: derivation '{expr}' did not evaluate: {exc}")
+                continue
+            if f"{got:.{places}f}" != value:
+                broken.append(
+                    f"{value}: derivation '{expr}' gives {got:.{places}f}, "
+                    f"which is not what the manuscript prints"
+                )
+                continue
+            # The inputs of a derivation have to be measured themselves.
+            for operand in re.findall(r"\d+\.\d+", expr):
+                if not find_measured(operand, corpus):
+                    broken.append(
+                        f"{value}: derivation input {operand} is itself in no results file"
+                    )
+            derived.append((value, expr))
+            continue
+        if value in EXTERNAL:
+            key = EXTERNAL[value]
+            if f"{{{key}," not in bib.replace(" ", ""):
+                broken.append(f"{value}: cited to '{key}', which is not in refs.bib")
+                continue
+            external.append((value, key))
+            continue
+        if value in TYPESETTING:
+            continue
+        files = find_measured(value, corpus)
+        if files:
+            measured.append((value, files[0]))
+            if preliminary_only(value):
+                prelim.append(value)
+        else:
+            unsourced.append((value, seen[value]))
+
+    total = len(seen)
+    print(f"manuscript asserts {total} distinct numbers")
+    print(f"  measured in results/ : {len(measured)}")
+    print(f"  derived and verified : {len(derived)}")
+    print(f"  quoted from a source : {len(external)}")
+    print(f"  UNSOURCED            : {len(unsourced)}")
+    print()
+    for value, expr in derived:
+        print(f"  derived  {value:>9}  = {expr}")
+    for value, key in external:
+        print(f"  external {value:>9}  cited to {key}")
+    if prelim:
+        print()
+        print("  measured, but every experiment row mentioning it is PRELIMINARY")
+        print("  PROTOCOL. Not a failure, and worth knowing before submission:")
+        for v in prelim:
+            print(f"    {v}")
+    if unsourced:
+        print()
+        print("  UNSOURCED. These appear in the manuscript and in no results file,")
+        print("  and are not declared as derived, cited or typesetting:")
+        for value, lines in unsourced:
+            print(f"    {value}  main.tex line(s) {', '.join(map(str, lines))}")
+    if broken:
+        print()
+        print("  BROKEN DECLARATIONS:")
+        for b in broken:
+            print(f"    {b}")
+
+    bad = len(unsourced) + len(broken)
+    print()
+    print(f"{'PASS' if bad == 0 else 'FAIL'}: {bad} number(s) unaccounted for")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
