@@ -55,6 +55,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
 FIGS = ROOT / "docs" / "figures"
 BARRIER = RESULTS / "2026-11-17_m4_barrier.txt"
+BURST = RESULTS / "2026-11-18_m4_burst.txt"
 RUNLENGTH = RESULTS / "2026-11-16_m4_runlength.txt"
 
 # Single-column IEEE text width is 3.5 inches. Figures are sized to it so no
@@ -323,6 +324,97 @@ def fig_clock(rows) -> None:
           f"({min(ordered_unc):.3f} to {max(ordered_unc):.3f} GHz median)")
 
 
+def parse_ccdf(path: Path, wait: str = "spin"):
+    """pl_ccdf lines for ONE wait strategy, median across epochs and launches.
+
+    Grouping matters here and getting it wrong is visible. A first version
+    keyed only on the load arm, which merged three wait strategies and three
+    epochs into one series; the plot then joined points belonging to different
+    runs and drew a zigzag instead of a curve. The key is (load, wait), one
+    wait strategy is selected, and the latency at each survival level is the
+    median over every run that reported it.
+    """
+    if not path.exists():
+        return {}
+    pat = re.compile(
+        r"pl_ccdf\b.*?\bload=(\S+).*?\bwait=(\S+).*?"
+        r"\bsurvival=([\d.e+-]+)\s+ns=([\d.]+)\s+beyond=(\d+)"
+    )
+    raw: dict[str, dict[float, list[tuple[float, int]]]] = {}
+    waits_seen: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        m = pat.search(line)
+        if not m:
+            continue
+        load, w, surv, ns, beyond = m.groups()
+        waits_seen.add(w)
+        if w != wait:
+            continue
+        raw.setdefault(load, {}).setdefault(float(surv), []).append(
+            (float(ns), int(beyond))
+        )
+    if not raw and waits_seen:
+        print(f"   note: no rows for wait={wait}; file has {sorted(waits_seen)}")
+    out: dict[str, list[tuple[float, float, int]]] = {}
+    for load, levels in raw.items():
+        pts = []
+        for surv, vals in levels.items():
+            vals.sort()
+            mid = vals[len(vals) // 2]
+            pts.append((surv, mid[0], min(b for _, b in vals)))
+        pts.sort(key=lambda t: -t[0])
+        out[load] = pts
+    return out
+
+
+def fig_ccdf(arms, wait: str = "spin") -> None:
+    """Tail latency as a survival curve, with burstiness as the only variable."""
+    if not arms:
+        print("fig-ccdf.pdf  SKIPPED: no pl_ccdf data yet in " + BURST.name)
+        return
+    fig, ax = plt.subplots(figsize=(COL, 2.4))
+    order = sorted(arms, key=lambda k: (not k.startswith("rate"), k))
+    palette = ["#1b3a5c", "#2d6a9f", "#7fb2d8", "#aa3333", "#4a8fc0"]
+    deepest = 1.0
+    for i, name in enumerate(order):
+        # Read only where the curve is resolved. The emitter stops at ten
+        # observations beyond a quantile; a figure should not go that far.
+        pts = [(s, ns, b) for s, ns, b in arms[name] if b >= 100]
+        if not pts:
+            continue
+        deepest = min(deepest, min(s for s, _, _ in pts))
+        ax.plot(
+            [ns / 1000.0 for _, ns, _ in pts],
+            [s for s, _, _ in pts],
+            linewidth=1.5,
+            color=palette[i % len(palette)],
+            label=name,
+        )
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.set_xlabel("per message latency, microseconds (log)")
+    ax.set_ylabel("P(latency > x)  (log)")
+    ax.legend(frameon=False, fontsize=6.8)
+    fig.text(
+        0.5, -0.19,
+        "Same mean rate, same messages, same code: only the arrival times differ. "
+        f"wait={wait},\nmedian across epochs and launches. Drawn only where at "
+        "least 100 observations lie beyond\nthe quantile, so the deepest point "
+        f"plotted is {deepest:.1e} survival. Source: results/" + BURST.name,
+        ha="center", fontsize=6.4, color="#444444",
+    )
+    fig.tight_layout()
+    fig.savefig(FIGS / "fig-ccdf.pdf", bbox_inches="tight", backend="pdf")
+    plt.close(fig)
+    print("fig-ccdf.pdf")
+    for name in order:
+        pts = [p for p in arms[name] if p[2] >= 100]
+        if pts:
+            p999 = min(pts, key=lambda t: abs(t[0] - 1e-3))
+            print(f"   {name:16} {len(pts):3d} points, deepest survival "
+                  f"{min(p[0] for p in pts):.2e}, p99.9 {p999[1] / 1000.0:.2f} us")
+
+
 def verify_fonts() -> None:
     """Assert no Type-3 font reached any figure.
 
@@ -368,6 +460,7 @@ def main() -> None:
     fig_runlength(sweep)
     fig_ordering(ord_sweep)
     fig_clock(rows)
+    fig_ccdf(parse_ccdf(BURST))
     print("\n=== font verification ===")
     verify_fonts()
 

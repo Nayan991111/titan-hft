@@ -29,6 +29,11 @@
 //! The trading thread waits for the next message with `spin` (reload only),
 //! `isb` (Rust's spin_loop) or `wfe` (exclusive monitor on the ring index).
 //!
+//! `ccdf` emits a pl_ccdf ladder of 65 log-spaced tail quantiles per run,
+//! stopping at the deepest quantile with at least ten observations beyond it.
+//! Saturated runs are skipped: their percentiles describe the queue, not the
+//! system.
+//!
 //!   titan-pipeline [messages=N] [instruments=M] [rates=...] [waits=...] [epochs=E] [path=full|risk|none] [gaps] [pmu] [split] [warm=book|mem]
 //!   titan-pipeline file=PATH [from=SECONDS] [span=SECONDS] [limit=N] (rates=... | speed=S) [waits=...] [epochs=E] [gaps]
 //!
@@ -235,6 +240,8 @@ struct Ctx<'a> {
     /// Also record the delay to pop (schedule to pop) and the service time
     /// (pop to decision) in two more histograms.
     split: bool,
+    /// Emit the full CCDF ladder per run, not only the seven percentiles.
+    ccdf: bool,
     /// Keep-warm while waiting: 0 off, 1 book (best bid and ask of recently
     /// touched instruments, decode of the last message), 2 memory (loads
     /// from a scratch buffer larger than the system cache).
@@ -607,6 +614,7 @@ fn main() {
     let with_risk = kv(&args, "path") == Some("risk");
     let none = kv(&args, "path") == Some("none");
     let split = args.iter().any(|a| a == "split");
+    let ccdf = args.iter().any(|a| a == "ccdf");
     let drop_every: usize = num(&args, "drop_every", 0);
     let rcvbuf: usize = num(&args, "rcvbuf", 8 << 20);
     let warm: u8 = match kv(&args, "warm") {
@@ -740,7 +748,7 @@ fn main() {
         (f.ts[window.clone()].iter().max().copied().unwrap_or(0).saturating_sub(f.ts[window.start])) as f64 / 1e9,
     );
 
-    let c = Ctx { feed: feed_buf, descs: &f.descs, prefix, window, max_spread, with_risk, none, pmu: pmu.as_ref(), split, warm,
+    let c = Ctx { feed: feed_buf, descs: &f.descs, prefix, window, max_spread, with_risk, none, pmu: pmu.as_ref(), split, ccdf, warm,
         warm_ticks: warm_us * clock::counter_frequency() / 1_000_000, scratch: &scratch, ring };
     let kill = AtomicBool::new(false);
     let mut risk = Risk::new(instruments, Limits::default(), &kill);
@@ -833,6 +841,40 @@ fn main() {
                         None => String::new(),
                     },
                 );
+                // The seven printed percentiles are a ladder, not a curve. A
+                // tail-latency CCDF needs the shape between them, and the
+                // histogram answers any quantile exactly to a bucket edge, so
+                // the curve is a ladder of queries rather than a dump of
+                // buckets.
+                //
+                // Depth is bounded by the sample count and not by taste. A
+                // quantile is only meaningful while enough observations lie
+                // beyond it; past that point the curve is drawn from one or
+                // two samples, which is how a p99.9999 ends up quoted from a
+                // run that never had the samples to resolve one. The emitted
+                // range stops at the deepest quantile with MIN_TAIL
+                // observations past it, and every line carries that count so
+                // a reader can see where the resolution ran out.
+                if c.ccdf && !saturated {
+                    const MIN_TAIL: f64 = 10.0;
+                    const STEPS: usize = 64;
+                    let total = r.messages as f64;
+                    let lo = MIN_TAIL / total;
+                    let hi = 0.5f64;
+                    if lo < hi {
+                        for i in 0..=STEPS {
+                            let survival = hi * (lo / hi).powf(i as f64 / STEPS as f64);
+                            let q = 1.0 - survival;
+                            println!(
+                                "pl_ccdf feed={name} load={load} wait={w} epoch={epoch} \
+                                 messages={} q={q:.9} survival={survival:.6e} ns={:.1} beyond={}",
+                                r.messages,
+                                to_ns(hist.quantile(q)),
+                                (survival * total).round() as u64
+                            );
+                        }
+                    }
+                }
                 if let Some(u) = &udp {
                     if drop_every > 0 {
                         // Correctness check: every datagram held back on purpose
