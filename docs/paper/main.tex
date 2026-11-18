@@ -8,6 +8,22 @@
 % bibliography page ranges, where a single hyphen is used instead.
 \documentclass[conference]{IEEEtran}
 
+\usepackage{etoolbox}
+% IEEEtran.cls hardcodes a triple-hyphen ligature after "Abstract" and after
+% "Index Terms", and IEEEtran.bst emits one for a repeated author and turns
+% page ranges into the double-hyphen ligature. This project forbids both
+% rendered dashes outright. The class file itself is NOT edited, because a
+% modified IEEEtran.cls would be a format non-conformance a reviewer or an
+% automated check would be right to flag. Instead the two class macros are
+% patched in this preamble to use a colon, and the bibliography is
+% post-processed by build.sh after bibtex runs. If either patch stops
+% matching a future IEEEtran, the \PackageError below stops the build rather
+% than letting a dash through silently.
+\makeatletter
+\patchcmd{\abstract}{---}{:\ }{}{\PackageError{titan}{abstract dash patch failed}{}}% dash-check-allow-this-line-removes-a-dash
+\patchcmd{\IEEEkeywords}{---}{:\ }{}{\PackageError{titan}{keywords dash patch failed}{}}% dash-check-allow-this-line-removes-a-dash
+\makeatother
+
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}

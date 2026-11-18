@@ -26,14 +26,14 @@ Y.~Khayet and A.~Morrison, ``Arm weak memory consistency on apple silicon: What
   is it good for?'' in \emph{Proceedings of the 31st ACM International
   Conference on Architectural Support for Programming Languages and Operating
   Systems (ASPLOS), Volume 2}.\hskip 1em plus 0.5em minus 0.4em\relax
-  Pittsburgh, PA, USA: ACM, 2026, pp. 191--207.
+  Pittsburgh, PA, USA: ACM, 2026, pp. 191-207.
 
 \bibitem{mytkowicz2009wrong}
 T.~Mytkowicz, A.~Diwan, M.~Hauswirth, and P.~F. Sweeney, ``Producing wrong data
   without doing anything obviously wrong!'' in \emph{Proceedings of the 14th
   International Conference on Architectural Support for Programming Languages
   and Operating Systems (ASPLOS)}.\hskip 1em plus 0.5em minus 0.4em\relax
-  Washington, DC, USA: ACM, 2009, pp. 265--276.
+  Washington, DC, USA: ACM, 2009, pp. 265-276.
 
 \bibitem{wrenger2023tosting}
 L.~Wrenger, D.~T{\"o}llner, and D.~Lohmann, ``{TOSTING}: Investigating total
@@ -41,7 +41,7 @@ L.~Wrenger, D.~T{\"o}llner, and D.~Lohmann, ``{TOSTING}: Investigating total
   (ARCS)}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2023.
 
 \bibitem{wrenger2024m1}
-------, ``Analyzing the memory ordering models of the apple {M1},''
+L.~Wrenger, D.~T{\"o}llner, and D.~Lohmann, ``Analyzing the memory ordering models of the apple {M1},''
   \emph{Journal of Systems Architecture}, 2024.
 
 \end{thebibliography}

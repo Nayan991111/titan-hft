@@ -27,6 +27,11 @@ PATTERNS = ("docs/**/*.md", "docs/**/*.tex", "docs/**/*.bib", "results/*.txt",
 # A line in this file, or in the manuscript's own explanation of the rule, has
 # to be able to name the thing it forbids.
 SELF = {"scripts/check_dashes.py", "docs/paper/README.md"}
+# A line may opt out with this marker, and only a line whose purpose is to
+# REMOVE a dash should ever carry it: the \patchcmd calls in the manuscript
+# preamble have to name the ligature they delete. The marker is deliberately
+# verbose so it cannot be added by accident and shows up in a diff.
+ALLOW = "dash-check-allow-this-line-removes-a-dash"
 LIGATURE = re.compile(r"(?<!-)---?(?!-)")
 
 
@@ -44,6 +49,8 @@ def main() -> int:
                 continue
             checked += 1
             for n, line in enumerate(text.splitlines(), 1):
+                if ALLOW in line:
+                    continue
                 if EM in line or EN in line:
                     bad.append(f"{rel}:{n}: dash character: {line.strip()[:90]}")
                 # In LaTeX source the ligatures render as dashes. Comments do
