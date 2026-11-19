@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/figures/hero.svg" alt="Titan: what one Apple M4 core costs to read a market-data message, update a full order book and decide. 28.7 million real NASDAQ messages with 0 book mismatches; 135 cycles per message for the full trading path; 40.5 ns one-way hand-off between two cores." width="100%">
+  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Eighty pre-registered hypotheses, fifteen of them refuted and published. One Apple M4 performance core." width="100%">
 </p>
 
 <p align="center">
@@ -204,6 +204,11 @@ reader's light or dark theme.
   call in both modes).
 
 ## How the measurements are made
+
+<p align="center">
+  <img src="docs/figures/fig-method.svg" alt="Methodology flow. Register thresholds, arms and the failure branch; commit them before any data exists; measure capacity and read the rate off the envelope; run thirty independent launches of three epochs each taking the median within each launch; apply an exact two-sided paired sign test across launches. The verdict is supported, refuted, or untestable when the instrument excluded the run." width="100%">
+</p>
+
 
 | Concern | Approach |
 |---|---|

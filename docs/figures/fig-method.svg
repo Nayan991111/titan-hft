@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" role="img" aria-labelledby="mt md">
+<title id="mt">How one hypothesis is tested in this project</title>
+<desc id="md">Thresholds are committed to git before the run. Capacity is measured, then the rate is read off it. Thirty independent launches, three epochs each, median within launch, paired sign test across launches. A saturated run is excluded by the instrument, and a missed threshold is published as refuted.</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .ref { stroke: #b9b8b2; stroke-width: 1; stroke-dasharray: 4 3; }
+  .band { fill: #2a78d6; opacity: 0.06; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .f1 { fill: #2a78d6; } .f2 { fill: #eb6834; } .f3 { fill: #1baf7a; }
+  .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin { fill: none; stroke-width: 1.6; stroke-dasharray: 5 3; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) {
+  .bg { fill: #151515; } .frame { stroke: #2c2c2a; }
+  .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #898781; }
+  .grid { stroke: #2c2c2a; } .axis { stroke: #383835; } .ref { stroke: #383835; }
+  .band { fill: #3987e5; opacity: 0.10; }
+  .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+  .f1 { fill: #3987e5; } .f2 { fill: #d95926; } .f3 { fill: #199e70; }
+  .ring { stroke: #151515; }
+}
+  .card { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .warn { fill: #fbeeea; stroke: #eb6834; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+@media (prefers-color-scheme: dark) {
+  .card { fill: #1e1e1d; stroke: #383835; }
+  .hot { fill: #11243a; stroke: #3987e5; }
+  .warn { fill: #30190f; stroke: #d95926; }
+  .wire { stroke: #898781; } .tip { fill: #898781; }
+}
+</style>
+<rect class="bg" x="0" y="0" width="980" height="430"/>
+<text class="t1" x="40" y="36" font-size="18" font-weight="500">How one hypothesis is tested, and why a failed prediction still gets published</text>
+<text class="t3" x="40" y="57" font-size="12.5">The order is the point. Every threshold is in a commit that precedes the data it judges.</text>
+<rect class="hot" x="40" y="92" width="148" height="74" rx="6"/>
+<text class="t1" x="114" y="120" font-size="13" font-weight="500" text-anchor="middle">Register</text>
+<text class="t2" x="114" y="138" font-size="11" text-anchor="middle">thresholds, arms,</text>
+<text class="t2" x="114" y="153" font-size="11" text-anchor="middle">failure branch</text>
+<line class="wire" x1="188" y1="129.0" x2="211" y2="129.0"/><path class="tip" d="M211,125.0 L218,129.0 L211,133.0 Z"/>
+<rect class="hot" x="218" y="92" width="148" height="74" rx="6"/>
+<text class="t1" x="292" y="120" font-size="13" font-weight="500" text-anchor="middle">Commit</text>
+<text class="t2" x="292" y="138" font-size="11" text-anchor="middle">before any data</text>
+<text class="t2" x="292" y="153" font-size="11" text-anchor="middle">exists</text>
+<line class="wire" x1="366" y1="129.0" x2="389" y2="129.0"/><path class="tip" d="M389,125.0 L396,129.0 L389,133.0 Z"/>
+<rect class="card" x="396" y="92" width="148" height="74" rx="6"/>
+<text class="t1" x="470" y="120" font-size="13" font-weight="500" text-anchor="middle">Measure capacity</text>
+<text class="t2" x="470" y="138" font-size="11" text-anchor="middle">read the rate off</text>
+<text class="t2" x="470" y="153" font-size="11" text-anchor="middle">the envelope</text>
+<line class="wire" x1="544" y1="129.0" x2="567" y2="129.0"/><path class="tip" d="M567,125.0 L574,129.0 L567,133.0 Z"/>
+<rect class="card" x="574" y="92" width="148" height="74" rx="6"/>
+<text class="t1" x="648" y="120" font-size="13" font-weight="500" text-anchor="middle">30 launches</text>
+<text class="t2" x="648" y="138" font-size="11" text-anchor="middle">3 epochs each,</text>
+<text class="t2" x="648" y="153" font-size="11" text-anchor="middle">median within</text>
+<line class="wire" x1="722" y1="129.0" x2="745" y2="129.0"/><path class="tip" d="M745,125.0 L752,129.0 L745,133.0 Z"/>
+<rect class="card" x="752" y="92" width="148" height="74" rx="6"/>
+<text class="t1" x="826" y="120" font-size="13" font-weight="500" text-anchor="middle">Paired sign test</text>
+<text class="t2" x="826" y="138" font-size="11" text-anchor="middle">across launches,</text>
+<text class="t2" x="826" y="153" font-size="11" text-anchor="middle">exact, two sided</text>
+<rect class="hot" x="40" y="222" width="252" height="62" rx="6"/>
+<text class="t1" x="56" y="248" font-size="13" font-weight="500">SUPPORTED</text>
+<text class="t2" x="56" y="268" font-size="11">threshold met and the sign test clears</text>
+<rect class="warn" x="364" y="222" width="252" height="62" rx="6"/>
+<text class="t1" x="380" y="248" font-size="13" font-weight="500">REFUTED</text>
+<text class="t2" x="380" y="268" font-size="11">threshold missed; the row is kept</text>
+<rect class="card" x="688" y="222" width="252" height="62" rx="6"/>
+<text class="t1" x="704" y="248" font-size="13" font-weight="500">UNTESTABLE</text>
+<text class="t2" x="704" y="268" font-size="11">the instrument excluded the run</text>
+<line class="wire" x1="826" y1="166" x2="826" y2="196"/>
+<line class="wire" x1="166" y1="196" x2="826" y2="196"/>
+<line class="wire" x1="166" y1="196" x2="166" y2="215"/>
+<path class="tip" d="M162,215 L170,215 L166,222 Z"/>
+<line class="wire" x1="490" y1="196" x2="490" y2="215"/>
+<path class="tip" d="M486,215 L494,215 L490,222 Z"/>
+<line class="wire" x1="814" y1="196" x2="814" y2="215"/>
+<path class="tip" d="M810,215 L818,215 L814,222 Z"/>
+<rect class="card" x="40" y="308" width="900" height="62" rx="6"/>
+<text class="t1" x="62" y="334" font-size="12.5" font-weight="500">80 hypotheses registered, 18 supported, 15 refuted, 143,016 measured records</text>
+<text class="t2" x="62" y="354" font-size="11.5">A refuted prediction costs nothing to publish and is the only evidence that the thresholds were real. Three of them appear in this paper.</text>
+</svg>

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="at ad">
+<title id="at">Graphical abstract: arrival timing dominates arrival clustering</title>
+<desc id="ad">At a fixed mean rate a random schedule costs 3.44 times a periodic one at the 98th percentile, 30 of 30 launches; clustering costs 1.17 times at p99.9. 80 pre-registered hypotheses, 143,016 measured records, one Apple M4.</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .ref { stroke: #b9b8b2; stroke-width: 1; stroke-dasharray: 4 3; }
+  .band { fill: #2a78d6; opacity: 0.06; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .f1 { fill: #2a78d6; } .f2 { fill: #eb6834; } .f3 { fill: #1baf7a; }
+  .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin { fill: none; stroke-width: 1.6; stroke-dasharray: 5 3; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) {
+  .bg { fill: #151515; } .frame { stroke: #2c2c2a; }
+  .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #898781; }
+  .grid { stroke: #2c2c2a; } .axis { stroke: #383835; } .ref { stroke: #383835; }
+  .band { fill: #3987e5; opacity: 0.10; }
+  .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+  .f1 { fill: #3987e5; } .f2 { fill: #d95926; } .f3 { fill: #199e70; }
+  .ring { stroke: #151515; }
+}
+  .card { fill: #f3f2ee; stroke: #d9d8d3; stroke-width: 1; }
+  .hot { fill: #e6eefa; stroke: #2a78d6; stroke-width: 1.5; }
+  .warn { fill: #fbeeea; stroke: #eb6834; stroke-width: 1.5; }
+  .wire { stroke: #75746f; stroke-width: 1.5; fill: none; }
+  .tip { fill: #75746f; }
+@media (prefers-color-scheme: dark) {
+  .card { fill: #1e1e1d; stroke: #383835; }
+  .hot { fill: #11243a; stroke: #3987e5; }
+  .warn { fill: #30190f; stroke: #d95926; }
+  .wire { stroke: #898781; } .tip { fill: #898781; }
+}
+</style>
+<rect class="bg" x="0" y="0" width="980" height="500"/>
+<text class="t1" x="40" y="38" font-size="19" font-weight="500">When a message arrives matters more than whether messages bunch</text>
+<text class="t3" x="40" y="60" font-size="12.5">Pre-registered measurement on one Apple M4 performance core. Thresholds committed to git before each run.</text>
+<rect class="hot" x="40" y="84" width="288" height="196" rx="6"/>
+<text class="t1" x="56" y="110" font-size="14" font-weight="500">Question</text>
+<text class="t2" x="56" y="134" font-size="11.5">At one fixed mean rate, does the</text>
+<text class="t2" x="56" y="152" font-size="11.5">SHAPE of the arrival process change</text>
+<text class="t2" x="56" y="170" font-size="11.5">per-message latency?</text>
+<text class="t2" x="56" y="206" font-size="11.5">Two shapes are compared against a</text>
+<text class="t2" x="56" y="224" font-size="11.5">perfectly periodic schedule:</text>
+<text class="t2" x="56" y="242" font-size="11.5">random (Poisson), and random with</text>
+<text class="t2" x="56" y="260" font-size="11.5">clustering (Hawkes, Fano 0.9 to 13.9).</text>
+<rect class="hot" x="356" y="84" width="288" height="196" rx="6"/>
+<text class="t1" x="372" y="110" font-size="14" font-weight="500">Method</text>
+<text class="t2" x="372" y="134" font-size="11.5">Launch is the unit of observation.</text>
+<text class="t2" x="372" y="152" font-size="11.5">30 independent process launches,</text>
+<text class="t2" x="372" y="170" font-size="11.5">3 epochs each, paired within launch,</text>
+<text class="t2" x="372" y="188" font-size="11.5">exact two-sided sign test.</text>
+<text class="t2" x="372" y="224" font-size="11.5">65-point survival curve, not a chosen</text>
+<text class="t2" x="372" y="242" font-size="11.5">percentile. Capacity measured first,</text>
+<text class="t2" x="372" y="260" font-size="11.5">then the rate is read off it.</text>
+<rect class="warn" x="672" y="84" width="288" height="196" rx="6"/>
+<text class="t1" x="688" y="110" font-size="14" font-weight="500">Result</text>
+<text class="t2" x="688" y="134" font-size="11.5">Randomness is expensive and it is</text>
+<text class="t2" x="688" y="152" font-size="11.5">expensive in the BODY, not the tail.</text>
+<text class="t2" x="688" y="188" font-size="11.5">Clustering on top of randomness is</text>
+<text class="t2" x="688" y="206" font-size="11.5">nearly free, and both effects have</text>
+<text class="t2" x="688" y="224" font-size="11.5">vanished by p99.9.</text>
+<text class="t2" x="688" y="260" font-size="11.5">The large effect was PREDICTED.</text>
+<rect class="card" x="40" y="310" width="900" height="118" rx="6"/>
+<text class="f2" x="66" y="364" font-size="46" font-weight="500">3.44x</text>
+<text class="t2" x="66" y="386" font-size="11.5">random over periodic,</text>
+<text class="t2" x="66" y="402" font-size="11.5">p98.12, 30/30 launches</text>
+<line class="grid" x1="246" y1="326" x2="246" y2="412"/>
+<text class="f1" x="266" y="364" font-size="46" font-weight="500">1.17x</text>
+<text class="t2" x="266" y="386" font-size="11.5">clustering over random,</text>
+<text class="t2" x="266" y="402" font-size="11.5">p99.9, 26/30 launches</text>
+<line class="grid" x1="438" y1="326" x2="438" y2="412"/>
+<line class="ref" x1="464" y1="405.3" x2="712" y2="405.3"/>
+<polyline class="ln l2" points="464.0,386.7 467.9,381.1 471.7,376.2 475.6,371.5 479.5,367.7 483.4,364.1 487.3,360.7 491.1,357.8 495.0,354.9 498.9,352.5 502.7,350.1 506.6,347.9 510.5,345.8 514.4,343.6 518.2,341.8 522.1,340.2 526.0,339.4 529.9,340.1 533.8,342.5 537.6,349.5 541.5,366.0 545.4,387.5 549.3,398.6 553.1,401.9 557.0,403.0 560.9,403.2 564.7,403.4 568.6,403.3 572.5,403.7 576.4,403.8 580.2,403.4 584.1,402.8 588.0,402.0 591.9,402.4 595.7,402.6 599.6,404.0 603.5,404.6 607.4,404.0 611.3,404.2 615.1,404.1 619.0,404.3 622.9,404.3 626.7,404.5 630.6,405.1 634.5,405.2 638.4,405.0 642.3,405.0 646.1,405.2 650.0,405.0 653.9,405.1 657.8,405.2 661.6,405.2 665.5,405.1 669.4,405.0 673.2,405.0 677.1,405.0 681.0,405.0 684.9,405.0 688.7,405.1 692.6,405.0 696.5,405.0 700.4,405.0 704.2,405.0 708.1,405.1 712.0,405.0"/>
+<text class="t3" x="464" y="423" font-size="10.5">p50</text>
+<text class="t3" x="712" y="423" font-size="10.5" text-anchor="end">p99.9999</text>
+<text class="t3" x="464" y="327" font-size="10.5">ratio across the whole survival curve</text>
+<text class="t3" x="740" y="364" font-size="11.5">80 pre-registered</text>
+<text class="t3" x="740" y="380" font-size="11.5">hypotheses, 15 refuted</text>
+<text class="t3" x="740" y="396" font-size="11.5">and published, not hidden</text>
+<text class="t3" x="40" y="482" font-size="11">One machine, one feed, performance cores only, two mean rates. The mechanism is untested: a periodic schedule never presents two messages at once.</text>
+</svg>
