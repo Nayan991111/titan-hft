@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="348" viewBox="0 0 980 348" role="img" aria-labelledby="et ed">
+<title id="et">Sustainable throughput falls as the run gets longer</title>
+<desc id="ed">at 2000000 messages per epoch every arm stays clean up to 10 million per second; at 10000000 messages per epoch every arm stays clean up to 7 million per second</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .ref { stroke: #b9b8b2; stroke-width: 1; stroke-dasharray: 4 3; }
+  .band { fill: #2a78d6; opacity: 0.06; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .f1 { fill: #2a78d6; } .f2 { fill: #eb6834; } .f3 { fill: #1baf7a; }
+  .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin { fill: none; stroke-width: 1.6; stroke-dasharray: 5 3; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) {
+  .bg { fill: #151515; } .frame { stroke: #2c2c2a; }
+  .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #898781; }
+  .grid { stroke: #2c2c2a; } .axis { stroke: #383835; } .ref { stroke: #383835; }
+  .band { fill: #3987e5; opacity: 0.10; }
+  .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+  .f1 { fill: #3987e5; } .f2 { fill: #d95926; } .f3 { fill: #199e70; }
+  .ring { stroke: #151515; }
+}
+</style>
+<rect class="bg" x="0" y="0" width="980" height="348"/>
+<text class="t1" x="74" y="24" font-size="16" font-weight="500">The sustainable rate falls 30 percent when the run gets five times longer</text>
+<text class="t3" x="74" y="42" font-size="12">Share of cells that saturated, all four arms and three wait strategies, 3 launches per point.</text>
+<line class="axis" x1="74" y1="272.0" x2="730" y2="272.0"/>
+<text class="t3" x="65" y="276.0" font-size="11" text-anchor="end">0%</text>
+<line class="grid" x1="74" y1="217.5" x2="730" y2="217.5"/>
+<text class="t3" x="65" y="221.5" font-size="11" text-anchor="end">25%</text>
+<line class="grid" x1="74" y1="163.0" x2="730" y2="163.0"/>
+<text class="t3" x="65" y="167.0" font-size="11" text-anchor="end">50%</text>
+<line class="grid" x1="74" y1="108.5" x2="730" y2="108.5"/>
+<text class="t3" x="65" y="112.5" font-size="11" text-anchor="end">75%</text>
+<line class="grid" x1="74" y1="54.0" x2="730" y2="54.0"/>
+<text class="t3" x="65" y="58.0" font-size="11" text-anchor="end">100%</text>
+<text class="t3" x="139.6" y="290" font-size="11" text-anchor="middle">6M</text>
+<text class="t3" x="270.8" y="290" font-size="11" text-anchor="middle">7M</text>
+<text class="t3" x="402.0" y="290" font-size="11" text-anchor="middle">8M</text>
+<text class="t3" x="533.2" y="290" font-size="11" text-anchor="middle">9M</text>
+<text class="t3" x="664.4" y="290" font-size="11" text-anchor="middle">10M</text>
+<text class="t2" x="402" y="312" font-size="12" text-anchor="middle">offered rate, millions of messages per second</text>
+<polyline class="ln l1" points="139.6,272.0 270.8,272.0 402.0,272.0 533.2,272.0 664.4,272.0"/>
+<circle class="f1 ring" cx="139.6" cy="272.0" r="4.5"/>
+<circle class="f1 ring" cx="270.8" cy="272.0" r="4.5"/>
+<circle class="f1 ring" cx="402.0" cy="272.0" r="4.5"/>
+<circle class="f1 ring" cx="533.2" cy="272.0" r="4.5"/>
+<circle class="f1 ring" cx="664.4" cy="272.0" r="4.5"/>
+<polyline class="ln l2" points="139.6,272.0 270.8,272.0 402.0,253.8 533.2,138.8 664.4,54.0"/>
+<circle class="f2 ring" cx="139.6" cy="272.0" r="4.5"/>
+<circle class="f2 ring" cx="270.8" cy="272.0" r="4.5"/>
+<circle class="f2 ring" cx="402.0" cy="253.8" r="4.5"/>
+<circle class="f2 ring" cx="533.2" cy="138.8" r="4.5"/>
+<circle class="f2 ring" cx="664.4" cy="54.0" r="4.5"/>
+<text class="t2" x="752" y="70" font-size="12" font-weight="500">highest rate with no saturation</text>
+<line class="ln l1" x1="752" y1="100" x2="778" y2="100"/>
+<circle class="f1 ring" cx="765" cy="100" r="4.5"/>
+<text class="t2" x="784" y="104" font-size="11">2,000,000 messages per epoch</text>
+<text class="t1" x="784" y="117" font-size="11" font-weight="500">10 million per second</text>
+<line class="ln l2" x1="752" y1="134" x2="778" y2="134"/>
+<circle class="f2 ring" cx="765" cy="134" r="4.5"/>
+<text class="t2" x="784" y="138" font-size="11">10,000,000 messages per epoch</text>
+<text class="t1" x="784" y="151" font-size="11" font-weight="500">7 million per second</text>
+<text class="t3" x="74" y="334" font-size="11">Measured, not assumed. H71 took its rate from an earlier scope note, ran 43 percent over capacity, and all 1,080 of its cells saturated.</text>
+</svg>

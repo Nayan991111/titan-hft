@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="440" viewBox="0 0 980 440" role="img" aria-labelledby="rt rd">
+<title id="rt">Cost of random arrivals against a perfectly periodic schedule</title>
+<desc id="rd">7,000,000 msg/s, spin peaks at 3.44 times at the 98.12nd percentile, 30 of 30 launches; 5,000,000 msg/s, spin peaks at 2.78 times at the 99.55nd percentile, 27 of 30 launches; 7,000,000 msg/s, isb peaks at 3.19 times at the 98.47nd percentile, 30 of 30 launches; 5,000,000 msg/s, isb peaks at 2.75 times at the 99.64nd percentile, 29 of 30 launches; 7,000,000 msg/s, wfe peaks at 3.22 times at the 98.47nd percentile, 30 of 30 launches; 5,000,000 msg/s, wfe peaks at 2.54 times at the 99.55nd percentile, 28 of 30 launches</desc>
+<style>
+  .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
+  .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
+  .grid { stroke: #e4e3df; stroke-width: 1; } .axis { stroke: #b9b8b2; stroke-width: 1; }
+  .ref { stroke: #b9b8b2; stroke-width: 1; stroke-dasharray: 4 3; }
+  .band { fill: #2a78d6; opacity: 0.06; }
+  .l1 { stroke: #2a78d6; } .l2 { stroke: #eb6834; } .l3 { stroke: #1baf7a; }
+  .f1 { fill: #2a78d6; } .f2 { fill: #eb6834; } .f3 { fill: #1baf7a; }
+  .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin { fill: none; stroke-width: 1.6; stroke-dasharray: 5 3; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+@media (prefers-color-scheme: dark) {
+  .bg { fill: #151515; } .frame { stroke: #2c2c2a; }
+  .t1 { fill: #f0efec; } .t2 { fill: #c3c2b7; } .t3 { fill: #898781; }
+  .grid { stroke: #2c2c2a; } .axis { stroke: #383835; } .ref { stroke: #383835; }
+  .band { fill: #3987e5; opacity: 0.10; }
+  .l1 { stroke: #3987e5; } .l2 { stroke: #d95926; } .l3 { stroke: #199e70; }
+  .f1 { fill: #3987e5; } .f2 { fill: #d95926; } .f3 { fill: #199e70; }
+  .ring { stroke: #151515; }
+}
+</style>
+<rect class="bg" x="0" y="0" width="980" height="440"/>
+<text class="t1" x="74" y="24" font-size="16" font-weight="500">A random arrival schedule costs up to 3.4 times a periodic one at the same mean rate</text>
+<text class="t3" x="74" y="42" font-size="12">Latency ratio, random (Poisson) over perfectly periodic, paired within 30 independent launches. Higher is worse for random.</text>
+<rect class="band" x="191.6" y="56" width="143.6" height="300"/>
+<text class="t3" x="263.4" y="72" font-size="11" text-anchor="middle">registered window, p95 to p99.7</text>
+<line class="ref" x1="74" y1="344.9" x2="744" y2="344.9"/>
+<text class="t3" x="65" y="348.9" font-size="11" text-anchor="end">1.0x</text>
+<line class="grid" x1="74" y1="289.3" x2="744" y2="289.3"/>
+<text class="t3" x="65" y="293.3" font-size="11" text-anchor="end">1.5x</text>
+<line class="grid" x1="74" y1="233.8" x2="744" y2="233.8"/>
+<text class="t3" x="65" y="237.8" font-size="11" text-anchor="end">2.0x</text>
+<line class="grid" x1="74" y1="178.2" x2="744" y2="178.2"/>
+<text class="t3" x="65" y="182.2" font-size="11" text-anchor="end">2.5x</text>
+<line class="grid" x1="74" y1="122.7" x2="744" y2="122.7"/>
+<text class="t3" x="65" y="126.7" font-size="11" text-anchor="end">3.0x</text>
+<line class="grid" x1="74" y1="67.1" x2="744" y2="67.1"/>
+<text class="t3" x="65" y="71.1" font-size="11" text-anchor="end">3.5x</text>
+<line class="grid" x1="74.0" y1="56" x2="74.0" y2="356"/>
+<text class="t3" x="74.0" y="374" font-size="11" text-anchor="middle">p50</text>
+<line class="grid" x1="156.2" y1="56" x2="156.2" y2="356"/>
+<text class="t3" x="156.2" y="374" font-size="11" text-anchor="middle">p90</text>
+<line class="grid" x1="273.7" y1="56" x2="273.7" y2="356"/>
+<text class="t3" x="273.7" y="374" font-size="11" text-anchor="middle">p99</text>
+<line class="grid" x1="391.3" y1="56" x2="391.3" y2="356"/>
+<text class="t3" x="391.3" y="374" font-size="11" text-anchor="middle">p99.9</text>
+<line class="grid" x1="508.9" y1="56" x2="508.9" y2="356"/>
+<text class="t3" x="508.9" y="374" font-size="11" text-anchor="middle">p99.99</text>
+<line class="grid" x1="744.0" y1="56" x2="744.0" y2="356"/>
+<text class="t3" x="744.0" y="374" font-size="11" text-anchor="middle">p99.9999</text>
+<line class="axis" x1="74" y1="356" x2="744" y2="356"/>
+<text class="t2" x="409" y="398" font-size="12" text-anchor="middle">percentile of per-message latency</text>
+<polyline class="ln l1" points="74.0,268.1 84.5,245.3 94.9,224.8 105.4,205.7 115.9,189.9 126.3,174.9 136.8,161.1 147.3,149.0 157.8,137.3 168.2,127.2 178.7,117.2 189.2,108.2 199.6,99.5 210.1,90.8 220.6,83.0 231.0,76.7 241.5,73.4 252.0,76.2 262.4,86.2 272.9,114.9 283.4,182.9 293.8,271.6 304.3,317.4 314.8,330.8 325.3,335.2 335.7,336.1 346.2,337.0 356.7,336.5 367.1,338.2 377.6,338.5 388.1,337.2 398.5,334.6 409.0,331.4 419.5,332.8 429.9,333.7 440.4,339.5 450.9,341.9 461.3,339.5 471.8,340.4 482.3,340.1 492.8,340.8 503.2,340.6 513.7,341.4 524.2,343.9 534.6,344.4 545.1,343.6 555.6,343.4 566.0,344.6 576.5,343.6 587.0,344.2 597.4,344.5 607.9,344.4 618.4,344.0 628.8,343.7 639.3,343.6 649.8,343.7 660.2,343.7 670.7,343.8 681.2,343.8 691.6,343.7 702.1,343.7 712.6,343.7 723.1,343.7 733.5,343.9 744.0,343.8"/>
+<polyline class="thin l1" points="74.0,312.6 84.5,303.4 94.9,295.0 105.4,285.3 115.9,276.0 126.3,266.1 136.8,260.1 147.3,254.5 157.8,248.2 168.2,240.5 178.7,233.0 189.2,226.8 199.6,220.2 210.1,212.8 220.6,204.3 231.0,195.7 241.5,186.3 252.0,178.4 262.4,173.4 272.9,169.3 283.4,163.1 293.8,155.4 304.3,152.0 314.8,147.5 325.3,167.4 335.7,313.6 346.2,333.3 356.7,334.8 367.1,336.2 377.6,337.4 388.1,338.9 398.5,339.3 409.0,338.9 419.5,338.2 429.9,339.4 440.4,341.4 450.9,341.4 461.3,340.9 471.8,341.6 482.3,340.7 492.8,339.6 503.2,334.4 513.7,330.1 524.2,328.5 534.6,336.1 545.1,337.1 555.6,337.8 566.0,338.8 576.5,338.9 587.0,339.8 597.4,338.7 607.9,338.2 618.4,338.8 628.8,339.5 639.3,340.6 649.8,341.1 660.2,340.9 670.7,341.1 681.2,341.7 691.6,341.9 702.1,341.8 712.6,341.5 723.1,341.8 733.5,342.4 744.0,342.2"/>
+<polyline class="ln l2" points="74.0,278.3 84.5,258.7 94.9,241.3 105.4,225.6 115.9,211.4 126.3,198.4 136.8,186.3 147.3,174.4 157.8,163.0 168.2,153.9 178.7,144.0 189.2,135.5 199.6,127.1 210.1,119.9 220.6,112.5 231.0,107.2 241.5,102.8 252.0,101.8 262.4,108.2 272.9,117.6 283.4,142.8 293.8,224.9 304.3,293.0 314.8,319.8 325.3,328.3 335.7,330.4 346.2,333.4 356.7,333.6 367.1,334.4 377.6,339.4 388.1,340.8 398.5,340.4 409.0,339.3 419.5,341.9 429.9,341.1 440.4,343.9 450.9,349.1 461.3,346.0 471.8,343.9 482.3,344.5 492.8,345.6 503.2,346.4 513.7,345.4 524.2,341.4 534.6,341.6 545.1,342.7 555.6,341.8 566.0,338.8 576.5,338.1 587.0,336.7 597.4,336.4 607.9,336.5 618.4,336.3 628.8,336.8 639.3,336.7 649.8,336.6 660.2,336.5 670.7,336.3 681.2,336.3 691.6,336.0 702.1,336.0 712.6,336.0 723.1,336.0 733.5,336.0 744.0,335.9"/>
+<polyline class="thin l2" points="74.0,316.6 84.5,306.2 94.9,298.2 105.4,290.3 115.9,281.8 126.3,272.4 136.8,262.9 147.3,256.5 157.8,250.7 168.2,244.9 178.7,238.1 189.2,229.9 199.6,222.6 210.1,216.8 220.6,212.3 231.0,206.3 241.5,199.1 252.0,190.2 262.4,182.5 272.9,178.1 283.4,172.2 293.8,164.4 304.3,158.2 314.8,152.7 325.3,150.4 335.7,272.6 346.2,310.9 356.7,328.4 367.1,335.6 377.6,338.6 388.1,338.9 398.5,339.3 409.0,339.2 419.5,340.7 429.9,339.3 440.4,340.8 450.9,339.1 461.3,339.5 471.8,340.0 482.3,338.0 492.8,337.1 503.2,333.6 513.7,331.8 524.2,336.0 534.6,337.3 545.1,337.9 555.6,339.7 566.0,340.9 576.5,341.2 587.0,342.3 597.4,342.6 607.9,343.3 618.4,342.7 628.8,341.9 639.3,341.8 649.8,342.2 660.2,342.5 670.7,343.1 681.2,343.2 691.6,343.5 702.1,343.2 712.6,343.0 723.1,343.2 733.5,342.6 744.0,342.5"/>
+<polyline class="ln l3" points="74.0,280.1 84.5,258.8 94.9,240.6 105.4,224.4 115.9,210.0 126.3,197.3 136.8,185.3 147.3,174.8 157.8,163.2 168.2,154.3 178.7,144.6 189.2,135.3 199.6,127.2 210.1,120.1 220.6,112.0 231.0,106.3 241.5,101.3 252.0,98.7 262.4,102.2 272.9,125.1 283.4,165.5 293.8,261.8 304.3,309.4 314.8,325.1 325.3,329.8 335.7,332.6 346.2,332.4 356.7,330.8 367.1,327.1 377.6,329.3 388.1,335.9 398.5,338.6 409.0,339.6 419.5,343.0 429.9,340.9 440.4,339.3 450.9,346.8 461.3,344.5 471.8,344.9 482.3,346.9 492.8,348.3 503.2,345.9 513.7,345.3 524.2,345.1 534.6,348.5 545.1,348.4 555.6,347.5 566.0,346.5 576.5,346.6 587.0,346.0 597.4,346.2 607.9,344.9 618.4,344.4 628.8,345.4 639.3,345.6 649.8,345.7 660.2,345.9 670.7,346.1 681.2,346.1 691.6,346.2 702.1,346.2 712.6,346.4 723.1,346.4 733.5,346.5 744.0,346.5"/>
+<polyline class="thin l3" points="74.0,318.6 84.5,309.3 94.9,302.0 105.4,294.4 115.9,285.6 126.3,276.5 136.8,266.9 147.3,261.0 157.8,255.8 168.2,251.2 178.7,244.9 189.2,237.6 199.6,231.9 210.1,226.5 220.6,220.5 231.0,214.0 241.5,206.4 252.0,198.5 262.4,190.8 272.9,187.7 283.4,184.7 293.8,179.0 304.3,173.6 314.8,173.4 325.3,183.1 335.7,318.3 346.2,339.3 356.7,339.9 367.1,339.3 377.6,338.2 388.1,339.0 398.5,339.4 409.0,337.9 419.5,339.5 429.9,342.0 440.4,341.5 450.9,342.6 461.3,342.2 471.8,342.9 482.3,342.6 492.8,342.4 503.2,340.6 513.7,342.2 524.2,344.8 534.6,341.9 545.1,342.2 555.6,342.1 566.0,343.6 576.5,344.1 587.0,345.5 597.4,345.8 607.9,345.9 618.4,346.1 628.8,345.5 639.3,345.9 649.8,345.4 660.2,344.9 670.7,344.2 681.2,344.1 691.6,344.2 702.1,344.4 712.6,344.7 723.1,344.3 733.5,344.5 744.0,344.4"/>
+<circle class="f1 ring" cx="241.5" cy="73.4" r="5"/>
+<circle class="f2 ring" cx="252.0" cy="101.8" r="5"/>
+<circle class="f3 ring" cx="252.0" cy="98.7" r="5"/>
+<text class="t2" x="766" y="62" font-size="12" font-weight="500">peak ratio, 30 launches</text>
+<line class="ln l1" x1="766" y1="91" x2="792" y2="91"/>
+<text class="t2" x="798" y="95" font-size="11">7,000,000 msg/s, spin</text>
+<text class="t1" x="798" y="107" font-size="11" font-weight="500">3.44x at p98.12, 30/30</text>
+<line class="thin l1" x1="766" y1="126" x2="792" y2="126"/>
+<text class="t2" x="798" y="130" font-size="11">5,000,000 msg/s, spin</text>
+<text class="t1" x="798" y="142" font-size="11" font-weight="500">2.78x at p99.55, 27/30</text>
+<line class="ln l2" x1="766" y1="161" x2="792" y2="161"/>
+<text class="t2" x="798" y="165" font-size="11">7,000,000 msg/s, isb</text>
+<text class="t1" x="798" y="177" font-size="11" font-weight="500">3.19x at p98.47, 30/30</text>
+<line class="thin l2" x1="766" y1="196" x2="792" y2="196"/>
+<text class="t2" x="798" y="200" font-size="11">5,000,000 msg/s, isb</text>
+<text class="t1" x="798" y="212" font-size="11" font-weight="500">2.75x at p99.64, 29/30</text>
+<line class="ln l3" x1="766" y1="231" x2="792" y2="231"/>
+<text class="t2" x="798" y="235" font-size="11">7,000,000 msg/s, wfe</text>
+<text class="t1" x="798" y="247" font-size="11" font-weight="500">3.22x at p98.47, 30/30</text>
+<line class="thin l3" x1="766" y1="266" x2="792" y2="266"/>
+<text class="t2" x="798" y="270" font-size="11">5,000,000 msg/s, wfe</text>
+<text class="t1" x="798" y="282" font-size="11" font-weight="500">2.54x at p99.55, 28/30</text>
+<text class="t3" x="766" y="308" font-size="11">solid: 7,000,000, the measured ceiling</text>
+<text class="t3" x="766" y="322" font-size="11">dashed: 5,000,000, about half of it</text>
+<text class="t3" x="74" y="410" font-size="11">Both rates agree the effect has gone by p99.9 and the far tail. The peak grows and moves earlier as utilisation</text>
+<text class="t3" x="74" y="425" font-size="11">rises toward the measured ceiling, which is what a coincidence-queue account predicts. That account is untested.</text>
+</svg>

@@ -10,6 +10,58 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0ca30c" alt="License: MIT"></a>
 </p>
 
+## Headline result: when messages arrive matters more than how they bunch
+
+At a fixed mean rate, a **random** arrival schedule costs up to **3.44 times**
+the per-message latency of a perfectly **periodic** one, while **clustering**
+on top of that randomness costs between nothing and 17 percent. The cost is
+largest in the body of the distribution, not the tail, and both operating
+points agree it has gone by p99.9.
+
+<p align="center">
+  <img src="docs/figures/fig-randomness.svg" alt="Latency ratio of a random Poisson arrival schedule over a perfectly periodic one at the same mean rate, plotted against percentile, for two mean rates and three wait strategies. At 7,000,000 messages per second the ratio peaks at 3.44 times at the 98.12th percentile with 30 of 30 launches agreeing; at 5,000,000 it peaks at 2.78 times at the 99.55th percentile. Both curves return to 1.0 by p99.9." width="100%">
+</p>
+
+This was **predicted before it was measured**. H70 found the effect after the
+fact, which is the weakest standing a result can have. H72 stated it as a
+number in advance, at a rate chosen by measurement rather than guesswork, and
+the registration is committed to git before the data exists. All three parts of
+the prediction held at all three wait strategies, and the effect came in larger
+than predicted.
+
+| | peak ratio | at percentile | launches agreeing | p |
+|---|---|---|---|---|
+| spin | **3.4436** | p98.12 | 30 of 30 | 1.86e-09 |
+| isb | **3.1874** | p98.47 | 30 of 30 | 1.86e-09 |
+| wfe | **3.2159** | p98.47 | 30 of 30 | 1.86e-09 |
+
+The effect also **scales with utilisation**: raising the offered rate from
+about half of capacity to all of it grows the peak from 2.54 to 2.78 up to 3.19
+to 3.44, and moves it earlier, from about p99.55 to about p98.3. That is what a
+coincidence-queue account predicts, and that account is **untested**: a
+periodic schedule never presents two messages at once, a Poisson schedule does
+so constantly, so a rising share of messages meets a queue as utilisation
+rises. Saying more than that would be reading a mechanism into a correlation.
+
+### The ceiling had to be measured before any of this could be asked
+
+The first attempt to ask this question near capacity failed completely. It took
+its rate from an earlier note that read the ceiling off shorter runs, ran 43
+percent over capacity, and every one of its 1,080 cells saturated. So the
+operating envelope was measured directly instead.
+
+<p align="center">
+  <img src="docs/figures/fig-envelope.svg" alt="Share of cells that saturated against offered rate, for two run lengths. At 2,000,000 messages per epoch nothing saturates up to 10 million messages per second. At 10,000,000 messages per epoch saturation begins at 8 million and is total at 10 million, so the highest clean rate is 7 million." width="100%">
+</p>
+
+**Sustainable throughput is not a property of the machine alone; it falls 30
+percent when the run gets five times longer.** Ten million messages per second
+at a 2,000,000-message epoch, seven million at a 10,000,000-message epoch. This
+is the same lesson the clock already taught, arriving somewhere it was not
+expected, and it is why no rate in this repository is chosen by hand any more.
+
+---
+
 **What does it cost, in CPU cycles, to receive a market-data message, update
 a full order book and decide on an order, on one Apple M4 core? And what does
 handing that message to another core add?**
@@ -25,11 +77,17 @@ nothing, and each hypothesis is committed to
   <img src="docs/figures/t2t-path.svg" alt="The measured trading path: ITCH feed, ingress ring, decode, L3 order book, signal, egress ring, gateway. Full path 135 cycles per message on a real NASDAQ BX day." width="100%">
 </p>
 
-> **Status: preliminary.** Figures below come from runs of 3 to 10 epochs
-> inside one process, on battery (11 Nov and the first 12 Nov run) or on
-> wall power (later 12 Nov runs); each results file states which. The final protocol is at least 30
-> independent launches per configuration on wall power; until then, read
-> the numbers as estimates with understated uncertainty.
+> **Two protocols live in this repository and the difference matters.** The
+> headline results above, and every hypothesis from H56 onward, use the final
+> protocol: at least 30 independent process launches per configuration, on wall
+> power confirmed at both ends of the run, with the launch as the unit of
+> observation and a paired sign test across launches. Nineteen earlier rows in
+> [`docs/experiments.md`](docs/experiments.md) are tagged `PRELIMINARY
+> PROTOCOL:` because they predate that change and come from 3 to 10 epochs
+> inside a single process, some of them on battery. Those rows are kept rather
+> than deleted, are excluded from the manuscript, and should be read as
+> estimates with understated uncertainty. Each results file states its own
+> power state and launch count.
 
 ## Results so far
 
