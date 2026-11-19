@@ -40,14 +40,28 @@ def facts():
     best["clust"] = next(r for r in cl if abs(r[0] - q999) < 1e-9)
 
     text = DOC.read_text(encoding="utf-8")
-    rows = len(re.findall(r"^\| [HE]\d+[a-c]? \|", text, re.M))
-    sup = len(re.findall(r"\bSUPPORTED\b", text))
-    ref = len(re.findall(r"\bREFUTED\b", text))
+    # Count by ROW, not by word occurrence. A single row can record several
+    # verdicts, because a hypothesis has parts, so counting the word SUPPORTED
+    # and presenting it as a number of hypotheses overstates nothing and
+    # understates badly: the older rows spell their verdicts in lower case, so
+    # a case-sensitive count saw only the handful written recently.
+    rowtext = {m.group(1): m.group(2).lower()
+               for m in re.finditer(r"^\| ([HE]\d+[a-c]?) \|(.*)$", text, re.M)}
+    rows = len(rowtext)
+    words = ("supported", "refuted", "failed", "untestable", "inconclusive")
+    verdicted = sum(1 for v in rowtext.values() if any(re.search(rf"\b{w}\b", v) for w in words))
+    refuted_rows = sum(1 for v in rowtext.values() if re.search(r"\brefuted\b", v))
+
+    # A record is a line that begins with a record prefix AND carries a
+    # key=value pair. Without the second half this counts the human summary
+    # rows that scripts/check_record_lines.py allowlists, which are prose.
+    kv = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=[^\s]")
     recs = 0
     for f in sorted(RES.glob("*.txt")):
-        recs += sum(1 for ln in f.open(encoding="utf-8", errors="replace")
-                    if ln.split(" ", 1)[0] in ("pl", "pl_ccdf", "pp", "st", "t2t"))
-    best["rows"], best["sup"], best["ref"], best["recs"] = rows, sup, ref, recs
+        for ln in f.open(encoding="utf-8", errors="replace"):
+            if ln.split(" ", 1)[0] in ("pl", "pl_ccdf", "pp", "st", "t2t") and kv.search(ln):
+                recs += 1
+    best["rows"], best["verdicted"], best["ref"], best["recs"] = rows, verdicted, refuted_rows, recs
     return best
 
 
@@ -80,7 +94,8 @@ def fig_abstract(F):
              "Graphical abstract: arrival timing dominates arrival clustering",
              f"At a fixed mean rate a random schedule costs {F[('7M','spin')][1]:.2f} times a periodic one "
              f"at the 98th percentile, 30 of 30 launches; clustering costs {F['clust'][1]:.2f} times at p99.9. "
-             f"{F['rows']} pre-registered hypotheses, {F['recs']:,} measured records, one Apple M4.")
+             f"{F['rows']} pre-registered hypotheses, {F['ref']} rows recording a refutation, "
+             f"{F['recs']:,} measured records, one Apple M4.")
     o.append(f'<text class="t1" x="40" y="38" font-size="19" font-weight="500">'
              'When a message arrives matters more than whether messages bunch</text>')
     o.append(f'<text class="t3" x="40" y="60" font-size="12.5">'
@@ -160,9 +175,9 @@ def fig_abstract(F):
     o.append(f'<text class="t3" x="{x0+700}" y="{ry+54}" font-size="11.5">'
              f'{F["rows"]} pre-registered</text>')
     o.append(f'<text class="t3" x="{x0+700}" y="{ry+70}" font-size="11.5">'
-             f'hypotheses, {F["ref"]} refuted</text>')
+             f'hypotheses; {F["ref"]} rows record</text>')
     o.append(f'<text class="t3" x="{x0+700}" y="{ry+86}" font-size="11.5">'
-             f'and published, not hidden</text>')
+             f'a refutation, all published</text>')
 
     o.append(f'<text class="t3" x="{x0}" y="{H-18}" font-size="11">'
              'One machine, one feed, performance cores only, two mean rates. The mechanism is untested: a periodic '
@@ -222,8 +237,8 @@ def fig_method(F):
     ty = vy + 86
     o.append(f'<rect class="card" x="40" y="{ty}" width="{W-80}" height="62" rx="6"/>')
     o.append(f'<text class="t1" x="62" y="{ty+26}" font-size="12.5" font-weight="500">'
-             f'{F["rows"]} hypotheses registered, {F["sup"]} supported, {F["ref"]} refuted, '
-             f'{F["recs"]:,} measured records</text>')
+             f'{F["rows"]} hypotheses registered, {F["verdicted"]} carry a recorded verdict, '
+             f'{F["ref"]} of them a refutation, from {F["recs"]:,} measured records</text>')
     o.append(f'<text class="t2" x="62" y="{ty+46}" font-size="11.5">'
              'A refuted prediction costs nothing to publish and is the only evidence that the thresholds were '
              'real. Three of them appear in this paper.</text>')
@@ -237,5 +252,5 @@ if __name__ == "__main__":
     fig_method(F)
     print(f"fig-abstract.svg  peak {F[('7M','spin')][1]:.4f} at p{100*F[('7M','spin')][0]:.4f}, "
           f"clustering {F['clust'][1]:.4f}")
-    print(f"fig-method.svg    {F['rows']} rows, {F['sup']} supported, {F['ref']} refuted, "
+    print(f"fig-method.svg    {F['rows']} rows, {F['verdicted']} verdicted, {F['ref']} refuted, "
           f"{F['recs']:,} records")
