@@ -36,7 +36,7 @@ chassis. Recorded, not explained.
 ================================================================================
 SATURATION AND ACHIEVED RATE, from scripts/capacity_envelope.py
 ================================================================================
-pl lines: 1080
+records read: 1080
 saturated: 1080 of 1080 (100.0%)
 
 BY ARM

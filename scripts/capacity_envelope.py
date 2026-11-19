@@ -68,7 +68,10 @@ def main():
         print("FAIL: no pl lines found")
         return 1
 
-    print(f"pl lines: {len(rows)}")
+    # Deliberately NOT "pl lines": a line beginning with a record prefix is
+    # counted as data by prefix based tooling. scripts/check_record_lines.py
+    # enforces this for every file under results/.
+    print(f"records read: {len(rows)}")
     sat = sum(1 for r in rows if r["saturated"] == "1")
     print(f"saturated: {sat} of {len(rows)} ({100.0 * sat / len(rows):.1f}%)")
     print()

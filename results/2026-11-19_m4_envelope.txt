@@ -21,7 +21,7 @@ This measures the envelope instead of inferring it from two points.
 ================================================================================
 scripts/capacity_envelope.py
 ================================================================================
-pl lines: 360
+records read: 360
 saturated: 61 of 360 (16.9%)
 
 BY ARM
