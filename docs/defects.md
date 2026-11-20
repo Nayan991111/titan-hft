@@ -13,9 +13,10 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: six closed, one partly closed, one open.**
-Open is D4, the raw measurements behind the lead results. Partly closed is D8.
-D5 and D6 were each partly misdiagnosed and both entries carry the correction.
+**Status at 2026-11-20: six closed, one partly closed, two open.**
+Open are D4, the raw measurements behind the lead results, and D9, the
+operating system build under the headline result. Partly closed is D8. D5, D6
+and D7 were each partly misdiagnosed and every entry carries its correction.
 
 ---
 
@@ -225,3 +226,39 @@ side by side on the same schedules so the two can never again be confused.
 factor in a paragraph that does not also name the coefficient of variation.
 **Still open:** the hypothesis that the latency penalty tracks the coefficient
 of variation rather than the Fano factor is not yet registered or run.
+
+---
+
+## D9. The headline result is the only measurement on a different OS build
+
+**Found** 2026-11-20, by an environment probe run on the measurement machine
+rather than inferred from this workspace.
+**Severity** confounds the strongest claim in the paper.
+
+macOS on the measurement machine moved from 27.2 build 26B123 to 27.2.1 build
+26B131 between 12:49 and 17:12 IST on 19 November. Every result in this
+project was taken on 26B123 except one: H72, run at 17:12 that day, which is
+the registered replication at 7,000,000 messages per second and the source of
+the paper's headline figure of 3.4436.
+
+H72's registration states that a single variable changed from H70, the mean
+rate. That is false. Two changed. The cross-rate claim, that the peak grows
+from 2.7765 at 5,000,000 to 3.4436 at 7,000,000 and moves from about p99.55 to
+about p98.12, therefore varies rate and operating system together.
+
+**How it was missed.** On the evening of 19 November the operator reported
+that a software update appeared to have run while the machine was unattended.
+The platform lines of H71 and of E3 were checked, both read 26B123, and the
+conclusion "platform unchanged across your software update" was written down.
+Both of those runs predate the update. H72 had not yet run. Nothing re-checked
+the platform after it did. The check was performed on the wrong side of the
+event it was meant to detect.
+
+**Resolution** H75 re-runs H70's exact configuration on 26B131, so the
+cross-rate comparison varies one thing again. If it reproduces, the effect
+additionally survives an operating system update, which is stronger external
+validity than the paper currently claims. If it does not, the cross-rate claim
+is withdrawn rather than defended. Until H75 reports, every statement
+comparing H70 with H72 carries the confound, and the manuscript says so.
+
+**OPEN.**
