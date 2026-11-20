@@ -30,6 +30,12 @@ import matplotlib
 matplotlib.use("Agg")
 # The two lines this whole file exists for. IEEE PDF eXpress and arXiv both
 # reject Type-3 fonts; 42 is TrueType.
+# Matplotlib stamps a /CreationDate into every PDF, so a figure regenerated
+# from identical data differs byte for byte from the committed one and no
+# byte-identity check can cover these figures. Pinning the date makes the
+# output a function of the input alone. See docs/defects.md D7.
+PDF_METADATA = {"CreationDate": None}
+
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 matplotlib.rcParams.update(
@@ -186,7 +192,8 @@ def fig_barrier(rows) -> None:
         color="#444444",
     )
     fig.tight_layout()
-    fig.savefig(FIGS / "fig-barrier.pdf", bbox_inches="tight", backend="pdf")
+    fig.savefig(FIGS / "fig-barrier.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
     plt.close(fig)
     print("fig-barrier.pdf")
     for cfg in ("uncached", "cached"):
@@ -235,7 +242,8 @@ def fig_runlength(sweep) -> None:
         color="#444444",
     )
     fig.tight_layout()
-    fig.savefig(FIGS / "fig-runlength.pdf", bbox_inches="tight", backend="pdf")
+    fig.savefig(FIGS / "fig-runlength.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
     plt.close(fig)
     print("fig-runlength.pdf")
     for n, unc, cac, ratio in sweep:
@@ -272,7 +280,8 @@ def fig_ordering(ord_sweep) -> None:
         ha="center", fontsize=6.4, color="#444444",
     )
     fig.tight_layout()
-    fig.savefig(FIGS / "fig-ordering.pdf", bbox_inches="tight", backend="pdf")
+    fig.savefig(FIGS / "fig-ordering.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
     plt.close(fig)
     print("fig-ordering.pdf")
     for n, a, sq, f in ord_sweep:
@@ -317,7 +326,8 @@ def fig_clock(rows) -> None:
         color="#444444",
     )
     fig.tight_layout()
-    fig.savefig(FIGS / "fig-clock.pdf", bbox_inches="tight", backend="pdf")
+    fig.savefig(FIGS / "fig-clock.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
     plt.close(fig)
     print("fig-clock.pdf")
     print(f"   ordered uncached clock spread {spread:.4f}x "
@@ -404,7 +414,8 @@ def fig_ccdf(arms, wait: str = "spin") -> None:
         ha="center", fontsize=6.4, color="#444444",
     )
     fig.tight_layout()
-    fig.savefig(FIGS / "fig-ccdf.pdf", bbox_inches="tight", backend="pdf")
+    fig.savefig(FIGS / "fig-ccdf.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
     plt.close(fig)
     print("fig-ccdf.pdf")
     for name in order:

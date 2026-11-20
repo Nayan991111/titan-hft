@@ -181,7 +181,18 @@ python3 scripts/check_dashes.py || echo "DASH CHECK FAILED"
 echo
 echo "=== publication figures (Type 42, for IEEE PDF eXpress and arXiv) ==="
 if command -v python3 >/dev/null 2>&1 && python3 -c "import matplotlib" 2>/dev/null; then
-  python3 scripts/figures_paper.py
+  # The figure scripts write into docs/figures, which holds the figures the
+  # manuscript ships. In --quick mode the measurements come from small counts
+  # on whatever host this is, so writing them there replaces published figures
+  # with numbers from the wrong machine. One invocation during the 2026-11-20
+  # audit did exactly that to five of them. See docs/defects.md D5.
+  if [ "$MODE" = full ]; then
+    python3 scripts/figures_paper.py
+  else
+    echo "  --quick: NOT regenerating docs/figures, because these measurements"
+    echo "  cannot reproduce the published numbers and would overwrite them."
+    echo "  Re-run with --full --pmu on Apple silicon on wall power to do that."
+  fi
 else
   echo "matplotlib not installed, so docs/figures/fig-*.pdf were not regenerated."
   echo "  python3 -m pip install --user matplotlib"

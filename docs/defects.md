@@ -13,8 +13,9 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: three closed, two partly closed, three open.**
-Open defects are D4, D6 and D7; partly closed are D5 and D8.
+**Status at 2026-11-20: six closed, one partly closed, one open.**
+Open is D4, the raw measurements behind the lead results. Partly closed is D8.
+D5 and D6 were each partly misdiagnosed and both entries carry the correction.
 
 ---
 
@@ -111,23 +112,35 @@ closed, the lead results of this paper cannot be independently recomputed.
 ## D5. The artifact script re-measures and can overwrite committed figures
 
 **Found** 2026-11-20 by running it.
-**Severity** the abstract's reproducibility claim is misleading, and the
-script is unsafe to run casually.
+**Severity** the abstract's reproducibility claim was misleading. The second
+half of the original report, that the script corrupts published figures, was
+WRONG and is corrected below.
 
-The abstract says "the artifact reproduces every figure and table with one
-command". The script re-measures on the host it runs on. Its own closing lines
-say the numbers will not match the paper unless it is run with `--full --pmu`
-on an Apple silicon machine on wall power. Run anywhere else it silently
-rewrites `fig-barrier.pdf`, `fig-ccdf.pdf`, `fig-clock.pdf`, `fig-ordering.pdf`
-and `fig-runlength.pdf` with numbers from the wrong machine. A single
-invocation during this audit modified all five.
+The abstract said "the artifact reproduces every figure and table with one
+command". The script re-measures on the host it runs on, and its own closing
+lines say the numbers will not match the paper unless it is run with `--full
+--pmu` on an Apple silicon machine on wall power. That part of the defect is
+real and the wording is corrected.
 
-**PARTLY CLOSED 2026-11-20.** The claim is reworded: the abstract now says
-every figure regenerates from the committed measurement files with one
-command, and that reproducing the measurements requires an Apple M4 on wall
-power. **Still open:** the script does not yet refuse to write into
-`docs/figures` when run in a mode that cannot reproduce the published
-numbers.
+**Correction, same day.** The original entry also claimed that running the
+script rewrites the five publication figures "with numbers from the wrong
+machine", on the evidence that one invocation during the audit modified all
+five. That inference was wrong. The figure scripts read only from `results/`;
+fresh measurements are written to `artifacts/<timestamp>/` and never into
+`results/`. The script says so itself at line 166. Comparing the extracted
+text of a committed figure against a regenerated one shows the content is
+identical. The five files changed because of the embedded creation date, which
+is D7, and for no other reason. The error here was reading a byte difference
+as a content difference without checking, which is the same failure mode as
+D8: a mechanical observation taken for a semantic one.
+
+**CLOSED 2026-11-20.** The claim is reworded: the abstract says every figure
+regenerates from the committed measurement files with one command, and that
+reproducing the measurements requires an Apple M4 on wall power. The script
+additionally declines to regenerate the publication figures outside `--full`.
+That guard is defence in depth rather than a fix, since the figures read only
+committed data today, and it is kept so that a future change wiring fresh
+measurements into them cannot quietly reach `docs/figures`.
 
 ---
 
@@ -138,9 +151,10 @@ numbers.
 
 It was generated when the table held fewer rows and has not tracked it since.
 
-**OPEN.** The stale file is still committed. It cannot be brought under the
-byte-identity check until D7 is closed, because its generator shares the
-matplotlib path that writes a timestamp.
+**CLOSED 2026-11-20.** Regenerated from the current table. The chart is built
+from `docs/experiments.md` by `scripts/figures.py` and writes SVG, so it never
+depended on D7; the original entry said otherwise and was wrong about the
+cause.
 
 ---
 
@@ -154,9 +168,11 @@ from identical data produces a different file. The byte-identity check that
 guards the hand-written SVG figures cannot be extended to the PDFs as they
 stand.
 
-**OPEN.** Plan: set a fixed creation date in the figure scripts so output
-depends only on input, then extend the byte-identity check to the manuscript
-figures.
+**CLOSED 2026-11-20.** `scripts/figures_paper.py` passes a metadata mapping
+with the creation date suppressed to every `savefig`. Two regenerations one
+second apart now produce byte-identical files, verified. The committed PDFs
+are rewritten once by this change, and their extracted text is unchanged,
+which is how D5's mistaken half was found.
 
 ---
 
