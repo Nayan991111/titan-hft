@@ -75,6 +75,21 @@ def main():
         if phrase in tex:
             bad.append(f"D5: the manuscript still claims '{phrase}'")
 
+    # The register's status line must agree with its own markers. It did not,
+    # the first time the two were written in the same commit.
+    words = {"none": 0, "one": 1, "two": 2, "three": 3, "four": 4,
+             "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+    reg_raw = DEFECTS.read_text(encoding="utf-8") if DEFECTS.exists() else ""
+    status = re.search(r"\*\*Status at [\d-]+: (\w+) closed, (\w+) partly closed, (\w+) open", reg_raw)
+    if not status:
+        bad.append("the register has no status line in the expected form")
+    else:
+        said = [words.get(status.group(i).lower(), -1) for i in (1, 2, 3)]
+        counted = [reg_raw.count("**CLOSED"), reg_raw.count("**PARTLY"), reg_raw.count("**OPEN.")]
+        if said != counted:
+            bad.append(f"the register's status line says {said} closed/partly/open "
+                       f"but its markers count {counted}")
+
     # Every defect that has an identifier must be in the register.
     reg = DEFECTS.read_text(encoding="utf-8") if DEFECTS.exists() else ""
     for d in ("D1", "D2", "D3", "D4", "D5", "D8"):

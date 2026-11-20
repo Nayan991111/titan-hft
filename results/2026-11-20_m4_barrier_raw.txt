@@ -924,3 +924,30 @@ bd launch=30 impl=ring order=fencedstore pad=128 cached=0 wait=isb epoch=2 messa
 bd launch=30 impl=ring order=fenced pad=128 cached=0 wait=isb epoch=2 messages=10000000 epoch_ms=214.863 ns_per_msg=21.486 sum_ok=1 invol_switches=3 head_off128=0 tail_off128=0 same_line=0
 bd launch=30 impl=ring order=unordered pad=128 cached=0 wait=isb epoch=2 messages=10000000 epoch_ms=27.612 ns_per_msg=2.761 sum_ok=0 invol_switches=0 head_off128=0 tail_off128=0 same_line=0
 bd launch=30 impl=ring order=acqrel pad=128 cached=1 wait=isb epoch=2 messages=10000000 epoch_ms=23.617 ns_per_msg=2.362 sum_ok=1 invol_switches=0 head_off128=0 tail_off128=0 same_line=0
+
+================================================================================
+DERIVED STATISTICS, computed from the records above by scripts/barrier_stats.py.
+Nothing here is typed in. Re-run the script against this file to reproduce every
+line. This section is what closes the path from record to published number that
+docs/defects.md D4 reports was missing.
+================================================================================
+bar_meta file=2026-11-20_m4_barrier_raw.txt records=900 waits=isb
+bar_med order=acqrel cached=0 config=contended n=90 median_ns_per_msg=49.861
+bar_med order=acqrel cached=1 config=resident n=90 median_ns_per_msg=2.332
+bar_med order=fenced cached=0 config=contended n=90 median_ns_per_msg=21.863
+bar_med order=fenced cached=1 config=resident n=90 median_ns_per_msg=5.204
+bar_med order=fencedload cached=0 config=contended n=90 median_ns_per_msg=42.677
+bar_med order=fencedload cached=1 config=resident n=90 median_ns_per_msg=2.301
+bar_med order=fencedstore cached=0 config=contended n=90 median_ns_per_msg=19.630
+bar_med order=fencedstore cached=1 config=resident n=90 median_ns_per_msg=5.864
+bar_med order=unordered cached=0 config=contended n=90 median_ns_per_msg=2.760
+bar_med order=unordered cached=1 config=resident n=90 median_ns_per_msg=1.878
+bar_ok order=acqrel records=180 sum_ok_1=180 sum_ok_0=0
+bar_ok order=fenced records=180 sum_ok_1=180 sum_ok_0=0
+bar_ok order=fencedload records=180 sum_ok_1=180 sum_ok_0=0
+bar_ok order=fencedstore records=180 sum_ok_1=180 sum_ok_0=0
+bar_ok order=unordered records=180 sum_ok_1=0 sum_ok_0=180
+bar_rank config=contended order=fencedstore,fenced,fencedload,acqrel
+bar_rank config=resident order=fencedload,acqrel,fenced,fencedstore
+bar_ratio name=contended_inversion numerator=acqrel denominator=fencedstore value=2.5401
+bar_ratio name=resident_inversion numerator=fencedstore denominator=acqrel value=2.5146

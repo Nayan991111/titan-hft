@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="at ad">
 <title id="at">Graphical abstract: arrival timing dominates arrival clustering</title>
-<desc id="ad">At a fixed mean rate a random schedule costs 3.44 times a periodic one at the 98th percentile, 30 of 30 launches; clustering costs 1.17 times at p99.9. 83 pre-registered hypotheses, 34 rows recording a refutation, 143,009 measured records, one Apple M4.</desc>
+<desc id="ad">At a fixed mean rate a random schedule costs 3.44 times a periodic one at the 98th percentile, 30 of 30 launches; clustering costs 1.17 times at p99.9. 83 pre-registered hypotheses, 34 rows recording a refutation, 214,289 measured records, one Apple M4.</desc>
 <style>
   .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
   .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }

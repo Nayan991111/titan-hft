@@ -155,6 +155,19 @@ environment size and link order; duration-driven frequency scaling and
 heterogeneous core residency did not exist on a general-purpose CPU at that
 time.
 
+\item \textbf{The lead results reproduce across time and a platform revision,
+not merely across a re-analysis.} The barrier cross was re-run in full, 30
+fresh launches three days after the original, on a macOS build the original
+did not run on. The contended inversion returned at 2.5401 against a published
+2.57, the resident one at 2.5146 against 2.75 with its sign intact, and both
+caching rankings came back identical arm for arm. The arrival process result
+was re-run the same way, 30 fresh launches two days later across the same
+operating system update: the peak of the random over periodic curve returned
+within 0.4 to 2.4 percent and the median within 0.7 percent of the original.
+Both replications were registered with their tolerances before either ran, and
+both retain every record, so each statistic above is recomputable from the
+committed data rather than quoted from a summary.
+
 \item \textbf{A protocol built so the conclusions survive the hazard.} Every
 comparison here is pre-registered with pass and fail thresholds fixed before
 the run, measured over 30 independent process launches, paired within each

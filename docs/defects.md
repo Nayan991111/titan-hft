@@ -13,10 +13,12 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: six closed, one partly closed, two open.**
-Open are D4, the raw measurements behind the lead results, and D9, the
-operating system build under the headline result. Partly closed is D8. D5, D6
-and D7 were each partly misdiagnosed and every entry carries its correction.
+**Status at 2026-11-20: seven closed, two partly closed, none open.**
+Partly closed are D4, where the lead results are now fully recomputable but a
+cycle-level replication still needs an interactive run with root, and D8,
+where the hypothesis that latency tracks the coefficient of variation rather
+than the Fano factor is registered but not yet run. D5, D6 and D7 were each
+partly misdiagnosed and every entry carries its correction.
 
 ---
 
@@ -100,13 +102,29 @@ lead results. They can only read the summary and trust it. An artifact
 evaluation that asks for results to be reproduced rather than merely for the
 code to run would fail on this.
 
-**OPEN.** Plan: re-run every experiment whose raw output was discarded with
-the raw retained, beginning with the barrier cross and the run-length sweep
-because the manuscript's figures parse those two files. The original summaries
-stay in place and the replication is reported beside them, including any
-disagreement. The run itself is cheap: the committed file records that thirty
-launches of three epochs over ten arms is single-digit minutes. Until this is
-closed, the lead results of this paper cannot be independently recomputed.
+**PARTLY CLOSED 2026-11-20. The lead results are recomputable; a cycle-level
+replication is not yet done.**
+
+H76 re-ran the barrier cross and retained all 900 records, which are committed
+in `results/2026-11-20_m4_barrier_raw.txt`. Every median, interval and sign
+test behind the paper's first three contributions is now recomputable from
+committed data by anyone. The run took 3 minutes 58 seconds, which is what the
+original file had said it would.
+
+It also replicated, on a newer operating system build: the contended inversion
+came back at 2.5401 against the published 2.57, the resident inversion at
+2.5146 against 2.75 with its sign intact, both rankings identical arm for arm,
+and the correctness flags identical at 180 of 180 for each correct ring and 0
+of 180 for the cost floor.
+
+**Still open, and narrower than the original defect.** The original ran with
+the PMU and reported cycles; this ran without it and reports nanoseconds,
+because the PMU requires root and an unattended script must not contain a
+password prompt. Ratios were compared, which holds where the arms run at
+similar frequency; the original verified that across its 540 lines at 4.035 to
+4.414 GHz and this run could not. A cycle-level replication needs an
+interactive run. The same applies to the run-length sweep, which uses
+`titan-stream ... pmu` and therefore also needs root.
 
 ---
 
@@ -254,11 +272,18 @@ Both of those runs predate the update. H72 had not yet run. Nothing re-checked
 the platform after it did. The check was performed on the wrong side of the
 event it was meant to detect.
 
-**Resolution** H75 re-runs H70's exact configuration on 26B131, so the
-cross-rate comparison varies one thing again. If it reproduces, the effect
-additionally survives an operating system update, which is stronger external
-validity than the paper currently claims. If it does not, the cross-rate claim
-is withdrawn rather than defended. Until H75 reports, every statement
-comparing H70 with H72 carries the confound, and the manuscript says so.
+**CLOSED 2026-11-20, favourably.** H75 re-ran H70's exact configuration on
+build 26B131 with 30 fresh launches. All five registered parts hold, and by
+margins far inside their tolerances: the peak ratio came back at 2.7873,
+2.6835 and 2.5706 against H70's 2.7765, 2.7505 and 2.5430, differences of 0.4,
+2.4 and 1.1 percent against a registered 15; the peak location was identical
+to the quantile for two wait strategies and 0.089 decades away for the third,
+against a registered half decade; the median ratio differed by 0.7, 0.1 and
+0.4 percent.
 
-**OPEN.**
+The update did not move the measurement, so the cross-rate comparison varies
+one thing again. The paper gains a claim it could not previously make: the
+effect reproduces at 30 independent launches, two days later, across an
+operating system revision. That is reproduction across time and platform, not
+a re-analysis of the same bytes, and it is a stronger statement than the one
+the confound threatened.
