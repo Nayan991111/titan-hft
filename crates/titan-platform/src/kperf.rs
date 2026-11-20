@@ -452,14 +452,107 @@ pub mod events {
 
 #[cfg(test)]
 mod tests {
-    // The import sits inside the test rather than at module scope. The only
-    // test here is gated off macOS, so a module-level `use super::*` is unused
-    // on macOS and warns there while being used on every other target. That
-    // warning is invisible to a Linux-only lint run, which is how it survived.
+    // Imports sit inside each test rather than at module scope, because the
+    // tests here are gated by target and a module-level `use super::*` is
+    // unused on whichever target is not building.
+
     #[cfg(not(target_os = "macos"))]
     #[test]
     fn reports_unavailable_off_macos() {
         use super::{Kperf, KperfError};
         assert!(matches!(Kperf::open(), Err(KperfError::Load(_))));
+    }
+
+    // The counterpart on the platform that actually produces every measurement
+    // in the paper. For a long time the only test of this module ran off macOS,
+    // which means the code path used on the M4 was never exercised by the suite
+    // at all.
+    //
+    // What is and is not privileged here was established by running it, not by
+    // assuming. In an unprivileged process on 26B131 the kperfdata side works:
+    // kpep_db_create opens and the database names itself. The kperf side does
+    // not: kpc_cpu_string returns an empty string and kpc_pmu_version returns 0.
+    // So those two are printed as context and never asserted, because their
+    // emptiness is a fact about privilege rather than a fault. The parts this
+    // test holds to account are the ones that must work unprivileged: the
+    // framework loads, the database opens and names itself, the event list
+    // comes back populated with no empty names, and every counter the
+    // experiments ask for resolves against that database. Programming counters
+    // needs root and is not attempted.
+    //
+    // Everything is printed before anything is asserted, so a single failing
+    // run still reports the whole picture rather than stopping at the first
+    // surprise. That ordering exists because the first version of this test
+    // panicked on an unprivileged value and hid the information it was written
+    // to collect.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn loads_the_framework_on_macos() {
+        use super::{events, Kperf, KperfError};
+        let k = match Kperf::open() {
+            Err(KperfError::Load(p)) => panic!("the kperf framework did not load on macOS: {p}"),
+            Err(other) => {
+                eprintln!("kperf did not open, and not for a load failure: {other}");
+                return;
+            }
+            Ok(k) => k,
+        };
+
+        let db = k.database_name();
+        let cpu = k.cpu_string();
+        let ver = k.pmu_version();
+        let perm = k.has_permission();
+        eprintln!("kperf database  : {db}");
+        eprintln!("kperf cpu       : {cpu:?}  (empty without root; context, not asserted)");
+        eprintln!("kperf pmu       : v{ver}   (0 without root; context, not asserted)");
+        eprintln!("kperf counters  : {perm}");
+
+        let evs = k.events();
+        match &evs {
+            Ok(v) => {
+                eprintln!("kperf events    : {}", v.len());
+                let empties = v.iter().filter(|e| e.name.is_empty()).count();
+                eprintln!("kperf unnamed   : {empties}");
+                for (label, cands) in [
+                    ("cycles", events::CYCLES),
+                    ("instructions", events::INSTRUCTIONS),
+                    ("l1d load miss", events::L1D_LOAD_MISS),
+                    ("branch mispredict", events::BRANCH_MISPREDICT),
+                ] {
+                    let hit = cands.iter().find(|c| {
+                        v.iter().any(|e| {
+                            e.name.eq_ignore_ascii_case(c) || e.alias.eq_ignore_ascii_case(c)
+                        })
+                    });
+                    match hit {
+                        Some(c) => eprintln!("kperf resolve   : {label} -> {c}"),
+                        None => eprintln!("kperf resolve   : {label} -> NONE of {cands:?}"),
+                    }
+                }
+            }
+            Err(e) => eprintln!("kperf events    : failed, {e}"),
+        }
+
+        // Now the assertions, with everything above already on the record.
+        assert!(!db.is_empty(), "the event database reported no name");
+        let v = evs.expect("reading the event database failed");
+        assert!(!v.is_empty(), "the database reported zero events");
+        assert!(
+            v.iter().all(|e| !e.name.is_empty()),
+            "an event came back with an empty name"
+        );
+        for (label, cands) in [
+            ("cycles", events::CYCLES),
+            ("instructions", events::INSTRUCTIONS),
+            ("l1d load miss", events::L1D_LOAD_MISS),
+            ("branch mispredict", events::BRANCH_MISPREDICT),
+        ] {
+            assert!(
+                cands.iter().any(|c| v
+                    .iter()
+                    .any(|e| e.name.eq_ignore_ascii_case(c) || e.alias.eq_ignore_ascii_case(c))),
+                "no event in this database matches any candidate for {label}: {cands:?}"
+            );
+        }
     }
 }

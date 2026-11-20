@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: eight closed, two partly closed, none open.**
+**Status at 2026-11-20: nine closed, two partly closed, none open.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -334,3 +334,61 @@ inside a number and report a uniform claim of "0 independent launches". Both
 were caught by a regression test that asserts the check fires on the wrong
 wording and passes on the right one. A gate that has never been shown to fail
 is not a gate.
+
+---
+
+## D11. The only test of the kperf module ran on the wrong platform
+
+**Found** 2026-11-20, from a one-test discrepancy between the suite on the
+development machine and the suite on the M4: 101 tests against 100.
+**Severity** a coverage hole on the platform that produces every measurement
+in the paper, and a silent one, because both counts looked healthy.
+
+`crates/titan-platform/src/kperf.rs` carried exactly one test, and it was
+gated `#[cfg(not(target_os = "macos"))]`. It asserts that opening the
+framework fails, which is only true where kperf does not exist. On the M4 the
+test is compiled out, so the suite ran 100 tests there and never touched the
+module at all. Every counter measurement in the paper comes through code the
+test suite had never executed on the machine that produced it.
+
+The discrepancy was visible in two terminal outputs and would have stayed
+invisible to either one alone.
+
+**CLOSED 2026-11-20** a macOS counterpart asserts the guarantees that hold
+without privilege: the framework loads, the event database opens and reports a
+name, the event list comes back populated with no empty names, and every
+counter the experiments ask for resolves against the database under at least
+one of its candidate spellings. Programming counters needs root and is not
+attempted.
+
+**Two errors inside this fix, both recorded because both are the shape of the
+defect itself.**
+
+The first version called `k.events(&[])` and `k.events(events::CYCLES)`.
+`events()` takes no arguments. It compiled on the development machine because
+the macOS branch is gated out, so the broken code would have failed only on
+the M4. The signature was read, the test rewritten against it, and the macOS
+branch then type-checked by temporarily flipping its `cfg` so the compiler
+reads the body. That flip is now the standard check here: a gated branch that
+no compiler in the build environment ever reads is not verified by a green
+build.
+
+The second version type-checked and still failed on the M4, and failed for a
+better reason. It asserted that `kpc_cpu_string` returns a non-empty string
+and `kpc_pmu_version` a non-zero version. In an unprivileged process on
+26B131 neither is true: the database opens and names itself "Apple silicon",
+while `kpc_cpu_string` returns empty and `kpc_pmu_version` returns 0. That is
+a fact about privilege, not a fault, and it was asserted on an assumption
+about a machine not available to the author of the assertion. Those two values
+are now printed as context and never asserted.
+
+That failure also hid what the test was written to collect: the panic fired
+before the event count and the counter resolutions were reached, so one run
+produced no usable information. The test now prints every value before it
+asserts anything, so a failing run still reports the whole picture.
+
+**What the module is now known to do unprivileged on 26B131.** kpep side
+works: `kpep_db_create` opens and the database names itself. kperf side does
+not: `kpc_cpu_string` empty, `kpc_pmu_version` 0, `kpc_force_all_ctrs_get`
+reporting no permission. This belongs in the Method section, since it bounds
+what the counter harness can report without root.
