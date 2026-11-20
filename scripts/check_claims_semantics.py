@@ -75,6 +75,27 @@ def main():
         if phrase in tex:
             bad.append(f"D5: the manuscript still claims '{phrase}'")
 
+    # D10. The protocol is not uniform: the run-length sweep used 20
+    # independent launches where everything else used 30, and the abstract
+    # claimed 30 for all of it.
+    #
+    # The first version of this check took the lowest launch count mentioned
+    # anywhere under results/ and compared it with the abstract. That is too
+    # clever: those files also mention pilot runs in prose, so it reported a
+    # failure against a number no comparison in the paper uses. A results file
+    # alone cannot say which protocol produced which number; the row in
+    # docs/experiments.md says that, and no regular expression reads it
+    # reliably.
+    #
+    # So the rule here is narrow and enforceable: the manuscript may state the
+    # launch count only as a floor, never as a flat uniform claim. A flat
+    # claim is the defect, whatever number it carries.
+    flat = [n for n in re.findall(r"\b(\d+) independent launches per comparison", tex)
+            if f"at least {n} independent launches per comparison" not in tex]
+    if flat:
+        bad.append(f"the manuscript claims a uniform '{flat[0]} independent launches per "
+                   f"comparison'; the protocol is not uniform, so it must be stated as a floor")
+
     # The register's status line must agree with its own markers. It did not,
     # the first time the two were written in the same commit.
     words = {"none": 0, "one": 1, "two": 2, "three": 3, "four": 4,

@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: seven closed, two partly closed, none open.**
+**Status at 2026-11-20: eight closed, two partly closed, none open.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -287,3 +287,50 @@ effect reproduces at 30 independent launches, two days later, across an
 operating system revision. That is reproduction across time and platform, not
 a re-analysis of the same bytes, and it is a stronger statement than the one
 the confound threatened.
+
+---
+
+## D10. The abstract claims a uniform launch count the project does not have
+
+**Found** 2026-11-20, by tracing every manuscript number to its results file
+and then to the launch count that file states.
+**Severity** an overstatement of the protocol, in the abstract, attached to a
+headline contribution.
+
+The abstract says every result comes from a protocol with "30 independent
+launches per comparison". The run-length sweep did not use 30. Its file states
+"20 independent launches of `titan-stream N 2 pmu` at each of N = 200,000,
+1,000,000, 5,000,000 and 10,000,000", with 30 used only for the separate t2t
+part of the same file. The 16.33 spread the abstract and the contributions
+both quote comes from the 20-launch half.
+
+Twenty paired launches is a perfectly sound protocol and the finding stands.
+Claiming thirty when the number is twenty is the defect, and it is the kind a
+reviewer finds by opening one file.
+
+**CLOSED 2026-11-20** the abstract and the contribution state the counts that
+were used, and `scripts/check_claims_semantics.py` now reads the launch counts
+out of every results file the manuscript draws on and fails if the manuscript
+claims a uniform count higher than the lowest one actually used.
+
+**A note on how this was nearly missed, and on a bad check.** The first
+version of the trace asked whether any manuscript number appears only in
+files cited by rows flagged PRELIMINARY PROTOCOL. It reported that 16.33 did,
+which looked like a far worse defect: a preliminary number in the paper. That
+was wrong. The run-length file is cited by seven rows, three of them
+preliminary and four not, and 16.33 belongs to H67, which is not. The check
+conflated file-level provenance with row-level provenance.
+
+That conflation is itself worth recording: a single results file serving both
+preliminary and launch-protocol rows means the file alone does not establish
+which protocol produced a number. The row does. Any future traceability check
+has to read the row.
+
+The check written to prevent D10 then failed twice in testing before it
+worked. Its first form took the lowest launch count mentioned anywhere under
+`results/` and so fired on a pilot run described in prose. Its second form
+used a negative lookbehind, which let the regular expression start matching
+inside a number and report a uniform claim of "0 independent launches". Both
+were caught by a regression test that asserts the check fires on the wrong
+wording and passes on the right one. A gate that has never been shown to fail
+is not a gate.
