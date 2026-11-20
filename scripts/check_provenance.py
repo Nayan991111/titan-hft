@@ -63,6 +63,32 @@ EXTERNAL: dict[str, str] = {
     "8.94": "wrenger2024m1",
 }
 
+# Percentages, which the matching above cannot verify. Its pattern requires two
+# decimals, and that threshold is not arbitrary: "8" and "3" each occur in
+# thirty-five results files by coincidence, so a substring search on a short
+# number always succeeds and proves nothing. Widening the pattern would
+# manufacture confidence rather than earn it.
+#
+# So this list does the one thing that is checkable: it requires every
+# percentage in the manuscript to be declared, with a source that exists. It
+# does not verify the value, and does not pretend to. A reviewer still has to
+# read the cited paper or the named file. What it prevents is a new percentage
+# appearing with no stated origin at all, which is how two figures quoted from
+# Emurian et al. first entered the abstract unaccounted for.
+PERCENT: dict[str, tuple[str, str]] = {
+    "95.3": ("measured", "2026-11-17_m4_barrier.txt"),
+    "2.4": ("measured", "2026-11-20_m4_burst5_rebuild.txt"),
+    "0.7": ("measured", "2026-11-20_m4_burst5_rebuild.txt"),
+    "17": ("measured", "2026-11-19_m4_burst10_saturated.txt"),
+    "12": ("measured", "2026-11-19_m4_burst10_saturated.txt"),
+    "8": ("cite", "emurian2014pitfalls"),
+    "5.8": ("cite", "emurian2014pitfalls"),
+    "3": ("cite", "khayet2026arm"),
+    "95": ("cite", "khayet2026arm"),
+    "1": ("cite", "khayet2026arm"),
+    "8.94": ("cite", "wrenger2024m1"),
+}
+
 # Numbers that are part of the typesetting rather than the science. Each needs
 # a reason, so the list cannot quietly become a place to hide a figure.
 TYPESETTING: dict[str, str] = {}
@@ -203,6 +229,21 @@ def main() -> int:
         print("  BROKEN DECLARATIONS:")
         for b in broken:
             print(f"    {b}")
+
+    # Every percentage in the manuscript must declare a source that exists.
+    pct = set(re.findall(r"([0-9][0-9.]*) percent", re.sub(r"\s+", " ", TEX.read_text(encoding="utf-8"))))
+    bibkeys = set(re.findall(r"@\w+\{(\w+),", BIB.read_text(encoding="utf-8")))
+    for p in sorted(pct):
+        if p not in PERCENT:
+            broken.append(f"{p} percent is in the manuscript and not declared in PERCENT")
+            continue
+        kind, src = PERCENT[p]
+        if kind == "cite" and src not in bibkeys:
+            broken.append(f"{p} percent is declared as cited to {src}, absent from refs.bib")
+        if kind == "measured" and not (ROOT / "results" / src).exists():
+            broken.append(f"{p} percent is declared as measured in {src}, which does not exist")
+    print()
+    print(f"  percentages: {len(pct)} in the manuscript, each with a declared source")
 
     bad = len(unsourced) + len(broken)
     print()

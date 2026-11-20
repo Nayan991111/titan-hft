@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: eleven closed, one partly closed, none open.**
+**Status at 2026-11-20: twelve closed, one partly closed, none open.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -444,3 +444,86 @@ about the measuring machine on days already past. It is not recoverable from
 the repository and it will not be guessed. If the author can attest to it,
 that attestation goes in the threats section labelled as an attestation, not
 as a measurement.
+
+---
+
+## D13. Novelty was asserted from memory and never searched for
+
+**Found** 2026-11-20, by running the literature search that should have
+preceded the first draft of the abstract.
+**Severity** the most dangerous class in this register. Every other entry is a
+number that was wrong. This one is a claim of priority, and a reviewer who
+knows the field would have rejected the paper over it rather than asking for a
+revision.
+
+Until today no search had been run. The abstract's novelty framing rested on
+recollection, and three parts of it do not survive contact with the record.
+
+**1. The run-length hazard is published.** The abstract said "we also report a
+measurement hazard specific to this machine class". Emurian, Raghavan, Shao,
+Rosen, Papaefthymiou, Pipe, Wenisch and Martin reported it in 2014: a chip that
+boosts and then throttles makes a short run faster than a long one, so
+extrapolating from a short run overestimates sustained performance. They bound
+it at about 8 percent on a server-class part and at up to 5.8 percent error on
+a nominal two times speedup.
+
+What is ours is sharper than what was claimed. The same hazard on a fanless M4
+is 16.33 times, two orders of magnitude beyond their bound, and Emurian et al.
+explicitly do not report any case where it reverses a ranking: their findings
+concern inflated margins. Ours reverses the ranking, so the cheapest ordering
+at 200,000 messages is the dearest at 10,000,000. Grounded against their result
+the claim is stronger and defensible; asserted as a discovery it was neither.
+The abstract now cites them and states both numbers.
+
+**2. The Fano and cv squared distinction is textbook, not a finding.** For a
+renewal process the Fano factor tends to the squared coefficient of variation of
+the gaps as the counting window grows, and at finite windows it is bounded by
+one plus twice that quantity. A Hawkes process is not renewal, which is exactly
+why the two diverge here, and the divergence under self-excitation is itself
+described in the literature: the Fano factor keeps growing with the window while
+cv squared is a fixed property of the gap distribution.
+
+So H74 does not discover that the two statistics differ. It measures what
+choosing the wrong one costs on a real pipeline: 13.5030 times where the Fano
+account predicts 1.040. That is the contribution, and it is an empirical one.
+The theoretical sharpening belongs beside it: a statistic that grows without
+bound with the observation window cannot serve in a queueing bound, which is why
+Kingman consumes the other one.
+
+**3. This machine class has been characterised before.** There is a published
+evaluation of the M-series for high-performance computing using STREAM, GEMM and
+powermetrics, and there are open tools measuring Apple Silicon memory bandwidth,
+cache latency and even two-thread cache-line handoff. The sentence "nobody has
+published measurements of this machine" is false and would have been checked in
+one search by any reviewer.
+
+What no search found is the specific thing this paper does: a comparison of
+memory-ordering constructs with full tail distributions, under a pre-registered
+protocol with independent launches, on Apple Silicon. The nearest work measures
+Apple's total store order mode against native Arm mode across application
+workloads and states that it leaves atomics and barriers to future work.
+
+**4. One recent paper is complementary and is now cited.** A September 2026
+measurement study characterises a real CME feed across 281 sessions, finds
+self-exciting arrival clusters, and then simulates a pipeline using a per-hop
+cost taken from the author's earlier work. It assumes the quantity this paper
+measures, and this paper holds fixed the arrival process that one measures. The
+two fit together, and saying so is better positioning than claiming to be alone.
+
+**CLOSED 2026-11-20** the abstract states the prior bound and cites it, two
+verified references are added, and the novelty claim is now the ranking reversal
+and the magnitude rather than the phenomenon.
+
+**A gate that could not do what I wanted it to do.** While fixing this I found
+that check_provenance.py never verified the two figures quoted from Emurian et
+al., because its pattern requires two decimals. The instinct was to widen the
+pattern. That is wrong: "8" and "3" each appear in thirty-five results files by
+coincidence, so a substring search on a short number always succeeds and would
+have reported false confidence. Every percentage in the manuscript is now
+declared with a source that must exist, and the check says plainly that it does
+not verify the value. A check that cannot establish something should say so
+instead of passing.
+
+**The standing correction.** No novelty claim enters this paper again without a
+search behind it, and the searches belong in the record rather than in my
+recollection.

@@ -63,12 +63,15 @@ side: substituting the release store alone accounts for a median 133.611 cycles 
 the median 124.544 saved by substituting both, at 30 of 30 launches, while substituting the acquire load alone
 saves 35.080, which is real at 30 of 30 but a quarter of the size and is paid
 back when both are applied. The ranking of all four correct rings reverses
-between the two caching configurations. We also report a measurement hazard
-specific to this machine class: the core clock tracks how long a core has been
-busy rather than how much work it was given, so the same comparison on the same
-binary moves by a stated 16.33 times between 200,000 and 10,000,000 messages,
-and the cheapest ordering at the short run length is the dearest at the long
-one. The power state of that run was not recorded, since the harness began
+between the two caching configurations. A measurement hazard sits
+underneath all of this, and it is not new. The core clock tracks how long a core
+has been busy rather than how much work it was given, and Emurian et al.
+\cite{emurian2014pitfalls} bound the resulting distortion at about 8 percent on
+a server-class part, with up to 5.8 percent error on a nominal two times
+speedup. On a fanless M4 the same hazard is 16.33 times, two orders of magnitude
+larger, and it does not merely inflate a margin: the cheapest ordering at
+200,000 messages is the dearest at 10,000,000, so run length decides which
+construct a reader would choose. The power state of that run was not recorded, since the harness began
 capturing it two days later, and on a fanless machine the power state bounds
 the sustained clock. The arrival process moves the tail further than any ordering construct in this
 paper does, and the statistic that captures it is not the one this work first
