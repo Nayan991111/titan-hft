@@ -70,7 +70,17 @@ binary moves by a stated 16.33 times between 200,000 and 10,000,000 messages,
 and the cheapest ordering at the short run length is the dearest at the long
 one. The power state of that run was not recorded, since the harness began
 capturing it two days later, and on a fanless machine the power state bounds
-the sustained clock. All results come from a pre-registered protocol, 80 hypothesis rows and four
+the sustained clock. The arrival process moves the tail further than any ordering construct in this
+paper does, and the statistic that captures it is not the one this work first
+used. Holding the branching ratio of a Hawkes process at 0.8 fixes the Fano
+factor of event counts near 25, while sweeping the kernel decay rate moves the
+squared coefficient of variation of interarrival times from 1.1005 to 8.1921.
+Across that ladder the Fano factor implies a ratio of 1.040 and the variability
+term of Kingman's heavy-traffic approximation implies 7.444. The measured ratio
+is 6.2317 at the median and 13.5030 at the quantile where the contrast peaks, in
+30 of 30 launches, with 841 ns becoming 11356 ns at the same offered rate on the
+same binary and the same messages. The periodic and Poisson references show no
+effect against the low-variability arm, at 8 and 9 of 30. All results come from a pre-registered protocol, 80 hypothesis rows and four
 exploratory calibrations, with thresholds fixed before each run, at least 20 independent launches per
 comparison and 30 for all but the run-length sweep, within-launch pairing and
 an exact two-sided sign test. Every figure regenerates from the

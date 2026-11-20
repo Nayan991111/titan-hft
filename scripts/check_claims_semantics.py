@@ -96,16 +96,45 @@ def main():
         bad.append(f"the manuscript claims a uniform '{flat[0]} independent launches per "
                    f"comparison'; the protocol is not uniform, so it must be stated as a floor")
 
+    # D8 again, in the other direction. The 13.503 result is only meaningful
+    # against the statistic it is a ratio of. Stated without the coefficient of
+    # variation beside it, a reader would take it for a burstiness effect in
+    # general, which is the error D8 records: the Fano factor of counts predicts
+    # 1.040 for this same comparison.
+    for frag in ("13.503", "13.5030"):
+        if frag in tex:
+            i = tex.index(frag)
+            near = tex[max(0, i - 1200):i + 1200]
+            if "coefficient of variation" not in near:
+                bad.append(f"'{frag}' appears without 'coefficient of variation' nearby; "
+                           "the ratio is meaningless without the statistic it is taken over")
+            if "Fano" not in near:
+                bad.append(f"'{frag}' appears without naming the Fano factor nearby; "
+                           "the result is a comparison between two predictors, not one number")
+
     # The register's status line must agree with its own markers. It did not,
     # the first time the two were written in the same commit.
-    words = {"none": 0, "one": 1, "two": 2, "three": 3, "four": 4,
-             "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+    # The map stopped at ten and the register reached eleven, so the check
+    # reported a parse failure (-1) as though the count disagreed. A word list
+    # that runs out is a check that breaks on success, which is worse than no
+    # check: it cries wolf exactly when the work is going well.
+    words = {"none": 0, "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
+             "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+             "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+             "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+             "nineteen": 19, "twenty": 20}
     reg_raw = DEFECTS.read_text(encoding="utf-8") if DEFECTS.exists() else ""
     status = re.search(r"\*\*Status at [\d-]+: (\w+) closed, (\w+) partly closed, (\w+) open", reg_raw)
     if not status:
         bad.append("the register has no status line in the expected form")
     else:
-        said = [words.get(status.group(i).lower(), -1) for i in (1, 2, 3)]
+        said = []
+        for i in (1, 2, 3):
+            tok = status.group(i).lower()
+            said.append(int(tok) if tok.isdigit() else words.get(tok, -1))
+        if -1 in said:
+            bad.append("the register's status line uses a number word this check "
+                       "cannot read; write it as a digit or extend the word list")
         counted = [reg_raw.count("**CLOSED"), reg_raw.count("**PARTLY"), reg_raw.count("**OPEN.")]
         if said != counted:
             bad.append(f"the register's status line says {said} closed/partly/open "

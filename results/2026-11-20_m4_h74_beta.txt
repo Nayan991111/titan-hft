@@ -106861,3 +106861,26 @@ pl_ccdf launch=30 feed=synthetic_default load=poisson wait=spin epoch=2 messages
 pl_ccdf launch=30 feed=synthetic_default load=poisson wait=spin epoch=2 messages=10000000 q=0.999998493 survival=1.506929e-6 ns=24736.0 beyond=15
 pl_ccdf launch=30 feed=synthetic_default load=poisson wait=spin epoch=2 messages=10000000 q=0.999998772 survival=1.227570e-6 ns=24864.0 beyond=12
 pl_ccdf launch=30 feed=synthetic_default load=poisson wait=spin epoch=2 messages=10000000 q=0.999999000 survival=1.000000e-6 ns=24896.0 beyond=10
+
+DERIVED STATISTICS, appended by scripts/h74_verdicts.py from the records
+above. Recomputed from this file alone, with its own parsing, its own median
+and its own exact binomial. Every number the manuscript quotes from this run
+appears here, so a figure in the paper is traceable to a line in a results
+file rather than to a terminal that has since been closed.
+
+h74_pred cv2_lo=1.1005 cv2_hi=8.1921 cv2_ratio=7.444 fano_lo=24.79 fano_hi=25.78 fano_ratio=1.040
+h74_peak wait=spin q=0.947584524 ratio=13.5030 hi_ns=11356.0 lo_ns=841.0 wins=30 n=30 p=1.86e-09
+h74_peak wait=isb q=0.965217025 ratio=14.3415 hi_ns=12348.0 lo_ns=861.0 wins=30 n=30 p=1.86e-09
+h74_peak wait=wfe q=0.965217025 ratio=14.4450 hi_ns=12076.0 lo_ns=836.0 wins=30 n=30 p=1.86e-09
+h74_quantile wait=spin target=0.5 q=0.500000000 ratio=6.2317 hi_ns=1748.0 lo_ns=280.5 wins=30 n=30
+h74_quantile wait=spin target=0.9 q=0.903038628 ratio=13.0559 hi_ns=8532.0 lo_ns=653.5 wins=30 n=30
+h74_quantile wait=spin target=0.99 q=0.989835447 ratio=10.7694 hi_ns=19288.0 lo_ns=1791.0 wins=30 n=30
+h74_quantile wait=spin target=0.999 q=0.998934440 ratio=5.1399 hi_ns=30860.0 lo_ns=6004.0 wins=30 n=30
+h74_ladder arm=hbeta_0.8_1e6 cv2=2.3620 q=0.976917975 ratio=8.4922 wins=30 n=30
+h74_ladder arm=hbeta_0.8_3e6 cv2=4.7086 q=0.965217025 ratio=11.3744 wins=30 n=30
+h74_ladder arm=hbeta_0.8_2.5e7 cv2=8.1921 q=0.947584524 ratio=13.5030 wins=30 n=30
+h74_reference arm=poisson q=0.999999000 ratio=0.9742 wins=9 n=30
+h74_reference arm=rate_5000000 q=0.999999000 ratio=0.9188 wins=8 n=30
+h74_robust drop=all ratio=13.5030 wins=30 n=30 p=1.86e-09
+h74_robust drop=no_launch_3 ratio=13.5125 wins=29 n=29 p=3.73e-09
+h74_robust drop=no_launch_3_27 ratio=13.5030 wins=28 n=28 p=7.45e-09
