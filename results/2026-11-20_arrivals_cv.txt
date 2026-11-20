@@ -1,0 +1,63 @@
+E4: INTERARRIVAL VARIABILITY OF THE REPLAY SCHEDULES. EXPLORATORY CALIBRATION.
+Computed 2026-11-20. No thresholds: nothing is being tested. This file exists
+because the manuscript quotes the coefficient of variation and the Fano factor
+of these schedules and, until now, quoted them from a terminal rather than from
+a committed measurement.
+
+WHY BOTH STATISTICS. Kingman's variability term consumes the squared
+coefficient of variation of the INTERARRIVAL TIMES. This project had
+previously characterised burstiness by the Fano factor of event COUNTS and
+drew a conclusion about queueing theory from it. The two are equal for a
+Poisson process and diverge sharply for a self-exciting one, which is why they
+are now always computed and reported together, on the identical schedule.
+
+GENERATOR : crates/titan-itch/src/bin/titan-arrivals.rs
+COMMIT    : b6a02443b51b01c223f397363ac7ccd5eac2db3d
+RUSTC     : rustc 1.97.0 (2d8144b78 2026-07-07)
+DETERMINISM: schedules are seeded; this file regenerates exactly.
+
+================================================================================
+AT THE RATE AND LENGTH THE MANUSCRIPT USES
+================================================================================
+arr_config messages=5000000 rate=5000000 beta=10000 seed=7 freq=1000000000
+arr load=rate_5000000 gaps=4999999 mean_gap_ns=200.0000 sd_gap_ns=0.0000 cv=0.000000 cv2=0.000000 fano=0.0000 fano_over_cv2=0.0000 realised_mps=5.000000 offered_mps=5.000000
+arr load=poisson gaps=4999999 mean_gap_ns=199.9674 sd_gap_ns=199.9601 cv=0.999963 cv2=0.999926 fano=0.9762 fano_over_cv2=0.9763 realised_mps=5.000814 offered_mps=5.000000
+arr load=hawkes_0 gaps=4999999 mean_gap_ns=200.0089 sd_gap_ns=199.9120 cv=0.999515 cv2=0.999031 fano=1.0256 fano_over_cv2=1.0266 realised_mps=4.999777 offered_mps=5.000000
+arr load=hawkes_0.3 gaps=4999999 mean_gap_ns=200.0176 sd_gap_ns=200.0805 cv=1.000314 cv2=1.000628 fano=1.7837 fano_over_cv2=1.7826 realised_mps=4.999559 offered_mps=5.000000
+arr load=hawkes_0.5 gaps=4999999 mean_gap_ns=200.0306 sd_gap_ns=200.2580 cv=1.001137 cv2=1.002275 fano=2.9611 fano_over_cv2=2.9544 realised_mps=4.999234 offered_mps=5.000000
+arr load=hawkes_0.8 gaps=4999999 mean_gap_ns=200.1293 sd_gap_ns=201.1414 cv=1.005057 cv2=1.010141 fano=10.7775 fano_over_cv2=10.6693 realised_mps=4.996770 offered_mps=5.000000
+arr load=hawkes_0.9 gaps=4999999 mean_gap_ns=200.2890 sd_gap_ns=202.6929 cv=1.012002 cv2=1.024148 fano=25.5264 fano_over_cv2=24.9246 realised_mps=4.992784 offered_mps=5.000000
+
+THE SAME ARMS AT A DIFFERENT SAMPLE LENGTH, WHICH IS THE POINT ABOUT WINDOWS.
+The coefficient of variation is unchanged. The Fano factor is not, because it
+is computed over a fixed number of windows whose width scales with the sample.
+================================================================================
+arr_config messages=2000000 rate=5000000 beta=10000 seed=7 freq=1000000000
+arr load=rate_5000000 gaps=1999999 mean_gap_ns=200.0000 sd_gap_ns=0.0000 cv=0.000000 cv2=0.000000 fano=0.0000 fano_over_cv2=0.0000 realised_mps=5.000000 offered_mps=5.000000
+arr load=poisson gaps=1999999 mean_gap_ns=199.8555 sd_gap_ns=200.0324 cv=1.000885 cv2=1.001772 fano=0.9916 fano_over_cv2=0.9899 realised_mps=5.003616 offered_mps=5.000000
+arr load=hawkes_0 gaps=1999999 mean_gap_ns=199.8937 sd_gap_ns=199.8439 cv=0.999751 cv2=0.999502 fano=1.0404 fano_over_cv2=1.0409 realised_mps=5.002658 offered_mps=5.000000
+arr load=hawkes_0.3 gaps=1999999 mean_gap_ns=199.8740 sd_gap_ns=200.0135 cv=1.000698 cv2=1.001397 fano=1.5891 fano_over_cv2=1.5869 realised_mps=5.003153 offered_mps=5.000000
+arr load=hawkes_0.5 gaps=1999999 mean_gap_ns=199.8369 sd_gap_ns=200.1658 cv=1.001646 cv2=1.003294 fano=2.2726 fano_over_cv2=2.2651 realised_mps=5.004081 offered_mps=5.000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=199.6715 sd_gap_ns=200.9300 cv=1.006303 cv2=1.012646 fano=6.0951 fano_over_cv2=6.0190 realised_mps=5.008226 offered_mps=5.000000
+arr load=hawkes_0.9 gaps=1999999 mean_gap_ns=199.3982 sd_gap_ns=202.3980 cv=1.015045 cv2=1.030316 fano=12.8616 fano_over_cv2=12.4832 realised_mps=5.015091 offered_mps=5.000000
+
+================================================================================
+DECAY RATE SWEEP AT BRANCHING 0.8. THE DISSOCIATION IS CONTROLLED BY THE RATIO
+OF THE EXCITATION TIMESCALE TO THE MEAN GAP, WHICH IS 200 ns AT THIS RATE.
+================================================================================
+arr_config messages=2000000 rate=5000000 beta=1000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=201.4487 sd_gap_ns=203.4137 cv=1.009754 cv2=1.019603 fano=5.5307 fano_over_cv2=5.4244 realised_mps=4.964042 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=10000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=199.6715 sd_gap_ns=200.9300 cv=1.006303 cv2=1.012646 fano=6.0951 fano_over_cv2=6.0190 realised_mps=5.008226 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=100000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=199.7397 sd_gap_ns=209.7921 cv=1.050328 cv2=1.103188 fano=20.0159 fano_over_cv2=18.1437 realised_mps=5.006516 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=1000000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=199.7951 sd_gap_ns=307.1603 cv=1.537376 cv2=2.363526 fano=24.5925 fano_over_cv2=10.4050 realised_mps=5.005127 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=2500000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=200.1440 sd_gap_ns=412.9671 cv=2.063350 cv2=4.257415 fano=25.5487 fano_over_cv2=6.0010 realised_mps=4.996403 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=5000000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=200.1541 sd_gap_ns=486.2410 cv=2.429333 cv2=5.901658 fano=25.2565 fano_over_cv2=4.2796 realised_mps=4.996150 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=10000000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=199.9650 sd_gap_ns=535.7667 cv=2.679303 cv2=7.178664 fano=24.3711 fano_over_cv2=3.3949 realised_mps=5.000876 offered_mps=5.000000
+arr_config messages=2000000 rate=5000000 beta=25000000 seed=7 freq=1000000000
+arr load=hawkes_0.8 gaps=1999999 mean_gap_ns=198.9897 sd_gap_ns=570.1184 cv=2.865064 cv2=8.208593 fano=24.7253 fano_over_cv2=3.0121 realised_mps=5.025385 offered_mps=5.000000

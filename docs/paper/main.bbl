@@ -41,7 +41,25 @@ L.~Wrenger, D.~T{\"o}llner, and D.~Lohmann, ``{TOSTING}: Investigating total
   (ARCS)}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2023.
 
 \bibitem{wrenger2024m1}
-L.~Wrenger, D.~T{\"o}llner, and D.~Lohmann, ``Analyzing the memory ordering models of the apple {M1},''
-  \emph{Journal of Systems Architecture}, 2024.
+L.~Wrenger, D.~T{\"o}llner, and D.~Lohmann, ``Analyzing the memory ordering
+  models of the apple {M1},'' \emph{Journal of Systems Architecture}, 2024.
+
+\bibitem{kingman1961heavy}
+J.~F.~C. Kingman, ``The single server queue in heavy traffic,''
+  \emph{Mathematical Proceedings of the Cambridge Philosophical Society},
+  vol.~57, no.~4, pp. 902-904, 1961.
+
+\bibitem{kingman1962queues}
+J.~F.~C. Kingman, ``On queues in heavy traffic,'' \emph{Journal of the Royal
+  Statistical Society: Series B (Methodological)}, vol.~24, no.~2, pp.
+  383-392, 1962.
+
+\bibitem{hawkes1971spectra}
+A.~G. Hawkes, ``Spectra of some self-exciting and mutually exciting point
+  processes,'' \emph{Biometrika}, vol.~58, no.~1, pp. 83-90, 1971.
+
+\bibitem{ogata1981thinning}
+Y.~Ogata, ``On {L}ewis' simulation method for point processes,'' \emph{IEEE
+  Transactions on Information Theory}, vol.~27, no.~1, pp. 23-31, 1981.
 
 \end{thebibliography}

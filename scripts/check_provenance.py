@@ -53,6 +53,9 @@ EXPERIMENTS = ROOT / "docs" / "experiments.md"
 DERIVED: dict[str, tuple[str, int]] = {
     "2.57": ("218.880 / 85.269", 2),
     "2.75": ("22.120 / 8.053", 2),
+    # Stated beside the median of the per-launch ratios so the reader is not
+    # left to discover that the two estimators differ. See docs/defects.md D3.
+    "1.0728": ("133.611 / 124.544", 4),
 }
 
 # Values quoted from a cited work. The key must resolve in refs.bib.

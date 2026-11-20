@@ -40,6 +40,7 @@ Locating the Cost of Memory Ordering in an SPSC Ring on Apple M4}
 nayanpandit993281@gmail.com}}
 
 \maketitle
+\bstctlcite{bstctl:titan}
 
 \begin{abstract}
 The single-producer single-consumer ring is the hot path of a market-data feed
@@ -47,15 +48,19 @@ handler, and its loop body is small enough that the memory-ordering operation
 is a large fraction of the work rather than a rounding error on it. We measure
 that fraction on an Apple M4 and find it is 95.3 percent: the same ring with
 all ordering removed runs at 10.185 cycles per message against 218.880 for an
-acquire-release pair when the cursor line is contended. Within that budget, the
+acquire-release pair when the cursor line is contended. That unordered arm is
+not a correct ring and is reported only as a cost floor. It failed its
+checksum in all 180 of its epochs, while each of the four correct rings passed
+in 180 of 180, so the 95.3 percent measures the distance to an unattainable
+bound rather than to a usable alternative. Within that budget, the
 choice of ordering construct behaves in a way no memory model describing this
 hardware predicts. Replacing the release store \texttt{stlr} with a \texttt{dmb
 ish} barrier followed by a plain store makes the contended loop 2.57 times
 faster, and the same substitution makes the loop 2.75 times slower once the
 cursor line is resident in L1. Crossing the two halves of the acquire-release
 pair over 30 independent launches localises the effect entirely to the store
-side: substituting the release store alone accounts for 133.611 of the 124.544
-cycles saved, at 30 of 30 launches, while substituting the acquire load alone
+side: substituting the release store alone accounts for a median 133.611 cycles of
+the median 124.544 saved by substituting both, at 30 of 30 launches, while substituting the acquire load alone
 saves 35.080, which is real at 30 of 30 but a quarter of the size and is paid
 back when both are applied. The ranking of all four correct rings reverses
 between the two caching configurations. We also report a measurement hazard
@@ -63,10 +68,11 @@ specific to this machine class: the core clock tracks how long a core has been
 busy rather than how much work it was given, so the same comparison on the same
 binary moves by a stated 16.33 times between 200,000 and 10,000,000 messages,
 and the cheapest ordering at the short run length is the dearest at the long
-one. All results come from a pre-registered protocol of 74 hypotheses with
-thresholds fixed before each run, 30 independent launches per comparison,
-within-launch pairing and an exact two-sided sign test. The artifact
-reproduces every figure and table with one command.
+one. All results come from a pre-registered protocol, 77 hypothesis rows and four
+exploratory calibrations, with thresholds fixed before each run, 30 independent launches per comparison,
+within-launch pairing and an exact two-sided sign test. Every figure regenerates from the
+committed measurement files with one command; reproducing the measurements
+themselves requires an Apple M4 on wall power.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -104,7 +110,10 @@ synchronization. For the workloads they measure, that assumption is reasonable.
 For the loop measured here it is false, and we measure the fraction rather than
 asserting it: with ordering removed entirely the loop runs at 10.185 cycles per
 message against 218.880 with an acquire-release pair, so 95.3 percent of the
-contended loop is ordering.
+contended loop is ordering. The unordered arm is a cost floor and not a correct
+ring, and we report it as such: it failed its checksum in every one of its 180
+epochs while each correct ring passed in 180 of 180. The fraction therefore
+bounds what ordering costs, and does not name a cheaper ring that exists.
 
 \subsection{Contributions}
 
@@ -123,8 +132,9 @@ cross of the two halves.} We measure four correct rings formed by crossing the
 load side and the store side independently, so that each arm still carries
 acquire semantics on every cursor read and release semantics on every publish,
 whether from the instruction or from an adjacent barrier. The store-side share
-of the total difference is 1.0702 with a bootstrap interval of [1.0621,
-1.0866], at or above the pre-registered 0.70 in 30 of 30 launches; the
+of the total difference, taken as the median of the per-launch ratios rather
+than as the ratio of the medians, which is 1.0728, is 1.0702 with a bootstrap
+interval of [1.0621, 1.0866], at or above the pre-registered 0.70 in 30 of 30 launches; the
 load-side share is 0.2797 and reaches that threshold in 0 of 30. The two
 substitutions are strongly sub-additive, and adding the load-side barrier on
 top of the store-side barrier costs 9.067 cycles.
@@ -149,8 +159,8 @@ time.
 comparison here is pre-registered with pass and fail thresholds fixed before
 the run, measured over 30 independent process launches, paired within each
 launch, and tested with an exact two-sided sign test for which 21 of 30 is the
-p < 0.05 threshold. Every figure and table regenerates from the recorded data
-with one command.
+p < 0.05 threshold. Every figure regenerates from the committed
+measurement files with one command.
 \end{itemize}
 
 \subsection{What this paper does not claim}
@@ -207,6 +217,58 @@ memory model with the hardware held fixed. The axes are orthogonal: a
 whole-application figure for switching the machine's model does not predict a
 2.57 times difference between two correct ways of writing the same ring under
 the weak model.
+
+\subsection{What queueing theory already predicts}
+\label{sec:queueing}
+
+The arrival process experiments in this paper measure a quantity that
+classical queueing theory has an opinion about, and the paper would be
+dishonest if it reported them as though it did not. Kingman's heavy traffic
+analysis of the single server queue gives the mean waiting time as a product
+of three factors: a utilisation factor $\rho/(1-\rho)$, a variability factor
+formed from the squared coefficients of variation of the interarrival and
+service time distributions, and the mean service time
+\cite{kingman1961heavy,kingman1962queues}. A perfectly periodic arrival stream
+has an interarrival coefficient of variation of zero and a Poisson stream has
+one, so the periodic and Poisson arms of our experiment sit at two known
+points on that variability axis. The direction of the effect we measure is
+therefore not a discovery. What the formula does not supply, and what this
+paper contributes, is the magnitude on a real software path, the shape of the
+effect across the survival curve rather than at the mean, and the behaviour
+under clustering.
+
+The clustering result is where a careless reading of the approximation goes
+wrong, and we went wrong there first. It is natural to characterise a
+self-exciting arrival process \cite{hawkes1971spectra} by the Fano factor of
+its event counts, which on our schedules rises from 0.9762 for the Poisson arm
+to 25.5264 at a branching ratio of 0.9, and to conclude that such a process
+must be far more expensive than Poisson at the same mean rate. The
+variability term does not consume the Fano factor. It consumes the squared
+coefficient of variation of the interarrival times, and on the identical
+schedules that statistic moves only from 0.999926 to 1.024148 across the same arms.
+The approximation therefore predicts almost no clustering penalty here, and
+almost none is measured: indistinguishable from Poisson at roughly half of
+the measured capacity, and 12 to 17 percent more expensive at the ceiling,
+where the utilisation factor is large. Our measurement confirms the
+approximation rather than contradicting it.
+
+The contribution is the dissociation itself. Count-based and gap-based
+descriptions of the same arrival process diverge by a factor of twenty-five
+here, and only the gap-based one governs queueing. The Fano factor also
+depends on the window used to compute it, moving from 6.0951 to 10.7775 on one arm
+when only the sample length changed, while the coefficient of variation does
+not. Practitioners in low-latency networking and in trading routinely
+summarise burstiness by count statistics and infer a tail penalty from them.
+On these schedules that inference fails, and the cause is that the
+self-excitation timescale, the inverse of the kernel decay rate, is five
+hundred times the mean interarrival gap, so clustering never reaches the
+statistic that governs the queue.
+
+Our Hawkes schedules are generated by Ogata's modified thinning algorithm
+\cite{ogata1981thinning}, with the exponential kernel evaluated by an exact
+recursion so that generation is linear rather than quadratic in the number of
+events. The generator is validated against six analytic oracles and produces
+bit identical schedules on Apple silicon and on x86 Linux.
 
 \subsection{The deferred measurement}
 
