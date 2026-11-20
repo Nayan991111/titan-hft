@@ -1,4 +1,5 @@
 EXPLORATORY, NOT PRE-REGISTERED: the same ring on x86-64 (E1)
+POWER   : not applicable, virtualized x86-64 host with no battery and no accessible power state
 
 This file is labelled exploratory because it is. Nothing here was registered
 before it ran. It was run to answer one question that the pre-registered body

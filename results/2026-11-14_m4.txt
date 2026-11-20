@@ -32,6 +32,7 @@
 feed=synthetic_default load=rate_10000 wait=udppoll udp_dropped=100 udp_missing=100 udp_stale=0 udp_timed_out=0 
 feed=20190730_BX_ITCH_50 load=rate_10000 wait=udppoll udp_dropped=100 udp_missing=100 udp_stale=0 udp_timed_out=0 
 gap check: 2 of 2 runs with exactly 100 held back and 100 detected: PASS
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 == measured loops: barrier and atomic census (titan-fanout, titan-agg)  [11:25:32]
 titan-fanout, loops matching /titan_fanout[0-9]+(write|replay)_pass_(none|copy|snap)/:

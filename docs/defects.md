@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: nine closed, two partly closed, none open.**
+**Status at 2026-11-20: ten closed, two partly closed, none open.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -392,3 +392,42 @@ works: `kpep_db_create` opens and the database names itself. kperf side does
 not: `kpc_cpu_string` empty, `kpc_pmu_version` 0, `kpc_force_all_ctrs_get`
 reporting no permission. This belongs in the Method section, since it bounds
 what the counter harness can report without root.
+
+---
+
+## D12. I reported the power provenance of the corpus and got it wrong
+
+**Found** 2026-11-20, by making the power field uniform and then checking
+every file instead of only the files I had looked at before.
+**Severity** a false assurance given in writing about the provenance of the
+measurements, and a real gap underneath it.
+
+Earlier the same day I traced the manuscript's numbers to their results files
+and reported that three files lacked a POWER line, all three legitimately,
+and that every M4 file the manuscript draws on was confirmed wall power.
+
+Both halves were wrong. Twenty-five of thirty-five results files had no power
+field at all, because the run script only began capturing the power state on
+2026-11-17 and everything before that date is silent. And three numbers the
+manuscript quotes rest solely on files with no recorded power state: 16.33
+and the pair 0.808 and 3.057. On a fanless machine the power state bounds the
+sustained clock, so this is provenance that matters rather than bookkeeping.
+
+The earlier check reached the opposite conclusion because it examined only
+the files it had already decided were interesting, which is not a check.
+
+**CLOSED 2026-11-20** every results file now states a power condition and
+none of them is guessed: a measured state where the harness captured one,
+"not applicable" with a reason for the two virtualized x86-64 hosts and the
+pure-computation calibration, and "not recorded" with a reason for the
+twenty-five that predate the field. `scripts/check_power_lines.py` fails if
+any file is silent or states an absence without a reason, and reports the
+counts so the proportion is visible rather than implied. The manuscript now
+says beside the run-length result that the power state of that run was not
+recorded.
+
+**What is still not known.** Whether those runs were on wall power is a fact
+about the measuring machine on days already past. It is not recoverable from
+the repository and it will not be guessed. If the author can attest to it,
+that attestation goes in the threats section labelled as an attestation, not
+as a measurement.

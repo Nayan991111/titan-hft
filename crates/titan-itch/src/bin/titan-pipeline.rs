@@ -715,11 +715,42 @@ fn main() {
         // rather than a separate implementation of one.
         let burst_rate: f64 = kv(&args, "burstrate").unwrap_or("5000000").parse().expect("burstrate");
         let burst_beta: f64 = kv(&args, "burstbeta").unwrap_or("10000").parse().expect("burstbeta");
+        // An optional ladder of decay rates, for the one question the single
+        // `burstbeta` cannot ask. The branching ratio fixes the Fano factor of
+        // event counts; beta moves the squared coefficient of variation of
+        // interarrival times while leaving Fano where it is. Those two are the
+        // competing predictors of a latency penalty, and separating them needs
+        // several betas inside one launch, because the protocol pairs arms
+        // within a launch and a launch carries one process.
+        //
+        // Absent, behaviour is exactly as before: one beta, arms named
+        // `hawkes_<b>`. Present, one arm per branching and beta pair, named
+        // `hbeta_<b>_<beta>`, a prefix no committed analysis reads, so no
+        // existing result file changes meaning and no existing arm name
+        // becomes ambiguous.
+        //
+        // The seed is held at the same value across the ladder. The kernel
+        // changes, so the realisation cannot be held fixed as well; that is a
+        // property of the process, not a choice, and the pairing plus the
+        // launch count is what carries the comparison.
+        let burst_betas: Option<Vec<f64>> = kv(&args, "burstbetas").map(|s| {
+            s.split(',').map(|v| v.parse().expect("burstbetas")).collect()
+        });
         if let Some(bs) = kv(&args, "hawkes") {
             for b in bs.split(',') {
                 let branching: f64 = b.parse().expect("branching ratio");
-                let h = titan_itch::arrivals::Hawkes::with_mean_rate(burst_rate, branching, burst_beta);
-                loads.push((format!("hawkes_{b}"), h.schedule(n, freq, 0x011A_76E5)));
+                match &burst_betas {
+                    None => {
+                        let h = titan_itch::arrivals::Hawkes::with_mean_rate(burst_rate, branching, burst_beta);
+                        loads.push((format!("hawkes_{b}"), h.schedule(n, freq, 0x011A_76E5)));
+                    }
+                    Some(list) => {
+                        for be in list {
+                            let h = titan_itch::arrivals::Hawkes::with_mean_rate(burst_rate, branching, *be);
+                            loads.push((format!("hbeta_{b}_{be:e}"), h.schedule(n, freq, 0x011A_76E5)));
+                        }
+                    }
+                }
             }
         }
         if args.iter().any(|a| a == "poisson") {

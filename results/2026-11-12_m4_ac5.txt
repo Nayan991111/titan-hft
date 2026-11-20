@@ -27,3 +27,4 @@ load=speed_1 wait=wfe path=full feed=20190730_BX_ITCH_50       n=5     2598.00 [
 load=rate_13271 wait=isb path=full feed=20190730_BX_ITCH_50    n=5     2779.00 [ 2183.00,  3335.00] p50_ns=112 p999_ns=7.03e+03 p9999_ns=1.64e+04 max_ns=3.82e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=164 invol_switches
 load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50      n=5     2843.00 [ 2118.00, 24832.00] p50_ns=122 p999_ns=1.17e+05 p9999_ns=2.24e+06 max_ns=4.17e+06 achieved_mps=0.013 saturated=0 feed_late_over_1us=341 invol_switches
 load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50       n=5     2896.00 [ 2158.00,  9032.00] p50_ns=115 p999_ns=6.81e+04 p9999_ns=1.52e+06 max_ns=2.73e+06 achieved_mps=0.013 saturated=0 feed_late_over_1us=451 invol_switches
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that

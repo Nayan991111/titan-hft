@@ -3,6 +3,7 @@ Apple M4 MacBook Air (Mac16,13), macOS 27.2, rustc 1.92.0, commit c1b20d6 (tree 
 AC POWER, Low Power Mode off, Docker quit, no thermal or performance warning recorded at any
 point. PMU via kperf on the measuring thread. Placement verified in the output, not assumed
 from the type: every pad=64 case reported same_line=1 and every pad=128 case same_line=0.
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 H61: 30 independent launches of titan-stream, 200,000 messages, 3 epochs each, 13 cases.
 H62: 5 independent launches of titan-pipeline, BX from=34200 limit=100000, 5 epochs,

@@ -17,6 +17,7 @@
 #
 # Pre-registration: docs/experiments.md, "Pre-registered 2026-11-14,
 # fifteenth run" (H55).
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 ## configuration (from the run)
 heap_config feed=synthetic_default messages=5000000 instruments=501 log2=22 limit=10000000 epochs=10 pmu=true checks=40000000 live_at_end=982360 stale_popped_lazy=50547 shares_at_best_per_query=501.84

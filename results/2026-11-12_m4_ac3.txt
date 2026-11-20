@@ -15,6 +15,7 @@
 #            2.5 min longer than planned, consistent with the machine
 #            sleeping. Kept as recorded; verdicts use medians over epochs.
 # Data:      NASDAQ BX TotalView-ITCH 5.0, 2019-07-30 (see 2026-11-11_m4.txt).
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 == H32, H33: synthetic feed, 1M and 6,627 msg/s, trading path vs waiting alone, consumer PMU  [11:33:46]
 ## pl: p99_ns, median over epochs [bootstrap 95% CI]
 load=rate_6627 wait=wfe path=none feed=synthetic_default       n=5       94.00 [   83.00,   107.00] p50_ns=62 p999_ns=5.77e+03 p9999_ns=1.54e+04 max_ns=3.89e+04 achieved_mps=0.007 saturated=0 feed_lat

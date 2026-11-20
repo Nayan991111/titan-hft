@@ -1,5 +1,6 @@
 E2: BARRIER-PLACEMENT CROSS ON VIRTUALIZED x86-64, AS A CONTROL FOR H69
 EXPLORATORY, NOT PRE-REGISTERED. Run 2026-11-17.
+POWER   : not applicable, virtualized x86-64 host with no battery and no accessible power state
 
 PURPOSE. H69 asks which half of an acquire-release pair carries the Fenced
 inversion measured on the M4 (0.4475 uncached, 2.449 cached, both reproduced).

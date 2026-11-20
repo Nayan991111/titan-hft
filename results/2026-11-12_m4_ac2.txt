@@ -30,6 +30,7 @@ t2t fix vs ouch, order encoding (synthetic_default)          A=    28.08 B=     
 t2t fix vs ouch, order encoding (synthetic_default) [msg_cycles] A=   114.58 B=    22.16 A/B= 5.171 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
 t2t ouch vs replay, binary encoding per order (synthetic_default) A=     5.45 B=     1.00 A/B= 5.451 nA=5 nB=5 U=25.0 p=0.0079 (exact) cliffs_delta=+1.00
 t2t ouch vs replay, binary encoding per order (synthetic_default) [msg_cycles] A=    22.16 B=     4.26 A/B= 5.202 nA=5 nB=5 U=25.0 p=0.0086 (normal) cliffs_delta=+1.00
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 == H28, H30: real BX open, first 100,000 messages, constant 1M and 6,627 msg/s, then real timestamps  [11:14:41]
 pl_config feed=20190730_BX_ITCH_50 messages=28734686 window=351469..451469 window_messages=100000 instruments=8850 peak_live_orders=67283 order_table_slots=262144 ring=4096 path=full epochs=5 feed_locked=true counter_hz=1000000000 window_feed_seconds=7.535 ts_backwards=0

@@ -23,6 +23,7 @@ load=speed_1 wait=spin path=full feed=20190730_BX_ITCH_50      n=5     2157.00 [
 load=speed_1 wait=isb path=full feed=20190730_BX_ITCH_50       n=5     2214.00 [ 2066.00,  2878.00] p50_ns=103 p999_ns=4.28e+03 p9999_ns=1.13e+04 max_ns=2.82e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=63 invol_switches=
 load=rate_13271 wait=isb path=full feed=20190730_BX_ITCH_50    n=5     2397.00 [ 2229.00,  3003.00] p50_ns=107 p999_ns=4.31e+03 p9999_ns=1.12e+04 max_ns=3.25e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=90 invol_switches=
 load=rate_13271 wait=spin path=full feed=20190730_BX_ITCH_50   n=5     2780.00 [ 2032.00,  3012.00] p50_ns=115 p999_ns=4.32e+03 p9999_ns=1e+04 max_ns=2.26e+04 achieved_mps=0.013 saturated=0 feed_late_over_1us=75 invol_switches=121
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 == H37: UDP receive path (MoldUDP64, one message per datagram) vs shared memory, 5 epochs  [16:38:52]
 -- gap detection check (every 1,000th datagram held back)

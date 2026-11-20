@@ -6,6 +6,7 @@ Low Power Mode 0, Docker not running, no profiler attached. 30 independent launc
 distances, 2000 paths of 250 observations per arm per epoch. 2700 measured lines, 60 distinct
 launch labels. Every arm inside one epoch is seeded identically, so the arms walk the same
 paths; across launches the launch is the unit of observation and pairs form inside it.
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 The engine was validated before it was measured, by ten tests whose oracles share none of its
 machinery: uniforms against a chi-square over 64 bins (57.98 on 63 degrees of freedom);

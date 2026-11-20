@@ -16,6 +16,7 @@
 #            and length of all 837,472,908 decompressed bytes; 28,734,686
 #            messages.
 #
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 == H18 to H20: single-core tick-to-trade, synthetic, 5M messages x 5 stages x 5 epochs  [12:53:21]
 epochs recorded: 25
 t2t_config feed=synthetic_default messages=5000000 bytes=160633906 instruments=501 peak_live_orders=982360 order_table_slots=2097152 epochs=5 batch=4096 spread=300 pmu=true feed_locked=true pmu_read_pair_cycles=2670 pmu_read_pair_instructions=12663

@@ -5,6 +5,7 @@ no profiler attached. 30 independent launches of `titan-greeks 3 ui pmu` and 30 
 with `bg`, 3 epochs per launch, 7 arms, 2 strike ladders, 4096 contracts per arm per epoch,
 64 strikes per chain call. 2520 measured lines. The launch is the unit of observation and
 every pair is formed inside one launch.
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 The kernel was validated before it was measured, by eight tests whose oracles share none of
 its machinery: the cumulative normal against compensated Simpson integration of the density

@@ -5,6 +5,7 @@ and thermal state does not bear on any verdict here: every quantity is an exact 
 mean over a stated population. Real feed: NASDAQ BX TotalView-ITCH 5.0, 2019-07-30, all
 28,734,686 messages, 8,850 instruments, 46,884,746 quotable sides. Synthetic feed
 reported as contrast. Zero allocations in every pass.
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 This run closes the survivorship confound that H58 recorded and did not resolve.
 

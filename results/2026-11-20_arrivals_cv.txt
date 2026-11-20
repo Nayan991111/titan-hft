@@ -3,6 +3,7 @@ Computed 2026-11-20. No thresholds: nothing is being tested. This file exists
 because the manuscript quotes the coefficient of variation and the Fano factor
 of these schedules and, until now, quoted them from a terminal rather than from
 a committed measurement.
+POWER   : not applicable, pure computation on arrival schedules with no hardware timing measured
 
 WHY BOTH STATISTICS. Kingman's variability term consumes the squared
 coefficient of variation of the INTERARRIVAL TIMES. This project had

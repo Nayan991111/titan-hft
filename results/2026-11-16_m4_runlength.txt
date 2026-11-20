@@ -5,6 +5,7 @@ running. 20 independent launches of `titan-stream N 2 pmu` at each of N = 200,00
 5,000,000 and 10,000,000, each sweep in its own file; 30 independent launches of `titan-t2t
 file=data/20190730.BX_ITCH_50 limit=20000000 epochs=2 batch=4096 spread=300
 stages=full,direct,book pmu`. 520 streaming lines per count, 180 tick-to-trade lines.
+POWER   : not recorded, the run script began capturing the power state on 2026-11-17 and this file predates that
 
 A DEFECT IN THIS RUN'S OWN DESIGN, stated first because it changes how the streaming numbers
 must be read. I registered `epochs=2`. The median of two epochs is their mean, so it averages
