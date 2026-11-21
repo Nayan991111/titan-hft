@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: eighteen closed, none partly closed, none open. Eighteen entries in all.**
+**Status at 2026-11-21: twenty closed, none partly closed, none open. Twenty entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -780,3 +780,81 @@ negative answer went unread, and as D13, where novelty was asserted without the
 search that would have checked it. The repository keeps producing the evidence
 that would have caught these, and the gap is between producing it and reading
 it.
+
+---
+
+## D19. A registered counter returned zero, and the verdict script divided by it
+
+**Found** 2026-11-21, by the H78 run.
+**Severity** one registered threshold cannot be evaluated at all, and the
+script meant to report that crashed instead of saying so.
+
+H78 part (a) required the fenced-store arm's retired store misses to be at
+least 0.95 times the acquire-release arm's, contended. Its purpose was to
+exclude the throttling account, which needs the faster arm to take strictly
+fewer coherence transactions.
+
+`L1D_CACHE_MISS_ST_NONSPEC` returned exactly 0.0000 in all 900 records, one
+distinct value across every arm and both caching states. The ratio is 0/0.
+Part (a) is therefore unevaluable: not supported, not refuted, unmeasured. The
+throttling account is not excluded by this run and the paper must say so.
+
+The event resolved against the database, which E5 recorded as carrying it, and
+the session programmed without error, so the failure is silent. Whether the
+event is inert on this part, whether a retired-store-miss event needs a counter
+class this configuration does not request, or whether the ring genuinely takes
+no retired store misses even while bouncing a line between cores, is not
+knowable from the repository.
+
+**CLOSED 2026-11-21** the verdict for (a) is recorded as unevaluable with the
+reason, the paper will not claim the throttling account is excluded, and
+`titan-probe` gains a store-miss diagnostic that drives a loop guaranteed to
+miss L1D on stores and reports what the counter says. If the counter reads zero
+there too, the event is inert on this part and that is a fact about the machine
+worth stating; if it reads non-zero, the fault is in how the session programmed
+it and H78 (a) can be rerun.
+
+**The second half, which is mine.** `scripts/h78` summary divided by the
+store-miss median without guarding it, so the run ended on a
+`ZeroDivisionError` after the contended table and before the resident one. The
+data was committed and pushed correctly, so nothing was lost, but the operator
+saw a traceback instead of a verdict. Every ratio in the verdict scripts now
+reports "unevaluable, denominator is zero" rather than raising. A measurement
+apparatus that crashes when a counter reads zero cannot report the one thing a
+zero counter means.
+
+---
+
+## D20. A registered threshold measured the wrong quantity, for the second time
+
+**Found** 2026-11-21, by H78 part (c) failing.
+**Severity** the refutation is correct and stands. What is wrong is that the
+threshold tested something other than the claim it was written for.
+
+Part (c) required the resident waiting ratio between the two arms to lie
+between 0.80 and 1.25, on the reasoning that the resident penalty is barrier
+latency rather than waiting, so waiting should be about equal. Measured, the
+fenced-store arm waits 2.0522 times the acquire-release arm resident, and (c)
+is refuted.
+
+The claim was about the composition of the penalty and the threshold was
+written over an absolute quantity. The fenced-store arm's total resident cost
+is 22.495 cycles against 8.032, so even an unchanged waiting fraction would
+raise absolute waiting well outside the band. The quantity that matches the
+claim is the non-waiting remainder, which is 3.822 against 13.855, a difference
+of 10.033 cycles per message. That is visible in the data and is recorded in
+the row as a post-hoc observation, explicitly not as a result, because it was
+not registered and fitting a threshold to data already seen is the practice
+this protocol exists to prevent.
+
+**CLOSED 2026-11-21** (c) is reported as refuted without reinterpretation. Any
+claim about the composition of the resident penalty requires its own
+registration with the non-waiting remainder as the stated quantity.
+
+**This is D14 again.** There the frequency-spread threshold was written over
+all five arms when the claim concerned a pair. Here a composition claim was
+written over an absolute. Both times the threshold was checkable and both times
+it did not check the claim. The correction is specific: before a threshold is
+committed, state in one sentence what would make the claim false, and confirm
+the threshold is a test of that sentence rather than of a quantity that merely
+moves with it.

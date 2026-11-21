@@ -108,6 +108,109 @@ fn main() {
     for mode in [CountMode::All, CountMode::UserOnly, CountMode::All, CountMode::UserOnly] {
         run_pmu(mode);
     }
+    storemiss_test();
+}
+
+/// Does the retired-store-miss counter move at all on this part?
+///
+/// H78 part (a) could not be evaluated because `L1D_CACHE_MISS_ST_NONSPEC`
+/// returned exactly 0.0000 in all 900 records of the H78 run: one distinct
+/// value across every arm and both caching states. Three explanations fit
+/// that observation equally well from the repository side. The event may be
+/// inert on this part. The session may have programmed it into a class that
+/// never counts. Or the ring may genuinely retire no store misses even while
+/// a cache line is bounced between cores.
+///
+/// Three passes separate them, because the L1D behaviour of each is known
+/// before the counter is read rather than inferred from it.
+///
+/// Pass one stores one byte per distinct 128-byte line across 64 MiB, which
+/// is far larger than the 128 KiB L1D, so close to every store must miss.
+/// Pass two stores the same number of times into 4 KiB, which fits, so close
+/// to none should. Pass three reads and writes each line over the 64 MiB
+/// buffer, so the same line both loads and stores and the two counters see
+/// the same misses.
+///
+/// Pass three is the decisive one. If its load-miss counter moves and its
+/// store-miss counter stays at zero, the store event is inert here and H78
+/// (a) is unmeasurable on this machine rather than unmeasured. If both move,
+/// the fault is in how the barrier session programmed the event and (a) can
+/// be rerun. If neither moves, the session is not counting at all and
+/// nothing about stores follows from the H78 zero.
+fn storemiss_test() {
+    const LINE: usize = 128;
+    const BIG: usize = 64 << 20;
+    const SMALL: usize = 4 << 10;
+    const STORES: usize = BIG / LINE;
+
+    let k = match Kperf::open() {
+        Ok(k) => k,
+        Err(e) => {
+            println!("storemiss_open_error=\"{e}\"");
+            return;
+        }
+    };
+    let s = match k.session_with_mode(
+        &[
+            events::CYCLES,
+            events::L1D_STORE_MISS,
+            events::L1D_LOAD_MISS,
+            events::LDST_WAIT_MISS,
+        ],
+        CountMode::All,
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("storemiss_session_error=\"{e}\"");
+            return;
+        }
+    };
+    println!("storemiss_events={:?}", s.names());
+
+    let mut big = vec![0u8; BIG];
+    let mut small = vec![0u8; SMALL];
+    // Fault the pages in first, so first-touch page faults are not counted as
+    // part of any pass.
+    for i in 0..STORES {
+        unsafe { std::ptr::write_volatile(big.as_mut_ptr().add(i * LINE), 1u8) }
+    }
+
+    let report = |label: &str, n: usize, c0: &titan_platform::kperf::Snapshot| {
+        let d = s.delta(c0, &s.read());
+        let n = n as f64;
+        println!(
+            "storemiss pass={label} ops={n:.0} st_miss_per_op={:.4}              ld_miss_per_op={:.4} wait_cycles_per_op={:.4} cycles_per_op={:.2}",
+            d[1] as f64 / n,
+            d[2] as f64 / n,
+            d[3] as f64 / n,
+            d[0] as f64 / n
+        );
+    };
+
+    let c0 = s.read();
+    for i in 0..STORES {
+        unsafe { std::ptr::write_volatile(big.as_mut_ptr().add(i * LINE), (i & 0xff) as u8) }
+    }
+    report("store_64mib_expect_miss", STORES, &c0);
+
+    let c0 = s.read();
+    for i in 0..STORES {
+        let off = (i * LINE) % SMALL;
+        unsafe { std::ptr::write_volatile(small.as_mut_ptr().add(off), (i & 0xff) as u8) }
+    }
+    report("store_4kib_expect_hit", STORES, &c0);
+
+    let c0 = s.read();
+    for i in 0..STORES {
+        unsafe {
+            let p = big.as_mut_ptr().add(i * LINE);
+            let v = std::ptr::read_volatile(p);
+            std::ptr::write_volatile(p, v.wrapping_add(1));
+        }
+    }
+    report("rmw_64mib_expect_both", STORES, &c0);
+
+    std::hint::black_box((&big, &small));
 }
 
 fn run_pmu(mode: CountMode) {
