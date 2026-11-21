@@ -63,6 +63,8 @@ FIGS = ROOT / "docs" / "figures"
 BARRIER = RESULTS / "2026-11-17_m4_barrier.txt"
 BURST = RESULTS / "2026-11-18_m4_burst.txt"
 RUNLENGTH = RESULTS / "2026-11-16_m4_runlength.txt"
+PROBE = RESULTS / "2026-11-21_m4_probe.txt"
+BETA = RESULTS / "2026-11-20_m4_h74_beta.txt"
 
 # Single-column IEEE text width is 3.5 inches. Figures are sized to it so no
 # scaling happens in LaTeX, which is where font sizes silently stop matching.
@@ -458,8 +460,202 @@ def verify_fonts() -> None:
     print("  all figures PASS: no Type 3, which is what IEEE PDF eXpress and arXiv check")
 
 
+# --------------------------------------------------------------------------
+# The timing grain. A single series, so one hue and no legend: the title names
+# it. The job is to show that the observed step clusters where the hardware
+# ticks and nowhere near where the interface says it does, so the advertised
+# tick is drawn as a marked absence rather than described in prose.
+# --------------------------------------------------------------------------
+
+GRAIN_HUE = "#2171b5"
+
+
+def parse_grain() -> dict:
+    """Step histogram and the advertised tick, from the unprivileged pass."""
+    text = PROBE.read_text(encoding="utf-8")
+    # Anchored to line start on purpose: "PRIVILEGED PASS" is a substring of
+    # "UNPRIVILEGED PASS", so an unanchored split lands on the wrong marker and
+    # leaves only the file header.
+    parts = re.split(r"^PRIVILEGED PASS", text, maxsplit=1, flags=re.M)
+    assert len(parts) == 2, "probe file has no privileged pass marker at line start"
+    head = parts[0]
+    assert "UNPRIVILEGED PASS" in head, "probe file lost its unprivileged marker"
+
+    m = re.search(r"^counter_nonzero_deltas=(\d+) top_values=([0-9:,]+)$", head, re.M)
+    assert m, "no counter_nonzero_deltas line in the unprivileged pass"
+    nonzero = int(m.group(1))
+    steps: list[tuple[int, int]] = []
+    for pair in m.group(2).split(","):
+        a, _, b = pair.partition(":")
+        steps.append((int(a), int(b)))
+    assert len(steps) >= 6, f"expected at least 6 step values, parsed {len(steps)}"
+
+    z = re.search(r"^counter_zero_fraction=([\d.]+)$", head, re.M)
+    t = re.search(r"^counter_ns_per_tick=([\d.]+)$", head, re.M)
+    mo = re.search(r"^counter_modal_step_units=(\d+)", head, re.M)
+    assert z and t and mo, "probe is missing a counter summary line"
+    return {
+        "steps": sorted(steps),
+        "nonzero": nonzero,
+        "zero_fraction": float(z.group(1)),
+        "advertised": float(t.group(1)),
+        "modal": int(mo.group(1)),
+    }
+
+
+def fig_grain(g: dict) -> None:
+    fig, ax = plt.subplots(figsize=(COL, 2.15))
+    xs = [s for s, _ in g["steps"]]
+    ys = [n for _, n in g["steps"]]
+    ax.vlines(xs, 1, ys, color=GRAIN_HUE, linewidth=2.0)
+    ax.plot(xs, ys, "o", color=GRAIN_HUE, markersize=3.2)
+
+    # The advertised tick, as an absence.
+    ax.axvline(g["advertised"], color="#aa3333", linestyle="--", linewidth=0.9)
+    ax.text(g["advertised"] * 1.15, max(ys) * 0.30,
+            "advertised tick\n1 ns, never observed",
+            fontsize=6.4, color="#aa3333", va="center")
+
+    modal = max(g["steps"], key=lambda s: s[1])
+    ax.annotate(f"{modal[0]} units\n{modal[1]:,}",
+                xy=(modal[0], modal[1]), xytext=(modal[0] * 2.4, modal[1] * 0.55),
+                fontsize=6.4, color="#333333",
+                arrowprops=dict(arrowstyle="-", linewidth=0.6, color="#777777"))
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("observed counter step (units, 1 unit = 1 ns as advertised)")
+    ax.set_ylabel("occurrences")
+    ax.set_title("What the counter actually does", loc="left")
+    ax.set_xlim(0.6, max(xs) * 2.2)
+    ax.set_ylim(0.6, max(ys) * 4)
+    fig.savefig(FIGS / "fig-grain.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
+    plt.close(fig)
+    print("fig-grain.pdf")
+    print(f"   {g['nonzero']:,} non-zero deltas of 10,000,000 reads, "
+          f"zero-delta fraction {g['zero_fraction']}")
+    for s, n in g["steps"]:
+        print(f"   step {s:>5} units  {n:>9,}")
+
+
+# --------------------------------------------------------------------------
+# The decay-rate ladder. Beta is an ordered magnitude, not an identity, so it
+# takes one hue stepped light to dark rather than four categorical hues: that
+# is the correct encoding for the quantity and it is the one that survives
+# greyscale printing, where four hues collapse. The periodic reference is a
+# different job, a baseline rather than a peer, so it is neutral grey and
+# dashed, distinguishable without colour at all. Every curve is labelled
+# directly, which is also the relief the palette check requires.
+# --------------------------------------------------------------------------
+
+BETA_ARMS = ["hbeta_0.8_1e5", "hbeta_0.8_1e6", "hbeta_0.8_3e6", "hbeta_0.8_2.5e7"]
+BETA_RAMP = ["#c6dbef", "#6baed6", "#2171b5", "#08306b"]
+BETA_LABEL = {
+    "hbeta_0.8_1e5": r"$\beta$=1e5, cv$^2$=1.10",
+    "hbeta_0.8_1e6": r"$\beta$=1e6, cv$^2$=2.36",
+    "hbeta_0.8_3e6": r"$\beta$=3e6, cv$^2$=4.71",
+    "hbeta_0.8_2.5e7": r"$\beta$=2.5e7, cv$^2$=8.19",
+}
+BETA_REF = "rate_5000000"
+
+
+def _med(xs: list[float]) -> float:
+    xs = sorted(xs)
+    h = len(xs) // 2
+    return xs[h] if len(xs) % 2 else (xs[h - 1] + xs[h]) / 2.0
+
+
+def parse_beta(wait: str = "spin") -> dict[str, list[tuple[float, float]]]:
+    """Per arm, the survival curve: median over epochs then over launches."""
+    per: dict[tuple[str, int, float], list[tuple[float, float]]] = {}
+    for line in BETA.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("pl_ccdf "):
+            continue
+        f = dict(tok.split("=", 1) for tok in line.split() if "=" in tok)
+        if f.get("wait") != wait:
+            continue
+        load = f.get("load", "")
+        if load not in BETA_ARMS and load != BETA_REF:
+            continue
+        key = (load, int(f["launch"]), float(f["q"]))
+        per.setdefault(key, []).append((float(f["ns"]), float(f["survival"])))
+
+    assert per, f"no pl_ccdf rows for wait={wait} in {BETA.name}"
+    by_arm: dict[str, dict[float, list[float]]] = {}
+    surv: dict[float, float] = {}
+    for (load, _launch, q), vals in per.items():
+        by_arm.setdefault(load, {}).setdefault(q, []).append(_med([v[0] for v in vals]))
+        surv[q] = vals[0][1]
+
+    out: dict[str, list[tuple[float, float]]] = {}
+    for load, qs in by_arm.items():
+        out[load] = sorted(((_med(v), surv[q]) for q, v in qs.items()),
+                           key=lambda p: p[1], reverse=True)
+    for a in BETA_ARMS + [BETA_REF]:
+        assert a in out, f"{a} missing from {BETA.name} at wait={wait}"
+        assert len(out[a]) >= 30, f"{a} has only {len(out[a])} quantiles"
+    return out
+
+
+def fig_beta(curves: dict[str, list[tuple[float, float]]]) -> None:
+    """The ratio against the lowest-variability arm, quantile by quantile.
+
+    The first version of this drew four survival curves. Rendered, every label
+    collided at the bottom right, because all four curves terminate at the same
+    survival and within a factor of three in latency. That was the wrong form
+    as well as a bad layout: four overlapping curves are not the claim. The
+    claim is the ratio, which separates by a factor of thirteen and carries its
+    own peak, so that is what is drawn. The survival curves remain in the data
+    for anyone who wants them.
+    """
+    base = {s: ns for ns, s in curves[BETA_ARMS[0]]}
+    fig, ax = plt.subplots(figsize=(COL, 2.35))
+    ax.axhline(1.0, color="#8c8c8c", linestyle="--", linewidth=0.9)
+    ax.text(0.80, 1.0, "no effect", fontsize=6.3, color="#6b6b6b",
+            va="bottom", ha="left")
+
+    peak_of = {}
+    for arm, hue in zip(BETA_ARMS[1:], BETA_RAMP[1:]):
+        pts = [(s, ns / base[s]) for ns, s in curves[arm] if s in base]
+        pts.sort(key=lambda t: -t[0])
+        xs = [t[0] for t in pts]
+        ys = [t[1] for t in pts]
+        ax.plot(xs, ys, color=hue, linewidth=1.5)
+        pk = max(pts, key=lambda t: t[1])
+        peak_of[arm] = pk
+        ax.plot([pk[0]], [pk[1]], "o", color=hue, markersize=3.6)
+        # The x axis is inverted, so a smaller survival sits further right.
+        # Two renders were needed. Placed left of the peak the labels ran off
+        # the axis; placed just right of it the lowest one clipped the curve
+        # descending above it. They now sit out where every curve has decayed,
+        # each tied to its own peak by a leader, which is unambiguous without
+        # relying on colour.
+        ax.annotate(BETA_LABEL[arm],
+                    xy=(pk[0], pk[1]), xytext=(pk[0] * 0.10, pk[1] + 0.15),
+                    fontsize=6.3, color="#333333", va="bottom", ha="left",
+                    arrowprops=dict(arrowstyle="-", linewidth=0.5,
+                                    color="#999999", shrinkA=0, shrinkB=3))
+
+    ax.set_xscale("log")
+    ax.invert_xaxis()
+    ax.set_xlabel("survival, 1 - F   (deeper tail to the right)")
+    ax.set_ylabel(r"latency $\div$ latency at $\beta$=1e5")
+    ax.set_title("The tail cost tracks cv$^2$, not the Fano factor", loc="left")
+    ax.set_ylim(0, max(p[1] for p in peak_of.values()) * 1.18)
+    fig.savefig(FIGS / "fig-beta.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
+    plt.close(fig)
+    print("fig-beta.pdf")
+    print("   Fano is flat across these arms, 24.79 to 25.78, so the Fano account")
+    print("   predicts every one of these curves to sit on the dashed line.")
+    for arm in BETA_ARMS[1:]:
+        s, r = peak_of[arm]
+        print(f"   {arm:<18} peak ratio {r:>7.4f} at survival {s:.3e}")
+
+
 def main() -> None:
-    for f in (BARRIER, RUNLENGTH):
+    for f in (BARRIER, RUNLENGTH, PROBE, BETA):
         if not f.exists():
             sys.exit(f"missing {f}")
     FIGS.mkdir(parents=True, exist_ok=True)
@@ -472,6 +668,8 @@ def main() -> None:
     fig_ordering(ord_sweep)
     fig_clock(rows)
     fig_ccdf(parse_ccdf(BURST))
+    fig_grain(parse_grain())
+    fig_beta(parse_beta())
     print("\n=== font verification ===")
     verify_fonts()
 

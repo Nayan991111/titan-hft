@@ -25,6 +25,7 @@
 \makeatother
 
 \usepackage{graphicx}
+\graphicspath{{../figures/}}
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{url}
@@ -492,9 +493,22 @@ consecutive pairs do not advance at all. A read costs about 10.20 nanoseconds,
 and 34 pairs in ten million exceed eight steps.
 
 So the usable grain is 41.667 nanoseconds behind a one gigahertz facade, three
-reads in four return no change, and a single read costs a quarter of a tick. No
-claim about a single message at tens of nanoseconds can rest on this counter,
-and none in this paper does.
+reads in four return no change, and a single read costs a quarter of a tick.
+Figure~\ref{fig:grain} shows the distribution. No claim about a single message
+at tens of nanoseconds can rest on this counter, and none in this paper does.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig-grain.pdf}
+\caption{Ten million consecutive reads of the virtual counter on the M4. The
+interface advertises a one nanosecond tick and the counter never once advances
+by one. The mass sits at 41 and 42 units, which is the 24\,MHz hardware tick
+that the Mach timebase of 125/3 implies, and 0.7558 of consecutive pairs do not
+advance at all. A study quoting tens of nanoseconds from this counter is
+quoting quantisation. Drawn from
+\texttt{results/2026-11-21\_m4\_probe.txt}.}
+\label{fig:grain}
+\end{figure}
 
 \subsection{Hardware counters, and the boundary we measured rather than assumed}
 
