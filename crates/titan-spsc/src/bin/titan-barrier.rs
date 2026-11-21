@@ -94,8 +94,17 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
         (Some(s), Some(a), Some(b)) => {
             let d = s.delta(&a, &b);
             let per = |x: u64| x as f64 / n as f64;
+            // The field names follow the counters that were actually
+            // programmed. Emitting store-probe data under msg_l1d_miss would
+            // put a wrong name on a committed record, which is exactly the
+            // class of defect this register keeps recording.
+            let (n2, n3) = if store_probe() {
+                ("msg_l1d_store_miss", "msg_ldst_wait_cycles")
+            } else {
+                ("msg_l1d_miss", "msg_br_mispred")
+            };
             format!(
-                " msg_cycles={:.3} msg_instructions={:.2} msg_l1d_miss={:.4} msg_br_mispred={:.4} core_ghz={:.3}",
+                " msg_cycles={:.3} msg_instructions={:.2} {n2}={:.4} {n3}={:.4} core_ghz={:.3}",
                 per(d[0]),
                 per(d[1]),
                 per(d[2]),
@@ -117,6 +126,15 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
     sum_ok
 }
 
+/// Whether the store-side counter pair was requested. Read once from the
+/// command line and cached, so the record writer and the session builder
+/// cannot disagree about which counters are in use.
+fn store_probe() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "storeprobe"))
+}
+
 type Case = fn(usize, usize, Option<&Session>) -> bool;
 
 fn main() {
@@ -125,11 +143,15 @@ fn main() {
     let epochs: usize = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(3);
     let pmu = if args.iter().any(|a| a == "pmu") {
         match Kperf::open().and_then(|k| {
+            // `storeprobe` swaps the two configurable counters for the pair
+            // that separates miss count from miss waiting time. H78 needs that
+            // separation; nothing else does, so the default is unchanged and
+            // every earlier results file stays comparable.
             k.session(&[
                 events::CYCLES,
                 events::INSTRUCTIONS,
-                events::L1D_LOAD_MISS,
-                events::BRANCH_MISPREDICT,
+                if store_probe() { events::L1D_STORE_MISS } else { events::L1D_LOAD_MISS },
+                if store_probe() { events::LDST_WAIT_MISS } else { events::BRANCH_MISPREDICT },
             ])
         }) {
             Ok(s) => Some(s),

@@ -448,6 +448,20 @@ pub mod events {
     pub const INSTRUCTIONS: &[&str] = &["FIXED_INSTRUCTIONS", "INST_ALL", "Instructions"];
     pub const L1D_LOAD_MISS: &[&str] = &["L1D_CACHE_MISS_LD", "L1D_CACHE_MISS_LD_NONSPEC"];
     pub const BRANCH_MISPREDICT: &[&str] = &["BRANCH_MISPRED_NONSPEC", "Branch Mispredictions"];
+
+    /// Stores that missed L1D. The retired form first, the speculative form as
+    /// a fallback. Present in this machine's database, which E5 committed.
+    pub const L1D_STORE_MISS: &[&str] = &["L1D_CACHE_MISS_ST_NONSPEC", "L1D_CACHE_MISS_ST"];
+
+    /// Cycles while an older load or store uop waits for data after an L1D
+    /// miss. This is the counter that separates how many misses occur from how
+    /// long they are waited on, which is the whole question when two arms take
+    /// the same misses and differ in time.
+    pub const LDST_WAIT_MISS: &[&str] = &["LDST_UNIT_OLD_L1D_CACHE_MISS"];
+
+    /// Retired data barrier instructions, so a claim that a barrier is present
+    /// can be counted rather than assumed.
+    pub const BARRIERS: &[&str] = &["INST_BARRIER"];
 }
 
 #[cfg(test)]

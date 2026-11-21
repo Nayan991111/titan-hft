@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: seventeen closed, none partly closed, none open. Seventeen entries in all.**
+**Status at 2026-11-21: eighteen closed, none partly closed, none open. Eighteen entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -740,3 +740,43 @@ differ.
 **What changes in how I work.** Before writing a check in an area this register
 already covers, I read the entry that covers it. A register nobody rereads is a
 diary, not a control.
+
+---
+
+## D18. The paper named an instruction the compiler does not emit on both paths
+
+**Found** 2026-11-21, by reading the instruction census output instead of
+assuming what the census would say.
+**Severity** the paper's central claim is about the store side, and it named
+the wrong store instruction for half the measured path. A reviewer with
+`otool` finds it in a minute.
+
+The manuscript said the acquire-release arm uses `stlr`, twice, and named no
+acquire-side instruction at all. The census over the compiled library says
+otherwise:
+
+    titan_census_push_acqrel        ldapur=1  stlr=1
+    titan_census_pop_acqrel         ldapr=1   stlur=1
+    titan_census_push_fencedstore   ldapur=1  dmb=1  str=3
+    titan_census_pop_fencedstore    ldapr=1   dmb=1  str=2
+
+The producer path uses `stlr` and the consumer path uses `stlur`, the unscaled
+release store. The acquire side is `ldapur` on one path and `ldapr` on the
+other. Both are RCpc forms and neither path emits `ldar`, which the paper also
+never said. The scaled and unscaled encodings are different instructions, and
+the claim under examination is specifically about the store side, so calling
+both of them `stlr` is not shorthand, it is wrong.
+
+**CLOSED 2026-11-21** the abstract names both store forms and says which path
+each belongs to, the contribution says "the release store" rather than naming
+one, and the Method states the full census for all four arms along with the
+fact that substituting the store side adds exactly one barrier and one store to
+each path. The census output is what established this, and it is the mechanism
+the repository already had for exactly this purpose.
+
+**Why it survived.** The census script existed and was never read against the
+manuscript. That is the same shape as D16, where a validation ran and its
+negative answer went unread, and as D13, where novelty was asserted without the
+search that would have checked it. The repository keeps producing the evidence
+that would have caught these, and the gap is between producing it and reading
+it.

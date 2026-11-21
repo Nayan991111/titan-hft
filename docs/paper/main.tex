@@ -59,10 +59,11 @@ choice of ordering construct behaves in a way no memory model describing this
 hardware predicts. That a store-release can cost more than a stronger barrier
 has been reported before, on other ARM parts and once on an Apple M1, in both
 cases without a rule for when it happens; the rule is what we
-measure. Replacing the release store \texttt{stlr} with a \texttt{dmb
-ish} barrier followed by a plain store costs 2.5766 times fewer cycles per
-message when the cursor line is contended, and 2.7008 times more once the line
-is resident in L1, each at 30 of 30 independent launches. Both are cycle ratios
+measure. Replacing the release store, which LLVM emits as
+\texttt{stlr} on the producer path and \texttt{stlur} on the consumer path,
+with a \texttt{dmb ish} barrier followed by a plain store costs 2.5766 times
+fewer cycles per message when the cursor line is contended, and 2.7008 times
+more once the line is resident in L1, each at 30 of 30 independent launches. Both are cycle ratios
 read from the hardware counters rather than nanosecond ratios, because a
 registered check on the spread of core frequency across the arms failed and the
 consequence of that failure was fixed before the run. Crossing the two halves of the acquire-release
@@ -91,7 +92,7 @@ term of Kingman's heavy-traffic approximation implies 7.444. The measured ratio
 is 6.2317 at the median and 13.5030 at the quantile where the contrast peaks, in
 30 of 30 launches, with 841 ns becoming 11356 ns at the same offered rate on the
 same binary and the same messages. The periodic and Poisson references show no
-effect against the low-variability arm, at 8 and 9 of 30. All results come from a pre-registered protocol, 81 hypothesis rows and five
+effect against the low-variability arm, at 8 and 9 of 30. All results come from a pre-registered protocol, 82 hypothesis rows and five
 exploratory calibrations, with thresholds fixed before each run, at least 20 independent launches per
 comparison and 30 for all but the run-length sweep, within-launch pairing and
 an exact two-sided sign test. Every figure regenerates from the
@@ -146,9 +147,9 @@ bounds what ordering costs, and does not name a cheaper ring that exists.
 store-release can cost more than a stronger barrier is already
 reported~\cite{liu2020barriers,arden2023riscv}, without a rule for when, and
 Liu et al. recommend measuring it for that reason. The rule measured here is
-caching state: substituting \texttt{dmb ish} and a plain store for
-\texttt{stlr} costs 2.5766 times fewer cycles per message when the cursor line
-is contended and 2.7008 times more when it is resident in L1, each at 30 of 30
+caching state: substituting \texttt{dmb ish} and a plain store for the release
+store costs 2.5766 times fewer cycles per message when the cursor line is
+contended and 2.7008 times more when it is resident in L1, each at 30 of 30
 launches, so the comparison changes sign rather than magnitude. Two runs with
 different epoch counts agree on the contended figure to one part in a thousand.
 The obvious explanation is excluded by the counters: the barrier arm carries
@@ -326,7 +327,7 @@ state whether a study was pre-registered, and that journals adapt review to
 accept registered reports, which they call perhaps the most promising of all
 the interventions they consider.
 
-This study is conducted that way. Eighty-one hypothesis rows and five exploratory
+This study is conducted that way. Eighty-two hypothesis rows and five exploratory
 calibrations carry thresholds fixed before the corresponding measurement
 existed, each registration was pushed to a public remote before the data it
 governs was collected, and every verdict is recorded against the row that
@@ -462,7 +463,16 @@ work does not hold for this loop.
 
 Five orderings are compared. An acquire load paired with a release store, the
 same with a \texttt{dmb ish} barrier substituted on the load side alone, on the
-store side alone, and on both, and an unordered arm with no ordering at all. The
+store side alone, and on both, and an unordered arm with no ordering at all.
+The instructions LLVM actually emits are recorded rather than assumed, by an
+instruction census over the compiled library. The acquire-release arm compiles
+to \texttt{ldapur} with \texttt{stlr} on the producer path and \texttt{ldapr}
+with \texttt{stlur} on the consumer path, so both the scaled and the unscaled
+RCpc forms appear and neither path uses \texttt{ldar}. Substituting the store
+side replaces that release store with \texttt{dmb ish} followed by a plain
+\texttt{str} on both paths, and adds exactly one barrier and one store to each
+census. Naming a single instruction for the store side would have been wrong:
+the two paths do not use the same one. The
 unordered arm is a cost floor and not a candidate: it fails its checksum in
 every epoch it runs, 0 of 180 passes, while each of the four correct rings
 passes 180 of 180. Reporting it as an alternative would be reporting a ring that
