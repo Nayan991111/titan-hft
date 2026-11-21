@@ -1,0 +1,292 @@
+INSTRUCTION CENSUS of the titan-spsc ring, Apple M4. Captured not assumed.
+Run 2026-11-21 17:44 IST. Registered as e4f98de4d1814ecc7a44febc91d95a443dcff5c9.
+
+MACHINE : Mac16,13 , 10 cpus
+OS      : ProductVersion 27.2.1, BuildVersion 26B131
+RUSTC   : rustc 1.92.0 (ded5c06cf 2025-12-08)
+RUSTFLAGS: unset
+ARCH    : arm64, census verified to carry AArch64 mnemonics
+COMMIT  : e4f98de4d1814ecc7a44febc91d95a443dcff5c9
+POWER   : not applicable, static analysis of emitted assembly with no hardware timing
+
+WHY THIS FILE EXISTS. The manuscript named stlr for the release store on
+both paths. The compiler emits stlr on the producer path and stlur on the
+consumer path, and the acquire side is ldapur and ldapr with ldar on
+neither. See docs/defects.md D18. The census existed and was never read
+against the manuscript; committing it lets a gate read it.
+
+SYMBOLS : 13   LINES : 273
+
+titan_census_pop_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapr=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_pop_fenced: add=1 and=1 b.ne=2 cmp=2 dmb=2 ldp=1 ldr=5 mov=2 ret=2 str=2
+titan_census_pop_fencedload: add=1 and=1 b.ne=2 cmp=2 dmb=1 ldp=1 ldr=5 mov=2 ret=2 stlur=1 str=1
+titan_census_pop_fencedstore: add=2 and=1 b.ne=2 cmp=2 dmb=1 ldapr=1 ldp=1 ldr=4 mov=2 ret=2 str=2
+titan_census_pop_seqcst: add=2 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=4 mov=2 ret=2 stlur=1 str=1
+titan_census_pop_unordered: add=1 and=1 b.ne=2 cmp=2 ldp=1 ldr=5 mov=2 ret=2 str=2
+titan_census_push_acqrel: add=2 and=1 b.ne=2 cmp=2 ldapur=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+titan_census_push_fenced: add=1 and=1 b.ne=2 cmp=2 dmb=2 ldp=1 ldr=6 mov=2 ret=2 str=3 sub=2
+titan_census_push_fencedload: add=2 and=1 b.ne=2 cmp=2 dmb=1 ldp=1 ldr=6 mov=2 ret=2 stlr=1 str=2 sub=2
+titan_census_push_fencedstore: add=1 and=1 b.ne=2 cmp=2 dmb=1 ldapur=1 ldp=1 ldr=5 mov=2 ret=2 str=3 sub=2
+titan_census_push_seqcst: add=3 and=1 b.ne=2 cmp=2 ldar=1 ldp=1 ldr=5 mov=2 ret=2 stlr=1 str=2 sub=2
+titan_census_push_unordered: add=1 and=1 b.ne=2 cmp=2 ldp=1 ldr=5 mov=2 ret=2 str=3 sub=1
+titan_census_wait_wfe: cbnz=1 eor=1 ldxr=1 ret=1 sevl=1 wfe=2
+titan_census_pop_acqrel		ldr	x8, [x0]
+titan_census_pop_acqrel		ldr	x9, [x8, #128]
+titan_census_pop_acqrel		ldr	x10, [x8, #136]
+titan_census_pop_acqrel		cmp	x9, x10
+titan_census_pop_acqrel		b.ne	LBB7_3
+titan_census_pop_acqrel		add	x10, x8, #256
+titan_census_pop_acqrel		ldapr	x10, [x10]
+titan_census_pop_acqrel		str	x10, [x8, #136]
+titan_census_pop_acqrel		cmp	x9, x10
+titan_census_pop_acqrel		b.ne	LBB7_3
+titan_census_pop_acqrel		mov	x0, #0
+titan_census_pop_acqrel		ret
+titan_census_pop_acqrel		ldp	x10, x11, [x8, #384]
+titan_census_pop_acqrel		and	x11, x11, x9
+titan_census_pop_acqrel		ldr	x1, [x10, x11, lsl #3]
+titan_census_pop_acqrel		add	x9, x9, #1
+titan_census_pop_acqrel		stlur	x9, [x8, #128]
+titan_census_pop_acqrel		mov	w0, #1
+titan_census_pop_acqrel		ret
+titan_census_pop_fenced		ldr	x8, [x0]
+titan_census_pop_fenced		ldr	x9, [x8, #128]
+titan_census_pop_fenced		ldr	x10, [x8, #136]
+titan_census_pop_fenced		cmp	x9, x10
+titan_census_pop_fenced		b.ne	LBB8_3
+titan_census_pop_fenced		ldr	x10, [x8, #256]
+titan_census_pop_fenced		dmb	ish
+titan_census_pop_fenced		str	x10, [x8, #136]
+titan_census_pop_fenced		cmp	x9, x10
+titan_census_pop_fenced		b.ne	LBB8_3
+titan_census_pop_fenced		mov	x0, #0
+titan_census_pop_fenced		ret
+titan_census_pop_fenced		ldp	x10, x11, [x8, #384]
+titan_census_pop_fenced		and	x11, x11, x9
+titan_census_pop_fenced		ldr	x1, [x10, x11, lsl #3]
+titan_census_pop_fenced		add	x9, x9, #1
+titan_census_pop_fenced		dmb	ish
+titan_census_pop_fenced		str	x9, [x8, #128]
+titan_census_pop_fenced		mov	w0, #1
+titan_census_pop_fenced		ret
+titan_census_pop_fencedload		ldr	x8, [x0]
+titan_census_pop_fencedload		ldr	x9, [x8, #128]
+titan_census_pop_fencedload		ldr	x10, [x8, #136]
+titan_census_pop_fencedload		cmp	x9, x10
+titan_census_pop_fencedload		b.ne	LBB9_3
+titan_census_pop_fencedload		ldr	x10, [x8, #256]
+titan_census_pop_fencedload		dmb	ish
+titan_census_pop_fencedload		str	x10, [x8, #136]
+titan_census_pop_fencedload		cmp	x9, x10
+titan_census_pop_fencedload		b.ne	LBB9_3
+titan_census_pop_fencedload		mov	x0, #0
+titan_census_pop_fencedload		ret
+titan_census_pop_fencedload		ldp	x10, x11, [x8, #384]
+titan_census_pop_fencedload		and	x11, x11, x9
+titan_census_pop_fencedload		ldr	x1, [x10, x11, lsl #3]
+titan_census_pop_fencedload		add	x9, x9, #1
+titan_census_pop_fencedload		stlur	x9, [x8, #128]
+titan_census_pop_fencedload		mov	w0, #1
+titan_census_pop_fencedload		ret
+titan_census_pop_fencedstore		ldr	x8, [x0]
+titan_census_pop_fencedstore		ldr	x9, [x8, #128]
+titan_census_pop_fencedstore		ldr	x10, [x8, #136]
+titan_census_pop_fencedstore		cmp	x9, x10
+titan_census_pop_fencedstore		b.ne	LBB10_3
+titan_census_pop_fencedstore		add	x10, x8, #256
+titan_census_pop_fencedstore		ldapr	x10, [x10]
+titan_census_pop_fencedstore		str	x10, [x8, #136]
+titan_census_pop_fencedstore		cmp	x9, x10
+titan_census_pop_fencedstore		b.ne	LBB10_3
+titan_census_pop_fencedstore		mov	x0, #0
+titan_census_pop_fencedstore		ret
+titan_census_pop_fencedstore		ldp	x10, x11, [x8, #384]
+titan_census_pop_fencedstore		and	x11, x11, x9
+titan_census_pop_fencedstore		ldr	x1, [x10, x11, lsl #3]
+titan_census_pop_fencedstore		add	x9, x9, #1
+titan_census_pop_fencedstore		dmb	ish
+titan_census_pop_fencedstore		str	x9, [x8, #128]
+titan_census_pop_fencedstore		mov	w0, #1
+titan_census_pop_fencedstore		ret
+titan_census_pop_seqcst		ldr	x8, [x0]
+titan_census_pop_seqcst		ldr	x9, [x8, #128]
+titan_census_pop_seqcst		ldr	x10, [x8, #136]
+titan_census_pop_seqcst		cmp	x9, x10
+titan_census_pop_seqcst		b.ne	LBB11_3
+titan_census_pop_seqcst		add	x10, x8, #256
+titan_census_pop_seqcst		ldar	x10, [x10]
+titan_census_pop_seqcst		str	x10, [x8, #136]
+titan_census_pop_seqcst		cmp	x9, x10
+titan_census_pop_seqcst		b.ne	LBB11_3
+titan_census_pop_seqcst		mov	x0, #0
+titan_census_pop_seqcst		ret
+titan_census_pop_seqcst		ldp	x10, x11, [x8, #384]
+titan_census_pop_seqcst		and	x11, x11, x9
+titan_census_pop_seqcst		ldr	x1, [x10, x11, lsl #3]
+titan_census_pop_seqcst		add	x9, x9, #1
+titan_census_pop_seqcst		stlur	x9, [x8, #128]
+titan_census_pop_seqcst		mov	w0, #1
+titan_census_pop_seqcst		ret
+titan_census_pop_unordered		ldr	x8, [x0]
+titan_census_pop_unordered		ldr	x9, [x8, #128]
+titan_census_pop_unordered		ldr	x10, [x8, #136]
+titan_census_pop_unordered		cmp	x9, x10
+titan_census_pop_unordered		b.ne	LBB12_3
+titan_census_pop_unordered		ldr	x10, [x8, #256]
+titan_census_pop_unordered		str	x10, [x8, #136]
+titan_census_pop_unordered		cmp	x9, x10
+titan_census_pop_unordered		b.ne	LBB12_3
+titan_census_pop_unordered		mov	x0, #0
+titan_census_pop_unordered		ret
+titan_census_pop_unordered		ldp	x10, x11, [x8, #384]
+titan_census_pop_unordered		and	x11, x11, x9
+titan_census_pop_unordered		ldr	x1, [x10, x11, lsl #3]
+titan_census_pop_unordered		add	x9, x9, #1
+titan_census_pop_unordered		str	x9, [x8, #128]
+titan_census_pop_unordered		mov	w0, #1
+titan_census_pop_unordered		ret
+titan_census_push_acqrel		ldr	x8, [x0]
+titan_census_push_acqrel		ldr	x9, [x8, #256]
+titan_census_push_acqrel		ldr	x10, [x8, #264]
+titan_census_push_acqrel		ldr	x11, [x8, #400]
+titan_census_push_acqrel		sub	x10, x9, x10
+titan_census_push_acqrel		cmp	x10, x11
+titan_census_push_acqrel		b.ne	LBB13_3
+titan_census_push_acqrel		ldapur	x10, [x8, #128]
+titan_census_push_acqrel		str	x10, [x8, #264]
+titan_census_push_acqrel		ldr	x11, [x8, #400]
+titan_census_push_acqrel		sub	x10, x9, x10
+titan_census_push_acqrel		cmp	x10, x11
+titan_census_push_acqrel		b.ne	LBB13_3
+titan_census_push_acqrel		mov	w0, #0
+titan_census_push_acqrel		ret
+titan_census_push_acqrel		ldp	x10, x11, [x8, #384]
+titan_census_push_acqrel		and	x11, x11, x9
+titan_census_push_acqrel		str	x1, [x10, x11, lsl #3]
+titan_census_push_acqrel		add	x9, x9, #1
+titan_census_push_acqrel		add	x8, x8, #256
+titan_census_push_acqrel		stlr	x9, [x8]
+titan_census_push_acqrel		mov	w0, #1
+titan_census_push_acqrel		ret
+titan_census_push_fenced		ldr	x8, [x0]
+titan_census_push_fenced		ldr	x9, [x8, #256]
+titan_census_push_fenced		ldr	x10, [x8, #264]
+titan_census_push_fenced		ldr	x11, [x8, #400]
+titan_census_push_fenced		sub	x10, x9, x10
+titan_census_push_fenced		cmp	x10, x11
+titan_census_push_fenced		b.ne	LBB14_3
+titan_census_push_fenced		ldr	x10, [x8, #128]
+titan_census_push_fenced		dmb	ish
+titan_census_push_fenced		str	x10, [x8, #264]
+titan_census_push_fenced		ldr	x11, [x8, #400]
+titan_census_push_fenced		sub	x10, x9, x10
+titan_census_push_fenced		cmp	x10, x11
+titan_census_push_fenced		b.ne	LBB14_3
+titan_census_push_fenced		mov	w0, #0
+titan_census_push_fenced		ret
+titan_census_push_fenced		ldp	x10, x11, [x8, #384]
+titan_census_push_fenced		and	x11, x11, x9
+titan_census_push_fenced		str	x1, [x10, x11, lsl #3]
+titan_census_push_fenced		add	x9, x9, #1
+titan_census_push_fenced		dmb	ish
+titan_census_push_fenced		str	x9, [x8, #256]
+titan_census_push_fenced		mov	w0, #1
+titan_census_push_fenced		ret
+titan_census_push_fencedload		ldr	x8, [x0]
+titan_census_push_fencedload		ldr	x9, [x8, #256]
+titan_census_push_fencedload		ldr	x10, [x8, #264]
+titan_census_push_fencedload		ldr	x11, [x8, #400]
+titan_census_push_fencedload		sub	x10, x9, x10
+titan_census_push_fencedload		cmp	x10, x11
+titan_census_push_fencedload		b.ne	LBB15_3
+titan_census_push_fencedload		ldr	x10, [x8, #128]
+titan_census_push_fencedload		dmb	ish
+titan_census_push_fencedload		str	x10, [x8, #264]
+titan_census_push_fencedload		ldr	x11, [x8, #400]
+titan_census_push_fencedload		sub	x10, x9, x10
+titan_census_push_fencedload		cmp	x10, x11
+titan_census_push_fencedload		b.ne	LBB15_3
+titan_census_push_fencedload		mov	w0, #0
+titan_census_push_fencedload		ret
+titan_census_push_fencedload		ldp	x10, x11, [x8, #384]
+titan_census_push_fencedload		and	x11, x11, x9
+titan_census_push_fencedload		str	x1, [x10, x11, lsl #3]
+titan_census_push_fencedload		add	x9, x9, #1
+titan_census_push_fencedload		add	x8, x8, #256
+titan_census_push_fencedload		stlr	x9, [x8]
+titan_census_push_fencedload		mov	w0, #1
+titan_census_push_fencedload		ret
+titan_census_push_fencedstore		ldr	x8, [x0]
+titan_census_push_fencedstore		ldr	x9, [x8, #256]
+titan_census_push_fencedstore		ldr	x10, [x8, #264]
+titan_census_push_fencedstore		ldr	x11, [x8, #400]
+titan_census_push_fencedstore		sub	x10, x9, x10
+titan_census_push_fencedstore		cmp	x10, x11
+titan_census_push_fencedstore		b.ne	LBB16_3
+titan_census_push_fencedstore		ldapur	x10, [x8, #128]
+titan_census_push_fencedstore		str	x10, [x8, #264]
+titan_census_push_fencedstore		ldr	x11, [x8, #400]
+titan_census_push_fencedstore		sub	x10, x9, x10
+titan_census_push_fencedstore		cmp	x10, x11
+titan_census_push_fencedstore		b.ne	LBB16_3
+titan_census_push_fencedstore		mov	w0, #0
+titan_census_push_fencedstore		ret
+titan_census_push_fencedstore		ldp	x10, x11, [x8, #384]
+titan_census_push_fencedstore		and	x11, x11, x9
+titan_census_push_fencedstore		str	x1, [x10, x11, lsl #3]
+titan_census_push_fencedstore		add	x9, x9, #1
+titan_census_push_fencedstore		dmb	ish
+titan_census_push_fencedstore		str	x9, [x8, #256]
+titan_census_push_fencedstore		mov	w0, #1
+titan_census_push_fencedstore		ret
+titan_census_push_seqcst		ldr	x8, [x0]
+titan_census_push_seqcst		ldr	x9, [x8, #256]
+titan_census_push_seqcst		ldr	x10, [x8, #264]
+titan_census_push_seqcst		ldr	x11, [x8, #400]
+titan_census_push_seqcst		sub	x10, x9, x10
+titan_census_push_seqcst		cmp	x10, x11
+titan_census_push_seqcst		b.ne	LBB17_3
+titan_census_push_seqcst		add	x10, x8, #128
+titan_census_push_seqcst		ldar	x10, [x10]
+titan_census_push_seqcst		str	x10, [x8, #264]
+titan_census_push_seqcst		ldr	x11, [x8, #400]
+titan_census_push_seqcst		sub	x10, x9, x10
+titan_census_push_seqcst		cmp	x10, x11
+titan_census_push_seqcst		b.ne	LBB17_3
+titan_census_push_seqcst		mov	w0, #0
+titan_census_push_seqcst		ret
+titan_census_push_seqcst		ldp	x10, x11, [x8, #384]
+titan_census_push_seqcst		and	x11, x11, x9
+titan_census_push_seqcst		str	x1, [x10, x11, lsl #3]
+titan_census_push_seqcst		add	x9, x9, #1
+titan_census_push_seqcst		add	x8, x8, #256
+titan_census_push_seqcst		stlr	x9, [x8]
+titan_census_push_seqcst		mov	w0, #1
+titan_census_push_seqcst		ret
+titan_census_push_unordered		ldr	x8, [x0]
+titan_census_push_unordered		ldr	x9, [x8, #256]
+titan_census_push_unordered		ldr	x10, [x8, #264]
+titan_census_push_unordered		ldr	x11, [x8, #400]
+titan_census_push_unordered		sub	x12, x9, x10
+titan_census_push_unordered		cmp	x12, x11
+titan_census_push_unordered		b.ne	LBB18_3
+titan_census_push_unordered		ldr	x11, [x8, #128]
+titan_census_push_unordered		str	x11, [x8, #264]
+titan_census_push_unordered		cmp	x10, x11
+titan_census_push_unordered		b.ne	LBB18_3
+titan_census_push_unordered		mov	w0, #0
+titan_census_push_unordered		ret
+titan_census_push_unordered		ldp	x10, x11, [x8, #384]
+titan_census_push_unordered		and	x11, x11, x9
+titan_census_push_unordered		str	x1, [x10, x11, lsl #3]
+titan_census_push_unordered		add	x9, x9, #1
+titan_census_push_unordered		str	x9, [x8, #256]
+titan_census_push_unordered		mov	w0, #1
+titan_census_push_unordered		ret
+titan_census_wait_wfe		sevl
+titan_census_wait_wfe		wfe
+titan_census_wait_wfe		ldxr	x8, [x0]
+titan_census_wait_wfe		eor	x8, x8, x1
+titan_census_wait_wfe		cbnz	x8, Ltmp0
+titan_census_wait_wfe		wfe
+titan_census_wait_wfe		ret
