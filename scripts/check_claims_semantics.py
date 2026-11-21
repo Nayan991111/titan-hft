@@ -75,6 +75,35 @@ def main():
         if phrase in tex:
             bad.append(f"D5: the manuscript still claims '{phrase}'")
 
+    # The row count is written twice in the manuscript, once as a digit in the
+    # abstract and once as a word in the pre-registration subsection. The check
+    # read the digit and not the word, so the word went stale at 'Eighty' while
+    # the table held 81 and every gate passed. Both forms are checked now.
+    WORDS = {
+        70: "Seventy", 71: "Seventy-one", 72: "Seventy-two", 73: "Seventy-three",
+        74: "Seventy-four", 75: "Seventy-five", 76: "Seventy-six",
+        77: "Seventy-seven", 78: "Seventy-eight", 79: "Seventy-nine",
+        80: "Eighty", 81: "Eighty-one", 82: "Eighty-two", 83: "Eighty-three",
+        84: "Eighty-four", 85: "Eighty-five", 86: "Eighty-six",
+        87: "Eighty-seven", 88: "Eighty-eight", 89: "Eighty-nine", 90: "Ninety",
+    }
+    for word in set(WORDS.values()):
+        if f"{word} hypothesis rows" in tex and word != WORDS.get(h):
+            bad.append(f"the manuscript says '{word} hypothesis rows' in prose but the "
+                       f"table holds {h}")
+    if h in WORDS and f"{WORDS[h]} hypothesis rows" not in tex:
+        bad.append(f"the manuscript never states the row count in words; the "
+                   f"pre-registration subsection is expected to say "
+                   f"'{WORDS[h]} hypothesis rows'")
+
+    # A committed document that contradicts the manuscript is worse than no
+    # document. docs/paper.md is the frozen Gate 4 planning note; it must say so.
+    pm = ROOT / "docs" / "paper.md"
+    if pm.exists() and "SUPERSEDED PLANNING DOCUMENT" not in pm.read_text(encoding="utf-8"):
+        bad.append("docs/paper.md is a superseded planning document and no longer "
+                   "carries the banner saying so, so a reader would take its stale "
+                   "claims for current ones")
+
     # D10. The protocol is not uniform: the run-length sweep used 20
     # independent launches where everything else used 30, and the abstract
     # claimed 30 for all of it.

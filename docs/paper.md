@@ -1,3 +1,24 @@
+> **SUPERSEDED PLANNING DOCUMENT. Frozen 2026-11-16. Do not read this for the
+> paper's current claims.**
+>
+> This was the Gate 4 planning note, written on 73 pre-registered hypotheses
+> and 25 results files. The study now carries 81 hypothesis rows, four
+> exploratory calibrations and 37 results files, and several claims here have
+> since been retracted or re-grounded. The manuscript is `docs/paper/main.tex`
+> and the defect register is `docs/defects.md`; where this file and either of
+> those disagree, they are right and this is stale.
+>
+> Two specifics worth naming, because a reader could otherwise carry them
+> forward. The title and thesis here predate the retitle that moved the claim
+> from the barrier effect to the condition governing it. And the counter grain
+> asserted below is not verified for this part: the committed results files
+> record the value read from `CNTFRQ_EL0` at runtime, which is what the
+> manuscript relies on.
+>
+> It is kept rather than deleted because the pre-registration record includes
+> how the thinking moved, and a planning document that was wrong in places is
+> part of that.
+
 # Gate 4: title, abstract, section map, venue
 
 Written 2026-11-16 on 73 pre-registered hypotheses and 25 results files. Every
