@@ -56,6 +56,9 @@ DERIVED: dict[str, tuple[str, int]] = {
     # Stated beside the median of the per-launch ratios so the reader is not
     # left to discover that the two estimators differ. See docs/defects.md D3.
     "1.0728": ("133.611 / 124.544", 4),
+    # The Mach timebase on this part, 125/3, which is the counter grain the
+    # probe measures the hardware obeying. results/2026-11-21_m4_probe.txt.
+    "41.667": ("125 / 3", 3),
 }
 
 # Values quoted from a cited work. The key must resolve in refs.bib.
@@ -88,6 +91,7 @@ PERCENT: dict[str, tuple[str, str]] = {
     "1": ("cite", "khayet2026arm"),
     "8.94": ("cite", "wrenger2024m1"),
     "7.3": ("measured", "2026-11-21_m4_h77_cycles.txt"),
+    "0.0317": ("measured", "2026-11-21_m4_probe.txt"),
     "2.1": ("measured", "2026-11-21_m4_h77_cycles.txt"),
     "1.8": ("measured", "2026-11-21_m4_h77_cycles.txt"),
 }

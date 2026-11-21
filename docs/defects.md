@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: fifteen closed, none partly closed, none open. Fifteen entries in all.**
+**Status at 2026-11-21: sixteen closed, none partly closed, none open. Sixteen entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -644,3 +644,57 @@ The standing correction is narrow and checkable: a tool that will run on the
 measuring machine is not verified until it has run there. Where that cannot be
 done from the development side, the delivery script carries the check and
 reports it, as t72 did for kperf and as t79 now does for the build.
+
+---
+
+## D16. A validation ran, returned a negative answer, and nobody read it
+
+**Found** 2026-11-21, by committing the platform probe's output and then reading
+it instead of skimming it.
+**Severity** a stated capability of the measurement apparatus that the apparatus
+itself reports it does not have. No published number is wrong, and the Method
+section would have been wrong without this.
+
+`syscall_test` in `titan-probe` exists to establish whether the user-only count
+mode excludes kernel work. Its own comment gives the logic: with kernel counting
+a `getppid` call costs hundreds of instructions, and a filter that truly excludes
+kernel mode leaves only the user-side trap stub, a handful.
+
+Measured on this part, over 100,000 calls, three trials per mode, with the modes
+alternated so run-order drift cannot masquerade as a mode effect:
+
+    mode=All       1110.2, 1110.1, 1110.2 instructions per call
+    mode=UserOnly  1110.2, 1110.1, 1110.2 instructions per call
+
+By the test's own logic the filter is not excluding kernel mode. The numbers are
+identical to one part in ten thousand across modes. The test had been running
+and passing visual inspection for days because its output was read as "the
+counters work" rather than as the comparison it was written to make.
+
+A plausible mechanism is that `FIXED_CYCLES` and `FIXED_INSTRUCTIONS` are
+fixed-class counters, and the per-event flag that carries the mode reaches
+`kpep_config_add_event` but the code only calls `kpc_set_config` when the
+configurable class is present. That is a hypothesis and the probe does not test
+it, so it is not asserted.
+
+A second line of evidence sits in the same file and agrees. The known-length
+instruction chain expects exactly 1,020,000,000 instructions and the counter
+reports between 1,020,167,770 and 1,020,323,076 across twenty trials, an excess
+of about two hundred thousand instructions, which is the kind of residue that
+interrupts and involuntary switches leave and which a user-only count would not
+carry.
+
+**CLOSED 2026-11-21** the Method section states that every counter figure in
+this paper includes kernel work done on the thread's behalf, because that is
+what the apparatus was measured to do rather than what its mode flag claims.
+The limitation is bounded and already instrumented: the hot loop performs no
+system call, and every `bd` record carries `invol_switches` so a reader can see
+how much involuntary kernel activity each measurement absorbed. The count mode
+is reported as untested rather than as working, and the probe output is
+committed so the next reader sees the comparison rather than taking the comment
+on trust.
+
+**The pattern.** This is the second time a check produced the right output and
+the wrong conclusion was drawn from it, after D8, where every mechanical gate
+passed while the paper compared the wrong statistic. A test that runs is not a
+test that was read.
