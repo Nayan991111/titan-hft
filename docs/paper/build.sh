@@ -31,9 +31,25 @@ command -v bibtex   >/dev/null 2>&1 || { echo "FAIL: bibtex not installed"; exit
 kpsewhich IEEEtran.cls >/dev/null 2>&1 || {
   echo "FAIL: IEEEtran.cls not found."
   echo "  Debian or Ubuntu: sudo apt install texlive-publishers"
-  echo "  macOS: it ships with MacTeX; brew install --cask mactex-no-gui"
+  echo "  macOS, full distribution: brew install --cask mactex-no-gui"
+  echo "  macOS, BasicTeX: sudo tlmgr install ieeetran"
   exit 1
 }
+
+# IEEEtran sets \texttt in Courier and its headings in Helvetica, and BasicTeX
+# carries Times alone. Without those metrics pass 1 dies on a missing TFM, which
+# reads as a corrupt document rather than a missing font. Checked here so the
+# message names the fix. Found by installing BasicTeX on the measuring machine.
+for TFM in pcrb7t pcrr7t phvb7t; do
+  kpsewhich "$TFM.tfm" >/dev/null 2>&1 || {
+    echo "FAIL: $TFM.tfm not found, so the Courier or Helvetica metrics that"
+    echo "  IEEEtran needs are missing. BasicTeX ships Times and neither of"
+    echo "  the other two."
+    echo "  macOS: sudo tlmgr install collection-fontsrecommended"
+    echo "  Debian or Ubuntu: sudo apt install texlive-fonts-recommended"
+    exit 1
+  }
+done
 
 echo "=== pass 1 ==="
 pdflatex -interaction=nonstopmode -halt-on-error main.tex > build1.log 2>&1 || {
@@ -48,13 +64,25 @@ fi
 echo "=== rewriting the dashes IEEEtran.bst generated into main.bbl ==="
 BEFORE_PAGES="$(grep -c -- '--' main.bbl || true)"
 # Page ranges: the double-hyphen ligature renders as an en dash.
-sed -i.orig 's/\([0-9]\)--\([0-9]\)/\1-\2/g' main.bbl
+#
+# Written without -i on purpose. BSD sed, which is what macOS ships, requires an
+# argument to -i, so `sed -i 's|a|b|' file` is read as a backup suffix of
+# 's|a|b|' followed by a script of `file`, and dies with "invalid command code".
+# GNU sed accepts both forms, so a Linux build cannot show the fault. The
+# substitution below ran on macOS only because its suffix happened to be
+# attached; the one after it did not run at all until this was fixed. See
+# docs/defects.md D15.
+sed 's/\([0-9]\)--\([0-9]\)/\1-\2/g' main.bbl > main.bbl.new && mv main.bbl.new main.bbl
 # Repeated author: IEEEtran.bst writes a six-hyphen ligature, which renders as
 # a pair of em dashes, in place of an author list identical to the one above.
 # The names are restored instead. This is a bibliography of four entries, so
 # the one case is handled explicitly rather than by a rule that could silently
 # match something else.
-sed -i 's|^------, ``Analyzing the memory ordering models|L.~Wrenger, D.~T{\\"o}llner, and D.~Lohmann, ``Analyzing the memory ordering models|' main.bbl
+# Currently a no-op, because the \IEEEtranBSTCTL entry in refs.bib sets
+# CTLdash_repeated_names to "no" and the ligature is never generated. Kept, and
+# kept working, so that removing the control entry does not silently reintroduce
+# a dash. The guard below would catch it either way.
+sed 's|^------, ``Analyzing the memory ordering models|L.~Wrenger, D.~T{\\"o}llner, and D.~Lohmann, ``Analyzing the memory ordering models|' main.bbl > main.bbl.new && mv main.bbl.new main.bbl
 rm -f main.bbl.orig
 AFTER_PAGES="$(grep -c -- '--' main.bbl || true)"
 echo "  double-hyphen ligatures in main.bbl: ${BEFORE_PAGES} before, ${AFTER_PAGES} after"

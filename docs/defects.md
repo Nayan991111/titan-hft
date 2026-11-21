@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: fourteen closed, none partly closed, none open. Fourteen entries in all.**
+**Status at 2026-11-21: fifteen closed, none partly closed, none open. Fifteen entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -591,3 +591,56 @@ nanosecond replication did not. A frequency confound of 6.1 percent between the
 two compared arms, which the five-arm threshold did not isolate, is what sat
 between H76 and the original. The paper is on firmer ground for having moved to
 cycles, and the badly specified threshold is the reason it did.
+
+---
+
+## D15. The build script had never run on the platform the paper is written on
+
+**Found** 2026-11-21, by installing a TeX toolchain on the M4 for the first time
+and watching the build print an error it had never printed anywhere else.
+**Severity** no wrong number reached the paper, and the guard that protects the
+output would have caught it if it had mattered. It is recorded because of what
+it says about where this project verifies things.
+
+`docs/paper/build.sh` rewrites two dash ligatures that IEEEtran's bibliography
+style generates into `main.bbl`. The first substitution is written
+`sed -i.orig '...'`. The second is written `sed -i '...'` with no suffix.
+
+GNU sed accepts both. BSD sed, which is what macOS ships, requires an argument
+to `-i`, so it reads the substitution expression as the backup suffix and then
+tries to execute `main.bbl` as its script, which it reports as `invalid command
+code m`. The second substitution has therefore never run on the machine this
+paper is measured on, and every build there printed an error.
+
+Nothing was corrupted. The `\IEEEtranBSTCTL` entry in `refs.bib` sets
+`CTLdash_repeated_names` to `"no"`, so the string that substitution exists to
+remove is not generated: the count in the committed `main.bbl` is zero. And the
+guard immediately after it fails the build if any double-hyphen survives, which
+a six-hyphen ligature contains, so a real occurrence would have stopped the
+build rather than reaching the PDF.
+
+**CLOSED 2026-11-21** both substitutions are written without `-i`, through a
+temporary file, which behaves identically on BSD and GNU sed. The dead
+substitution is kept and kept working rather than deleted, so that removing the
+control entry cannot silently reintroduce a dash. Verified by rebuilding and
+confirming that bibtex plus the rewrite reproduce the committed `main.bbl`
+unchanged, with no error printed.
+
+Also fixed in the same pass: the script now checks for `pcrb7t`, `pcrr7t` and
+`phvb7t` before running a pass, because IEEEtran sets its monospace in Courier
+and its headings in Helvetica and BasicTeX carries Times alone. Without them
+pass 1 dies on a missing TFM, which reads as a corrupt document rather than a
+missing font. The message now names the exact `tlmgr` command.
+
+**THE PATTERN THIS IS THE THIRD INSTANCE OF, AND IT IS THE ONE TO FIX.** D7 was
+a figure-determinism check that passed on the development machine and failed on
+the M4. D11 was a test that existed only off macOS, so the module every counter
+measurement passes through was never exercised on the machine that produced
+them. D15 is a build script whose macOS path had never executed. Each time the
+tooling was verified on the machine that is not the ground truth, and each time
+the fault was invisible to a green build.
+
+The standing correction is narrow and checkable: a tool that will run on the
+measuring machine is not verified until it has run there. Where that cannot be
+done from the development side, the delivery script carries the check and
+reports it, as t72 did for kperf and as t79 now does for the build.
