@@ -78,6 +78,21 @@ EXTERNAL: dict[str, str] = {
 # read the cited paper or the named file. What it prevents is a new percentage
 # appearing with no stated origin at all, which is how two figures quoted from
 # Emurian et al. first entered the abstract unaccounted for.
+# A number is accounted for when it appears somewhere under results/. That is
+# the right rule for most figures and the wrong rule for a number tied to one
+# specific run, because a four decimal value can match an unrelated file by
+# coincidence. It did: 0.8501, quoted in the method section from the counter
+# allocation diagnostic, resolved against a record in 2026-11-14_m4.txt, so
+# this gate would have passed the claim with its real source uncommitted. Any
+# number whose meaning depends on which run produced it is listed here with
+# the file that must contain it. See D23.
+# Entries are added only once the run that produced the number is committed.
+# Two were added here from a diagnostic that was about to be rerun, which
+# would have frozen a figure that the rerun changes; the manuscript states
+# the shape of that result in words instead, and a number goes in only when
+# the file holding it is in the repository.
+CITED: dict[str, str] = {}
+
 PERCENT: dict[str, tuple[str, str]] = {
     "95.3": ("measured", "2026-11-17_m4_barrier.txt"),
     "2.4": ("measured", "2026-11-20_m4_burst5_rebuild.txt"),
@@ -149,6 +164,24 @@ def preliminary_only(value: str) -> bool:
     # earlier version of this check counted those as flagged and reported a
     # launch-protocol figure as preliminary.
     return all("PRELIMINARY PROTOCOL:" in r for r in rows)
+
+
+def check_cited(tex: str, res_dir, broken: list) -> None:
+    """Every run specific number must appear in the run that produced it."""
+    for num, fname in sorted(CITED.items()):
+        if num not in tex:
+            continue
+        target = res_dir / fname
+        if not target.exists():
+            broken.append(f"{num} is quoted and its cited source {fname} is not committed")
+            continue
+        body = target.read_text(encoding="utf-8", errors="replace")
+        if num not in body:
+            broken.append(f"{num} is quoted but {fname}, the run it is cited from, "
+                          f"does not contain it")
+    print()
+    print(f"  run specific numbers: {sum(1 for n in CITED if n in tex)} checked "
+          f"against the file each is cited from")
 
 
 def main() -> int:
@@ -251,6 +284,8 @@ def main() -> int:
             broken.append(f"{p} percent is declared as measured in {src}, which does not exist")
     print()
     print(f"  percentages: {len(pct)} in the manuscript, each with a declared source")
+
+    check_cited(TEX.read_text(encoding="utf-8"), ROOT / "results", broken)
 
     bad = len(unsourced) + len(broken)
     print()

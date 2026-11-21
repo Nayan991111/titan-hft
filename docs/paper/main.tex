@@ -152,9 +152,13 @@ store costs 2.5766 times fewer cycles per message when the cursor line is
 contended and 2.7008 times more when it is resident in L1, each at 30 of 30
 launches, so the comparison changes sign rather than magnitude. Two runs with
 different epoch counts agree on the contended figure to one part in a thousand.
-The obvious explanation is excluded by the counters: the barrier arm carries
-more L1D load misses than the acquire-release arm in every configuration and is
-faster when contended anyway.
+The obvious explanation is excluded by the counters, within the scope the
+counters actually cover: on the consuming thread, the barrier arm carries more
+L1D load misses than the acquire-release arm in every configuration and is
+faster when contended anyway. The qualifier is not decoration. Counting is per
+thread on this unit, the measuring thread ran the consumer, and the two arms
+differ in the instruction the producer executes, so this observation bounds the
+consumer's load traffic and says nothing about the producer's.
 
 \item \textbf{The effect is localised to the store side, by a pre-registered
 cross of the two halves.} We measure four correct rings formed by crossing the
@@ -531,6 +535,21 @@ this work uses resolve against it: \texttt{FIXED\_CYCLES},
 \texttt{BRANCH\_MISPRED\_NONSPEC}. Counter reads are bracketed by \texttt{dmb
 ish} and \texttt{isb sy} so that work inside the measured region cannot retire
 outside it.
+
+Counting is per thread, and the counters belong to whichever thread reads them.
+In the runs reported here that thread ran the consumer loop, so every counter
+figure in this paper describes the consuming side of the ring. We state this
+because it is a real limit on what the counters can settle and because we did
+not state it soon enough: a pre-registered threshold on retired store misses
+was written against the consumer while the arms under test differ in the
+producer's store instruction, and it returned zero on every arm of nine hundred
+records. A diagnostic that drives three passes whose L1D behaviour is fixed in
+advance confirms the event itself counts correctly under the same event set,
+missing on close to every store over a buffer far larger than L1D and on
+close to none over one that fits, so the zero was a correct measurement of the
+wrong quantity. That threshold is recorded as unevaluable rather than passed, the
+question is re-registered against a mode that keeps the producer on the
+measuring thread, and the defect register carries the full account.
 
 Three properties of the apparatus were measured, two of which bound what the
 paper can claim.

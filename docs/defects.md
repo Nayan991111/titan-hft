@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: twenty two closed, none partly closed, none open. Twenty two entries in all.**
+**Status at 2026-11-21: twenty three closed, none partly closed, none open. Twenty three entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -984,3 +984,50 @@ both paths shows the timing window does move, so H79 fixes the comparability
 check before the run and states what follows if it fails. The file level
 config line now records `measured_side`, so no producer side record can be
 mistaken for a consumer one.
+
+---
+
+## D23. A number can be accounted for by coincidence
+
+**Found** 2026-11-21, while adding the thread scope disclosure to the method
+section.
+**Severity** the provenance gate, which exists so that every figure in the
+manuscript traces to a committed record, can pass a figure whose real source
+is not committed at all.
+
+The gate accounts for a number when that number appears somewhere under
+`results/`. For most figures that is the right rule. For a figure tied to one
+particular run it is the wrong rule, because a four decimal value matches an
+unrelated file often enough to matter. It did immediately: 0.8501, written into
+the method section from the counter allocation diagnostic, resolved against a
+record in `2026-11-14_m4.txt` and the gate reported zero numbers unaccounted
+for while the diagnostic itself was uncommitted.
+
+The gate was not broken. A deliberately fabricated value, 0.7431, failed it.
+The hole is narrower and more dangerous than a broken check: it passes the
+cases that look like the cases it was built for.
+
+**A second fault, found in the same minutes and worse.** Those two figures came
+from a diagnostic that this session is about to rerun with corrected column
+labels, and a counter diagnostic does not repeat to four decimal places. Had
+they stayed, the manuscript would have frozen a number that the rerun
+contradicts, with a gate that passed it. The method section now states the
+shape of that result in words, that the event misses on close to every store
+over a buffer far larger than L1D and on close to none over one that fits,
+which is the claim the diagnostic actually supports.
+
+**CLOSED 2026-11-21** `scripts/check_provenance.py` carries a `CITED` map from
+a run specific number to the file that must contain it, checked in addition to
+the corpus wide rule, so such a number is verified against its own source
+rather than against any source. The map is empty, which is the correct state:
+an entry is added when the run holding the number is committed, never before.
+
+**The tooling fault underneath this.** The edit that first added `CITED`
+reported success and changed nothing. It matched on `PERCENT = {` while the
+declaration reads `PERCENT: dict[str, tuple[str, str]] = {`, replaced nothing,
+and printed its confirmation anyway, after which two further edits were
+written against text that was not in the file. Every edit in this session now
+asserts its anchor before replacing and reads the file back afterwards. The
+pattern is the one the register keeps recording in the measurements, arriving
+in the instrument used to write the measurements down: a step that reports
+success without checking the thing it claims to have done.
