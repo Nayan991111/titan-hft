@@ -60,27 +60,57 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
         ta % 128,
         same_line_128(ha, ta) as u8
     );
-    let producer = std::thread::spawn(move || {
+    let (sum, u0, c0, t0, t1, c1);
+    if producer_side() {
+        // The consumer is spawned and the producer keeps the measuring thread.
+        let consumer = std::thread::spawn(move || {
+            let _ = qos::set_current_thread(Qos::UserInteractive);
+            for _ in 0..warm {
+                std::hint::black_box(rx.recv());
+            }
+            let mut s = 0u64;
+            for _ in 0..n {
+                s = s.wrapping_add(rx.recv());
+            }
+            s
+        });
         let _ = qos::set_current_thread(Qos::UserInteractive);
-        for i in 0..total {
+        for i in 0..warm as u64 {
             tx.send(i);
         }
-    });
-    let _ = qos::set_current_thread(Qos::UserInteractive);
-    for _ in 0..warm {
-        std::hint::black_box(rx.recv());
+        u0 = Usage::now();
+        c0 = pmu.map(|s| s.read());
+        t0 = clock::counter();
+        for i in warm as u64..total {
+            tx.send(i);
+        }
+        t1 = clock::counter();
+        c1 = pmu.map(|s| s.read());
+        sum = consumer.join().unwrap();
+    } else {
+        let producer = std::thread::spawn(move || {
+            let _ = qos::set_current_thread(Qos::UserInteractive);
+            for i in 0..total {
+                tx.send(i);
+            }
+        });
+        let _ = qos::set_current_thread(Qos::UserInteractive);
+        for _ in 0..warm {
+            std::hint::black_box(rx.recv());
+        }
+        u0 = Usage::now();
+        c0 = pmu.map(|s| s.read());
+        t0 = clock::counter();
+        let mut s = 0u64;
+        for _ in 0..n {
+            s = s.wrapping_add(rx.recv());
+        }
+        t1 = clock::counter();
+        c1 = pmu.map(|s| s.read());
+        sum = s;
+        producer.join().unwrap();
     }
-    let u0 = Usage::now();
-    let c0 = pmu.map(|s| s.read());
-    let t0 = clock::counter();
-    let mut sum = 0u64;
-    for _ in 0..n {
-        sum = sum.wrapping_add(rx.recv());
-    }
-    let t1 = clock::counter();
-    let c1 = pmu.map(|s| s.read());
     let invol = Usage::now().since(&u0).involuntary_switches;
-    producer.join().unwrap();
 
     let first = warm as u64;
     let last = total - 1;
@@ -129,6 +159,30 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
 /// Whether the store-side counter pair was requested. Read once from the
 /// command line and cached, so the record writer and the session builder
 /// cannot disagree about which counters are in use.
+/// Measure the producer instead of the consumer.
+///
+/// The counters are read by whichever thread calls `Session::read`, and
+/// counting is per thread. Until now that thread ran the consumer loop, so
+/// every committed counter field in this harness describes the consumer. The
+/// arms under test differ in the producer's store instruction: the census has
+/// `push_acqrel` emitting `stlr` and `pop_acqrel` emitting `stlur`. H78 part
+/// (a) asked whether the faster arm takes fewer retired store misses, and
+/// read it from the side that does not execute the instruction in question.
+/// That is D22.
+///
+/// This mode spawns the consumer and runs the producer on the main thread, so
+/// the counter reads and the timing window sit around the send loop. Nothing
+/// about the ring, the arms, the epoch structure or the record format changes,
+/// and the default path is untouched, so the earlier runs stay comparable to
+/// each other. Whether they stay comparable to this one is a question for the
+/// registration, not an assumption: H79 fixes a band on ns_per_msg before the
+/// run.
+fn producer_side() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "prodside"))
+}
+
 fn store_probe() -> bool {
     use std::sync::OnceLock;
     static F: OnceLock<bool> = OnceLock::new();
@@ -181,9 +235,11 @@ fn main() {
         (case::<Unordered, Pad128, SpinHint, true>, false),
     ];
     println!(
-        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={}",
+        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={} measured_side={} store_probe={}",
         cases.len(),
-        pmu.is_some()
+        pmu.is_some(),
+        if producer_side() { "producer" } else { "consumer" },
+        store_probe()
     );
     // Arms rotate by a stride coprime with the arm count so that position in
     // the epoch is not fixed per arm; 3 and 10 are coprime.

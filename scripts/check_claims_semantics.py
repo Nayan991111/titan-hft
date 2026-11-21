@@ -151,16 +151,34 @@ def main():
              "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
              "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
              "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
-             "nineteen": 19, "twenty": 20}
+             "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40,
+             "fifty": 50}
+
+    def as_count(tok: str) -> int:
+        """Read a digit or a number word, compound forms included.
+
+        The list stopped at a single word and the register reached twenty one,
+        so the check failed on a correct status line for the second time. The
+        lesson from the first time was written three lines above and still
+        applied to only the cases already seen. Summing the parts reads every
+        form the register can take without the list needing to be extended
+        again.
+        """
+        tok = tok.strip().lower()
+        if tok.isdigit():
+            return int(tok)
+        parts = [w for w in tok.replace("-", " ").split() if w]
+        if not parts or any(w not in words for w in parts):
+            return -1
+        return sum(words[w] for w in parts)
     reg_raw = DEFECTS.read_text(encoding="utf-8") if DEFECTS.exists() else ""
-    status = re.search(r"\*\*Status at [\d-]+: (\w+) closed, (\w+) partly closed, (\w+) open", reg_raw)
+    status = re.search(
+        r"\*\*Status at [\d-]+: ([\w\- ]+?) closed, ([\w\- ]+?) partly closed, "
+        r"([\w\- ]+?) open", reg_raw)
     if not status:
         bad.append("the register has no status line in the expected form")
     else:
-        said = []
-        for i in (1, 2, 3):
-            tok = status.group(i).lower()
-            said.append(int(tok) if tok.isdigit() else words.get(tok, -1))
+        said = [as_count(status.group(i)) for i in (1, 2, 3)]
         if -1 in said:
             bad.append("the register's status line uses a number word this check "
                        "cannot read; write it as a digit or extend the word list")

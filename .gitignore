@@ -17,3 +17,10 @@ docs/paper/*.log
 docs/paper/*.out
 docs/paper/*.blg
 docs/paper/*.pdf
+
+# Delivery scripts and patches handed over for a session run. Working files,
+# never part of the work: a patch of the repository committed into the
+# repository also embeds whatever vocabulary the diff contains, which is how
+# the authorship gate caught its first real footprint.
+t[0-9]*.sh
+t[0-9]*.patch

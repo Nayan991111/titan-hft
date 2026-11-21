@@ -109,6 +109,39 @@ fn main() {
         run_pmu(mode);
     }
     storemiss_test();
+    storemiss_isolation();
+}
+
+/// Which of two causes explains the H78 zero.
+///
+/// `storemiss_test` proved the store miss event counts when it is programmed
+/// alongside `L1D_CACHE_MISS_LD` and no fixed instruction counter. The barrier
+/// harness asks for a different set, and reads its counters on the consumer
+/// thread. Two causes fit, and they are not distinguishable from the
+/// repository.
+///
+/// A. the event cannot be allocated alongside `FIXED_INSTRUCTIONS` and
+///    `LDST_UNIT_OLD_L1D_CACHE_MISS`, and the failure is silent.
+/// B. the consumer thread genuinely retires no store misses, in which case
+///    H78 part (a) was measuring the wrong thread: the arms differ in the
+///    producer's store instruction, and `push_acqrel` is the `stlr`.
+///
+/// This repeats the same three passes under the barrier's exact event set, on
+/// one thread whose store misses are known in advance. If the counter reads
+/// zero here, cause A holds and the event set is at fault. If it counts, A is
+/// refuted and B stands, which means the harness must read the producer's
+/// counters before part (a) can be evaluated at all.
+fn storemiss_isolation() {
+    println!("-- isolation, the barrier harness event set");
+    storemiss_passes(
+        "barrier_set",
+        &[
+            events::CYCLES,
+            events::INSTRUCTIONS,
+            events::L1D_STORE_MISS,
+            events::LDST_WAIT_MISS,
+        ],
+    );
 }
 
 /// Does the retired-store-miss counter move at all on this part?
@@ -138,6 +171,29 @@ fn main() {
 /// be rerun. If neither moves, the session is not counting at all and
 /// nothing about stores follows from the H78 zero.
 fn storemiss_test() {
+    storemiss_passes(
+        "probe_set",
+        &[
+            events::CYCLES,
+            events::L1D_STORE_MISS,
+            events::L1D_LOAD_MISS,
+            events::LDST_WAIT_MISS,
+        ],
+    );
+}
+
+/// Run the three known passes under `evs` and print what each counter said.
+///
+/// Every column is labelled with the event name the session reports, not with
+/// a position. The first version of this took the store miss column as index
+/// one for both event sets, which is right for the probe's set and wrong for
+/// the barrier's, where index one is the fixed instruction counter. It
+/// printed instruction counts under a store miss heading, and the only reason
+/// the reading was caught is that the 4 KiB pass, which must barely miss at
+/// all, came out higher than the 64 MiB pass, which must miss on nearly every
+/// store. A column that cannot be checked against a prediction is a column
+/// that can lie, so the names now come from the data.
+fn storemiss_passes(tag: &str, evs: &[&[&str]]) {
     const LINE: usize = 128;
     const BIG: usize = 64 << 20;
     const SMALL: usize = 4 << 10;
@@ -146,26 +202,19 @@ fn storemiss_test() {
     let k = match Kperf::open() {
         Ok(k) => k,
         Err(e) => {
-            println!("storemiss_open_error=\"{e}\"");
+            println!("storemiss_open_error tag={tag} err=\"{e}\"");
             return;
         }
     };
-    let s = match k.session_with_mode(
-        &[
-            events::CYCLES,
-            events::L1D_STORE_MISS,
-            events::L1D_LOAD_MISS,
-            events::LDST_WAIT_MISS,
-        ],
-        CountMode::All,
-    ) {
+    let s = match k.session_with_mode(evs, CountMode::All) {
         Ok(s) => s,
         Err(e) => {
-            println!("storemiss_session_error=\"{e}\"");
+            println!("storemiss_session_error tag={tag} err=\"{e}\"");
             return;
         }
     };
-    println!("storemiss_events={:?}", s.names());
+    println!("storemiss_events tag={tag} {:?}", s.names());
+    println!("storemiss_add_errs tag={tag} {:?}", s.add_errs());
 
     let mut big = vec![0u8; BIG];
     let mut small = vec![0u8; SMALL];
@@ -178,13 +227,13 @@ fn storemiss_test() {
     let report = |label: &str, n: usize, c0: &titan_platform::kperf::Snapshot| {
         let d = s.delta(c0, &s.read());
         let n = n as f64;
-        println!(
-            "storemiss pass={label} ops={n:.0} st_miss_per_op={:.4}              ld_miss_per_op={:.4} wait_cycles_per_op={:.4} cycles_per_op={:.2}",
-            d[1] as f64 / n,
-            d[2] as f64 / n,
-            d[3] as f64 / n,
-            d[0] as f64 / n
-        );
+        let per: Vec<String> = s
+            .names()
+            .iter()
+            .enumerate()
+            .map(|(i, nm)| format!("{nm}_per_op={:.4}", d[i] as f64 / n))
+            .collect();
+        println!("storemiss tag={tag} pass={label} ops={n:.0} {}", per.join(" "));
     };
 
     let c0 = s.read();
@@ -230,6 +279,7 @@ fn run_pmu(mode: CountMode) {
         }
     };
     println!("pmu_events={:?}", s.names());
+    println!("pmu_add_errs={:?}", s.add_errs());
     let mut oh: Vec<Vec<u64>> = s.read_overhead(10_000);
     oh.sort_by_key(|row| row[0]);
     println!("read_overhead_cycles min={} p50={} p99={}", oh[0][0], oh[oh.len() / 2][0], oh[oh.len() * 99 / 100][0]);

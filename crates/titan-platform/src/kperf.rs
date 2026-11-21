@@ -320,13 +320,23 @@ impl Kperf {
         let api = &self.api;
         let mut cfg = std::ptr::null_mut();
         check("kpep_config_create", unsafe { (api.kpep_config_create)(self.db, &mut cfg) })?;
-        let mut session = Session { kperf: self, cfg, classes: 0, map: Vec::new(), names: Vec::new(), running: false };
+        let mut session = Session { kperf: self, cfg, classes: 0, map: Vec::new(), names: Vec::new(), add_errs: Vec::new(), running: false };
         let api = &session.kperf.api;
         check("kpep_config_force_counters", unsafe { (api.kpep_config_force_counters)(cfg) })?;
         for cands in events {
             let (mut ev, name) = session.kperf.lookup(cands)?;
             let mut err = 0u32;
             check("kpep_config_add_event", unsafe { (api.kpep_config_add_event)(cfg, &mut ev, mode.flag(), &mut err) })?;
+            // The call reports a reason through this out parameter as well as
+            // through its return value, and this code read only the return
+            // value until D21. An event that is accepted here but not actually
+            // allocated reads zero at run time, which is indistinguishable
+            // from a real zero unless the reason is kept. It is recorded
+            // rather than enforced on: the semantics of a non zero reason
+            // alongside a successful return are not established, and failing
+            // a run on an unverified condition would be a worse fault than
+            // the one being fixed.
+            session.add_errs.push((name.clone(), err));
             session.names.push(name);
         }
         let mut classes = 0u32;
@@ -374,11 +384,18 @@ pub struct Session {
     classes: u32,
     map: Vec<usize>,
     names: Vec<String>,
+    add_errs: Vec<(String, u32)>,
     running: bool,
 }
 
 impl Session {
     /// Resolved event names, in the order they were requested.
+    /// Per event, the reason code the configuration call reported while the
+    /// event was being added. All zero is the expected state. See D21.
+    pub fn add_errs(&self) -> &[(String, u32)] {
+        &self.add_errs
+    }
+
     pub fn names(&self) -> &[String] {
         &self.names
     }

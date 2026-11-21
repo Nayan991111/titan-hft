@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: twenty closed, none partly closed, none open. Twenty entries in all.**
+**Status at 2026-11-21: twenty two closed, none partly closed, none open. Twenty two entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -858,3 +858,129 @@ it did not check the claim. The correction is specific: before a threshold is
 committed, state in one sentence what would make the claim false, and confirm
 the threshold is a test of that sentence rather than of a quantity that merely
 moves with it.
+
+---
+
+## D21. The harness could not tell a dead counter from a real zero
+
+**Found** 2026-11-21, by the counter validity check written for D19.
+**Severity** structural. One registered threshold was lost, and nothing in the
+measurement path would have reported it.
+
+The diagnostic settles the question D19 left open. `L1D_CACHE_MISS_ST_NONSPEC`
+counts on this part, and counts correctly: 0.9446 retired store misses per
+store over a 64 MiB buffer where close to every store must miss, 0.0003 for
+the same count of stores into 4 KiB where close to none should, and 0.9930 in
+a read modify write stream over 64 MiB. The expected shape of all three was
+fixed in the source before the run. So the event is not inert, and the H78
+zero is a property of the apparatus, not of the machine.
+
+Which part of the apparatus is not yet established, and two causes fit the
+evidence equally well.
+
+A. The event cannot be allocated alongside `FIXED_INSTRUCTIONS` and
+`LDST_UNIT_OLD_L1D_CACHE_MISS`, which is the set the barrier harness requests
+and which differs from the set the diagnostic used. A silent allocation
+failure reads zero.
+
+B. The barrier harness reads its counters on the consumer thread, and counting
+is per thread. The arms under test differ in the producer's store instruction:
+the census shows `push_acqrel` emitting `stlr` and `pop_acqrel` emitting
+`stlur`. If the consumer's stores land in a line it already owns, it retires no
+store misses whatever the producer does, and part (a) was measuring the wrong
+thread from the moment it was written.
+
+B would be the more serious finding, because it would mean the threshold was
+not merely unmeasured but unmeasurable as specified, and that a correct
+version of (a) has to read the producer's counters. The isolation pass added to
+`titan-probe` repeats the three known passes under the barrier's exact event
+set. Zero there means A. Counting there refutes A and leaves B.
+
+**The reporting gap.** `kpep_config_add_event` reports a reason through an out
+parameter as well as through its return value, and this code created the
+variable, passed its address, and discarded it. The reason is now recorded per
+event and exposed through `Session::add_errs`, printed by the probe. It is
+recorded and not enforced on, because the meaning of a non zero reason
+alongside a successful return is not established here, and failing a run on an
+unverified condition would be a worse fault than the one being repaired.
+
+**Cause A is refuted, by the isolation run.** Under the barrier harness's
+exact event set, `[FIXED_CYCLES, FIXED_INSTRUCTIONS, L1D_CACHE_MISS_ST_NONSPEC,
+LDST_UNIT_OLD_L1D_CACHE_MISS]`, the store miss counter read 0.8501 per store
+over 64 MiB, 0.0002 into 4 KiB and 0.9944 in the read modify write stream, and
+every configuration reason code came back zero for every event in both sets.
+The event allocates and counts alongside the fixed instruction counter. So the
+event set is not at fault and cause B stands, which is recorded as D22.
+
+**The isolation run reached the right conclusion by the wrong route, and that
+is worth recording.** The diagnostic took the store miss column as index one
+for both event sets. Index one is the store miss event in the probe's set and
+the fixed instruction counter in the barrier's, so the barrier columns printed
+4.0242, 6.0242 and 5.0242 under a store miss heading: instruction counts.
+The script's own verdict line tested that mislabelled column for zero, found
+it non zero, and announced the correct answer for a reason that had nothing to
+do with the counter. What caught it was the prediction, not the check: the
+4 KiB pass, which must barely miss at all, printed higher than the 64 MiB
+pass, which must miss on nearly every store. Columns are now labelled with the
+event names the session reports rather than by position, so the reading cannot
+be wrong without the names being wrong too.
+
+**CLOSED 2026-11-21** `scripts/check_counter_sanity.py` fails when a counter
+derived field holds one distinct value across a whole results file, which is
+the signature of a counter that was never programmed, with known exceptions
+listed against the defect that explains them and removed when the measurement
+is redone. The reason codes are recorded. The isolation pass is in place.
+
+**Two faults in the gate itself, both found by reading its output rather than
+its exit status.** It first read only lines beginning with `bd `, a convention
+of one harness and not of the data, and so examined 10 counter fields when
+the results directory holds 47. It then carried a floor of thirty records that
+silently excluded ten of the thirteen files carrying counters. With both
+repaired it checks 47 fields across 11 files, names the 3 files below the floor
+instead of passing over them, and every one of them varies. The blast radius
+of D19 is therefore one field in one file, verified rather than assumed: no
+earlier run lost a counter.
+
+---
+
+## D22. Part (a) read the thread that does not execute the instruction
+
+**Found** 2026-11-21, by the isolation run refuting the alternative.
+**Severity** a registered threshold that could not have been evaluated as
+written, on any machine, for a reason that has nothing to do with the counter.
+
+Counting is per thread, and `Session::read` reports the counters of whichever
+thread calls it. In `titan-barrier` that thread runs the consumer loop, so
+every counter field this harness has ever committed describes the consumer.
+
+The arms under test differ in the producer's store instruction. The committed
+census has `push_acqrel` emitting `stlr` and `pop_acqrel` emitting `stlur`.
+H78 part (a) asked whether the faster arm retires fewer store misses, which is
+a question about the side executing the release store, and read the answer
+from the other side. The consumer's stores land in a line it already holds, so
+it retires no store misses whatever the producer does, and 0.0000 across 900
+records is a correct measurement of the wrong quantity.
+
+This is a worse fault than D19 appeared to be. A counter that fails to program
+is an accident of configuration. A threshold written over the wrong thread was
+never going to answer its question, and no amount of rerunning the same
+harness would have revealed it: the number would have come back zero every
+time, consistently, and consistency reads as reliability.
+
+The three faults have one shape. D14 wrote a threshold over five arms when the
+claim concerned a pair. D20 wrote one over an absolute when the claim
+concerned a composition. This one wrote one over the wrong thread. In each
+case the threshold was precise, checkable, fixed in advance, and not a test of
+the claim. Precision is not validity, and pre-registration protects against
+moving the goalposts, not against aiming at the wrong goal.
+
+**CLOSED 2026-11-21** `titan-barrier` gains a `prodside` mode that spawns the
+consumer and keeps the producer on the measuring thread, so the counter reads
+and the timing window sit around the send loop. The ring, the arms, the epoch
+structure and the record format are unchanged and the default path is
+untouched, so the earlier runs stay comparable to each other. Whether they
+stay comparable to this one is registered rather than assumed: a smoke test on
+both paths shows the timing window does move, so H79 fixes the comparability
+check before the run and states what follows if it fails. The file level
+config line now records `measured_side`, so no producer side record can be
+mistaken for a consumer one.
