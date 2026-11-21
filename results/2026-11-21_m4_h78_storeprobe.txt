@@ -953,3 +953,40 @@ bd launch=30 impl=ring order=fencedstore pad=128 cached=0 wait=isb epoch=2 messa
 bd launch=30 impl=ring order=fenced pad=128 cached=0 wait=isb epoch=2 messages=10000000 epoch_ms=216.677 ns_per_msg=21.668 sum_ok=1 invol_switches=1 head_off128=0 tail_off128=0 same_line=0 msg_cycles=94.855 msg_instructions=16.83 msg_l1d_store_miss=0.0000 msg_ldst_wait_cycles=35.9537 core_ghz=4.378
 bd launch=30 impl=ring order=unordered pad=128 cached=0 wait=isb epoch=2 messages=10000000 epoch_ms=27.684 ns_per_msg=2.768 sum_ok=0 invol_switches=0 head_off128=0 tail_off128=0 same_line=0 msg_cycles=10.188 msg_instructions=13.11 msg_l1d_store_miss=0.0000 msg_ldst_wait_cycles=5.1805 core_ghz=3.680
 bd launch=30 impl=ring order=acqrel pad=128 cached=1 wait=isb epoch=2 messages=10000000 epoch_ms=22.768 ns_per_msg=2.277 sum_ok=1 invol_switches=0 head_off128=0 tail_off128=0 same_line=0 msg_cycles=8.105 msg_instructions=12.19 msg_l1d_store_miss=0.0000 msg_ldst_wait_cycles=3.9085 core_ghz=3.560
+
+DERIVED STATISTICS, appended by scripts/h78_verdicts.py from the records
+above. Recomputed from this file with its own parsing, its own median and
+its own exact two sided sign test. Every number the manuscript quotes from
+this run appears here, so a figure in the paper traces to a line in a
+committed file. Ratios whose denominator is zero print unevaluable rather
+than raising, which is the D19 correction.
+
+file     : 2026-11-21_m4_h78_storeprobe.txt
+launches : 30
+
+  CONTENDED  arm              cycles   st_miss       wait  not waiting    GHz
+             acqrel          217.755    0.0000   139.0505       78.704  4.341
+             fencedload      185.786    0.0000   113.4273       72.359  4.316
+             fenced           94.340    0.0000    35.8644       58.476  4.377
+             fencedstore      80.894    0.0000    32.5100       48.384  4.363
+             unordered        10.186    0.0000     5.2458        4.940  3.692
+
+  RESIDENT   arm              cycles   st_miss       wait  not waiting    GHz
+             acqrel            8.032    0.0000     4.2105        3.822  3.563
+             fencedload        7.980    0.0000     4.2148        3.766  3.507
+             fenced           20.583    0.0000     8.1228       12.460  3.939
+             fencedstore      22.495    0.0000     8.6408       13.855  3.764
+             unordered         6.646    0.0000     3.9447        2.702  3.523
+
+h78_arm state=contended order=acqrel msg_cycles=217.755 wait_cycles=139.0505 not_waiting=78.704 store_miss=0.0000 core_ghz=4.341
+h78_arm state=contended order=fencedload msg_cycles=185.786 wait_cycles=113.4273 not_waiting=72.359 store_miss=0.0000 core_ghz=4.316
+h78_arm state=contended order=fenced msg_cycles=94.340 wait_cycles=35.8644 not_waiting=58.476 store_miss=0.0000 core_ghz=4.377
+h78_arm state=contended order=fencedstore msg_cycles=80.894 wait_cycles=32.5100 not_waiting=48.384 store_miss=0.0000 core_ghz=4.363
+h78_arm state=contended order=unordered msg_cycles=10.186 wait_cycles=5.2458 not_waiting=4.940 store_miss=0.0000 core_ghz=3.692
+h78_wait state=contended ratio=0.2338 acqrel=139.0505 fencedstore=32.5100
+h78_arm state=resident order=acqrel msg_cycles=8.032 wait_cycles=4.2105 not_waiting=3.822 store_miss=0.0000 core_ghz=3.563
+h78_arm state=resident order=fencedload msg_cycles=7.980 wait_cycles=4.2148 not_waiting=3.766 store_miss=0.0000 core_ghz=3.507
+h78_arm state=resident order=fenced msg_cycles=20.583 wait_cycles=8.1228 not_waiting=12.460 store_miss=0.0000 core_ghz=3.939
+h78_arm state=resident order=fencedstore msg_cycles=22.495 wait_cycles=8.6408 not_waiting=13.855 store_miss=0.0000 core_ghz=3.764
+h78_arm state=resident order=unordered msg_cycles=6.646 wait_cycles=3.9447 not_waiting=2.702 store_miss=0.0000 core_ghz=3.523
+h78_wait state=resident ratio=2.0522 acqrel=4.2105 fencedstore=8.6408

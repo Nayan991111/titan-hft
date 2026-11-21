@@ -1,0 +1,26 @@
+STORE MISS COUNTER VALIDITY ON APPLE M4. Does L1D_CACHE_MISS_ST_NONSPEC
+move at all on this part. H78 part (a) was unevaluable because it read
+exactly 0.0000 in all 900 records of the H78 run. See docs/defects.md D19.
+Run 2026-11-21 18:22 IST.
+
+MACHINE : Mac16,13 , 10 cpus, 4 performance
+OS      : ProductVersion 27.2.1, BuildVersion 26B131
+RUSTC   : rustc 1.92.0 (ded5c06cf 2025-12-08)
+COMMIT  : 06765d863d65f75f6fc463f2a0f78cec4aa94bcf
+POWER   : not applicable, counter validity check with no timing claim; the
+          cycles columns are reported only to show the passes ran
+
+PASSES  : store_64mib_expect_miss, one store per distinct 128 byte line over
+          64 MiB, far larger than L1D, so close to every store must miss.
+          store_4kib_expect_hit, the same count of stores into 4 KiB, which
+          fits, so close to none should. rmw_64mib_expect_both, read and
+          write each line over 64 MiB, so the same line both loads and
+          stores and the two counters see the same misses. The third pass
+          is decisive: load misses moving while store misses stay at zero
+          means the store event is inert here.
+
+pmu_permission=true
+storemiss_events=["FIXED_CYCLES", "L1D_CACHE_MISS_ST_NONSPEC", "L1D_CACHE_MISS_LD", "LDST_UNIT_OLD_L1D_CACHE_MISS"]
+storemiss pass=store_64mib_expect_miss ops=524288 st_miss_per_op=0.9446              ld_miss_per_op=0.7478 wait_cycles_per_op=16.6970 cycles_per_op=25.75
+storemiss pass=store_4kib_expect_hit ops=524288 st_miss_per_op=0.0003              ld_miss_per_op=0.0000 wait_cycles_per_op=0.0019 cycles_per_op=1.02
+storemiss pass=rmw_64mib_expect_both ops=524288 st_miss_per_op=0.9930              ld_miss_per_op=9.3230 wait_cycles_per_op=16.5532 cycles_per_op=18.71
