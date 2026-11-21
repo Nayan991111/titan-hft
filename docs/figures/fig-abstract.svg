@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="at ad">
 <title id="at">Graphical abstract: arrival timing dominates arrival clustering</title>
-<desc id="ad">At a fixed mean rate a random schedule costs 3.44 times a periodic one at the 98th percentile, 30 of 30 launches; clustering costs 1.17 times at p99.9. 85 pre-registered hypotheses, 36 rows recording a refutation, 321,079 measured records, one Apple M4.</desc>
+<desc id="ad">At a fixed mean rate a random schedule costs 3.44 times a periodic one at the 98th percentile, 30 of 30 launches; clustering costs 1.17 times at p99.9. 86 pre-registered hypotheses, 36 rows recording a refutation, 321,079 measured records, one Apple M4.</desc>
 <style>
   .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
   .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
@@ -77,7 +77,7 @@
 <text class="t3" x="464" y="423" font-size="10.5">p50</text>
 <text class="t3" x="712" y="423" font-size="10.5" text-anchor="end">p99.9999</text>
 <text class="t3" x="464" y="327" font-size="10.5">ratio across the whole survival curve</text>
-<text class="t3" x="740" y="364" font-size="11.5">85 pre-registered</text>
+<text class="t3" x="740" y="364" font-size="11.5">86 pre-registered</text>
 <text class="t3" x="740" y="380" font-size="11.5">hypotheses; 36 rows record</text>
 <text class="t3" x="740" y="396" font-size="11.5">a refutation, all published</text>
 <text class="t3" x="40" y="482" font-size="11">One machine, one feed, performance cores only, two mean rates. The mechanism is untested: a periodic schedule never presents two messages at once.</text>
