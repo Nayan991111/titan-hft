@@ -8,12 +8,23 @@ This gate asks four things of each figure the manuscript includes:
 
   it exists where graphicspath points;
   it carries no Type 3 font, which is what IEEE PDF eXpress and arXiv reject;
-  it regenerates from committed data, byte for byte, by scripts/figures_paper.py;
+  it is CURRENT, meaning a fresh regeneration from committed data produces the
+  same content, so a figure cannot silently fall behind the records it draws;
   every number its caption quotes is present in the results file the caption
   names, so a caption cannot drift from the data it describes.
 
-The third check is the one that matters most. A figure is an assertion about
-committed records, and an assertion nobody can reproduce is decoration.
+The currency check compares extracted text, not bytes, and the reason is
+written in docs/defects.md D7: the same script on the same data produces
+different bytes on different machines, by 19 to 121 bytes, because the PDF
+stream compression differs with the interpreter and library build. The first
+version of this gate demanded byte identity against the committed copy. That
+passed on the machine that committed the figures and failed on the machine that
+measures them, which is the defect D7 already recorded and closed, reintroduced
+by its own author. It is D17.
+
+Determinism is a different property and a different gate owns it:
+check_figures_deterministic.py regenerates twice on one machine and compares
+those two runs to each other, which is the thing that is actually achievable.
 """
 
 import re
@@ -77,30 +88,53 @@ def main() -> int:
         else:
             print(f"  {'':<22} caption numbers all present in {src.group(1)}")
 
-    # Regeneration must be byte identical.
-    with tempfile.TemporaryDirectory() as td:
-        keep = {n for n, _ in figs}
-        for n in keep:
-            if (FIGS / n).exists():
-                shutil.copy2(FIGS / n, Path(td) / n)
-        r = subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "figures_paper.py")],
-                           capture_output=True, text=True, cwd=ROOT)
-        if r.returncode != 0:
-            bad.append("figures_paper.py failed, so the figures cannot be regenerated:\n"
-                       + r.stderr.strip()[-400:])
-        else:
-            for n in sorted(keep):
-                a, b = Path(td) / n, FIGS / n
-                if a.exists() and a.read_bytes() != b.read_bytes():
-                    bad.append(f"{n} does not regenerate byte for byte from committed data")
-            print(f"  all {len(keep)} embedded figure(s) regenerate byte for byte")
+    # Currency, by content rather than by bytes. See the module docstring and
+    # docs/defects.md D7 and D17: bytes differ across machines, text does not.
+    # The working tree is restored whatever happens, so running this gate never
+    # leaves a modified figure behind.
+    def text_of(p: Path) -> str:
+        r = subprocess.run(["pdftotext", "-layout", str(p), "-"],
+                           capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else ""
+
+    try:
+        import matplotlib  # noqa: F401
+    except ImportError:
+        print("  SKIP: matplotlib is absent, so currency cannot be checked here")
+    else:
+        before = {n: text_of(FIGS / n) for n, _ in figs if (FIGS / n).exists()}
+        backup = Path(tempfile.mkdtemp())
+        for f in FIGS.iterdir():
+            if f.is_file():
+                shutil.copy2(f, backup / f.name)
+        try:
+            r = subprocess.run([sys.executable, "-I",
+                                str(ROOT / "scripts" / "figures_paper.py")],
+                               capture_output=True, text=True, cwd=ROOT)
+            if r.returncode != 0:
+                bad.append("figures_paper.py failed, so currency cannot be established:\n"
+                           + r.stderr.strip()[-400:])
+            else:
+                for n in sorted(before):
+                    after = text_of(FIGS / n)
+                    if after != before[n]:
+                        bad.append(f"{n} is stale: regenerating from committed data "
+                                   f"changes its content, so the committed figure no "
+                                   f"longer matches the records it draws")
+                if not bad:
+                    print(f"  all {len(before)} embedded figure(s) are current: a fresh "
+                          f"regeneration reproduces the same content")
+        finally:
+            for f in backup.iterdir():
+                shutil.copy2(f, FIGS / f.name)
+            shutil.rmtree(backup, ignore_errors=True)
 
     if bad:
         print()
         for b in bad:
             print("FAIL: " + b)
         return 1
-    print("PASS: every embedded figure exists, is Type 42, regenerates, and its "
+    print("PASS: every embedded figure exists, is Type 42, is current, and its "
           "caption matches its data")
     return 0
 

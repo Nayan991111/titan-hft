@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: sixteen closed, none partly closed, none open. Sixteen entries in all.**
+**Status at 2026-11-21: seventeen closed, none partly closed, none open. Seventeen entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -698,3 +698,45 @@ on trust.
 the wrong conclusion was drawn from it, after D8, where every mechanical gate
 passed while the paper compared the wrong statistic. A test that runs is not a
 test that was read.
+
+---
+
+## D17. I reintroduced D7, four days after closing it
+
+**Found** 2026-11-21, by the new gate failing on the M4 while passing here.
+**Severity** no wrong number reached the paper. What it damaged is the claim
+this register exists to support, that a defect recorded here stays fixed.
+
+D7 established that the manuscript figures are not byte-reproducible across
+machines. The same script on the same committed data produced files 19 to 121
+bytes smaller on the M4 than on the development machine, consistently, across
+all five figures. Its closure says so in as many words: cross-platform
+byte-identity is not achievable, and the first version of that check was wrong
+for demanding it. The property that is achievable is same-machine determinism,
+and `scripts/check_figures_deterministic.py` was written to test exactly that,
+by regenerating twice on one machine and comparing those two runs to each
+other.
+
+Four days later I wrote `check_paper_figures.py` and had it compare a fresh
+regeneration against the committed bytes. That is cross-machine byte-identity.
+It passed on the machine that committed the figures and failed on the machine
+that measures them, with all seven figures reported modified. The delivery
+script carried a second copy of the same mistake, failing on a dirty working
+tree after regeneration.
+
+The lesson had been written down, in this file, by me, and I did not read it
+before writing a gate in the same area.
+
+**CLOSED 2026-11-21** the figure gate now checks currency rather than bytes: it
+regenerates into a backed-up tree and compares extracted text, so a figure that
+has fallen behind the records it draws fails, while a stream-compression
+difference between two machines cannot. Determinism remains owned by the gate
+that already tested it correctly, and the two no longer overlap. The working
+tree is restored whatever happens, so running the gate never leaves a modified
+figure behind. Proven both ways: it fails when a committed figure no longer
+matches a regeneration, and it passes on a tree where only the bytes could
+differ.
+
+**What changes in how I work.** Before writing a check in an area this register
+already covers, I read the entry that covers it. A register nobody rereads is a
+diary, not a control.
