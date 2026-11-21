@@ -32,8 +32,9 @@
 
 \begin{document}
 
-\title{A Barrier and a Plain Store Beat a Store-Release by 2.6x:\\
-Locating the Cost of Memory Ordering in an SPSC Ring on Apple M4}
+\title{When a Full Barrier Beats a Store-Release, and When It Does Not:\\
+A Pre-Registered Measurement Study of Ordering, Waiting and Arrival\\
+Clustering in an SPSC Ring on a Fanless Apple M4}
 
 \author{\IEEEauthorblockN{Nayan Pandit}
 \IEEEauthorblockA{Indian Institute of Technology Patna, India\\
@@ -54,7 +55,10 @@ checksum in all 180 of its epochs, while each of the four correct rings passed
 in 180 of 180, so the 95.3 percent measures the distance to an unattainable
 bound rather than to a usable alternative. Within that budget, the
 choice of ordering construct behaves in a way no memory model describing this
-hardware predicts. Replacing the release store \texttt{stlr} with a \texttt{dmb
+hardware predicts. That a store-release can cost more than a stronger barrier
+has been reported before, on other ARM parts and once on an Apple M1, in both
+cases without a rule for when it happens; the rule is what we
+measure. Replacing the release store \texttt{stlr} with a \texttt{dmb
 ish} barrier followed by a plain store makes the contended loop 2.57 times
 faster, and the same substitution makes the loop 2.75 times slower once the
 cursor line is resident in L1. Crossing the two halves of the acquire-release
@@ -134,10 +138,13 @@ bounds what ordering costs, and does not name a cheaper ring that exists.
 \subsection{Contributions}
 
 \begin{itemize}
-\item \textbf{A full barrier plus a plain store is cheaper than a store-release
-on this part, and the comparison changes sign with caching.} Substituting
-\texttt{dmb ish} and a plain store for \texttt{stlr} makes the contended loop
-2.57 times faster and the L1-resident loop 2.75 times slower. Two runs with
+\item \textbf{The condition that governs the store-release anomaly.} That a
+store-release can cost more than a stronger barrier is already
+reported~\cite{liu2020barriers,arden2023riscv}, without a rule for when, and
+Liu et al. recommend measuring it for that reason. The rule measured here is
+caching state: substituting \texttt{dmb ish} and a plain store for
+\texttt{stlr} makes the contended loop 2.57 times faster and the L1-resident
+loop 2.75 times slower, so the comparison changes sign rather than magnitude. Two runs with
 different epoch counts agree on the contended figure to one part in a thousand.
 The obvious explanation is excluded by the counters: the barrier arm carries
 more L1D load misses than the acquire-release arm in every configuration and is
@@ -247,6 +254,64 @@ memory model with the hardware held fixed. The axes are orthogonal: a
 whole-application figure for switching the machine's model does not predict a
 2.57 times difference between two correct ways of writing the same ring under
 the weak model.
+
+\subsection{The store-release anomaly}
+
+That a store-release can cost more than a semantically stronger barrier is not a
+new observation, and this paper does not report it as one. Liu et
+al.~\cite{liu2020barriers} measured ARM barriers across Kirin 960, Kirin 970,
+Raspberry Pi 4 and Kunpeng 916. Their third observation states that the
+store-release barrier does not always outperform stronger barriers. They report
+it performing poorly on Kunpeng 916 and Raspberry Pi 4, including cross-node,
+note that its overhead is unstable and sits between a full data synchronisation
+barrier and a store-ordering data memory barrier, and say the phenomenon
+recurred across several of their experiments. They offer no mechanism. They
+state that no accurate public description of the instruction's implementation is
+available, and they recommend comparing a store-release against a full barrier
+before using one.
+
+Arden et al.~\cite{arden2023riscv} met the same anomaly on Apple silicon while
+proposing acquire and release instructions for RISC-V. Running a queueing
+benchmark on an M1 with a compiler modified to emit bidirectional fences in
+place of the weaker instructions, which raised the emitted barrier count by
+roughly a factor of four and a half, they found that removing the weaker
+instructions improved performance in some scenarios and called that result
+unexpected. They attributed it to heavy data sharing between threads dominating
+the cost, and described what remained as interference and noise.
+
+Those two are the starting point here, not a finding. What neither supplies is a
+condition. Liu et al. identify a platform and a placement rather than a rule,
+and recommend measurement precisely because they have no rule to offer. Arden et
+al. name data sharing and then set the residual aside. This paper supplies the
+governing variable both were missing: whether the cursor line is contended or
+resident in L1 decides the sign of the comparison, not merely its size. It does
+so on a part neither of them measured, since the cores in their platforms are
+Cortex-A53, A72 and A73 and none implements ARMv9; it localises the effect to
+the store side by a pre-registered crossover rather than by inference; and it
+checks the correctness of every arm instead of assuming it, which is how the
+unordered arm was identified as a cost floor rather than an alternative.
+
+\subsection{Pre-registration in empirical computer science}
+
+Cockburn et al.~\cite{cockburn2020threats} surveyed a cross section of computer
+science venues and concluded that a large proportion of the field faces the same
+threats to replication as the disciplines already in open crisis, naming
+performance analysis among the areas that validate claims by statistical
+significance. Their recommendations include that the ACM encourage editors and
+programme chairs to expect pre-registration of empirical studies, that authors
+state whether a study was pre-registered, and that journals adapt review to
+accept registered reports, which they call perhaps the most promising of all
+the interventions they consider.
+
+This study is conducted that way. Eighty hypothesis rows and four exploratory
+calibrations carry thresholds fixed before the corresponding measurement
+existed, each registration was pushed to a public remote before the data it
+governs was collected, and every verdict is recorded against the row that
+predicted it, refutations included. Defects found during the work are published
+in the repository rather than silently corrected, and they include the ones that
+invalidated earlier claims of this paper's own. No pre-registered microbenchmark
+study of memory ordering was located in the course of this work, and on the
+evidence of that search the practice has not yet reached this part of the field.
 
 \subsection{What queueing theory already predicts}
 \label{sec:queueing}

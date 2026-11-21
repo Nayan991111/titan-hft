@@ -131,3 +131,46 @@
   archivePrefix = {arXiv},
   primaryClass = {q-fin.TR}
 }
+
+% The prior report of the store-release anomaly. Their platforms are Cortex-A53,
+% A72 and A73; none is an Apple core and none implements ARMv9. Their third
+% observation states that store-release does not always outperform stronger
+% barriers, they give no mechanism, and they recommend measuring it against a
+% full barrier before use. That recommendation is what this paper carries out.
+@inproceedings{liu2020barriers,
+  author    = {Liu, Nian and Zang, Binyu and Chen, Haibo},
+  title     = {No Barrier in the Road: A Comprehensive Study and Optimization of
+               {ARM} Barriers},
+  booktitle = {Proceedings of the 25th ACM SIGPLAN Symposium on Principles and
+               Practice of Parallel Programming (PPoPP)},
+  year      = {2020},
+  publisher = {ACM},
+  doi       = {10.1145/3332466.3374535}
+}
+
+% The same anomaly on Apple silicon, in a queue, as an incidental finding of a
+% RISC-V ISA proposal. They call it unexpected, attribute it to data sharing
+% between threads, and set the remainder aside as interference and noise.
+@misc{arden2023riscv,
+  author        = {Arden, Bryce and Susskind, Zachary and Sweeney, Brendan},
+  title         = {Adding Explicit Load-Acquire and Store-Release Instructions
+                   to the {RISC-V} {ISA}},
+  eprint        = {2302.03732},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AR}
+}
+
+% The call this study answers. Names performance analysis among the areas that
+% validate claims by statistical significance, and recommends that editors and
+% chairs expect pre-registration and that journals accept registered reports.
+@article{cockburn2020threats,
+  author  = {Cockburn, Andy and Dragicevic, Pierre and Besan{\c{c}}on, Lonni and
+             Gutwin, Carl},
+  title   = {Threats of a Replication Crisis in Empirical Computer Science},
+  journal = {Communications of the ACM},
+  volume  = {63},
+  number  = {8},
+  pages   = {70-79},
+  year    = {2020},
+  doi     = {10.1145/3360311}
+}
