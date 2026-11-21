@@ -144,6 +144,19 @@ def main():
         print()
         print(f"h77_inversion state=contended ratio={r0:.4f} wins={w0} n={n0} p={p0:.3g}")
         print(f"h77_inversion state=resident ratio={r1:.4f} wins={w1} n={n1} p={p1:.3g}")
+        # The pair that actually forms the comparison, which is what the
+        # five-arm spread in h77_freq does not isolate. See docs/defects.md D14.
+        for c, top, bot in (("0", "acqrel", "fencedstore"), ("1", "fencedstore", "acqrel")):
+            ga = med([x for (oo, cc, _), vs in ghz.items() if oo == "acqrel" and cc == c
+                      for x in vs])
+            gf = med([x for (oo, cc, _), vs in ghz.items() if oo == "fencedstore" and cc == c
+                      for x in vs])
+            cr, _, _, _ = ratio_test(cyc, top, bot, c)
+            nr, _, _, _ = ratio_test(ns, top, bot, c)
+            state = "contended" if c == "0" else "resident"
+            print(f"h77_pair state={state} freq_ratio={max(ga, gf) / min(ga, gf):.4f} "
+                  f"cycle_ratio={cr:.4f} ns_ratio={nr:.4f} "
+                  f"gap_pct={abs(cr - nr) / nr * 100:.1f}")
         for c in ("0", "1"):
             g = {o: med([x for (oo, cc, _), vs in ghz.items() if oo == o and cc == c for x in vs])
                  for o in ORDERS}

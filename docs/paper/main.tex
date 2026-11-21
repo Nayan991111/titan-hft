@@ -59,9 +59,12 @@ hardware predicts. That a store-release can cost more than a stronger barrier
 has been reported before, on other ARM parts and once on an Apple M1, in both
 cases without a rule for when it happens; the rule is what we
 measure. Replacing the release store \texttt{stlr} with a \texttt{dmb
-ish} barrier followed by a plain store makes the contended loop 2.57 times
-faster, and the same substitution makes the loop 2.75 times slower once the
-cursor line is resident in L1. Crossing the two halves of the acquire-release
+ish} barrier followed by a plain store costs 2.5766 times fewer cycles per
+message when the cursor line is contended, and 2.7008 times more once the line
+is resident in L1, each at 30 of 30 independent launches. Both are cycle ratios
+read from the hardware counters rather than nanosecond ratios, because a
+registered check on the spread of core frequency across the arms failed and the
+consequence of that failure was fixed before the run. Crossing the two halves of the acquire-release
 pair over 30 independent launches localises the effect entirely to the store
 side: substituting the release store alone accounts for a median 133.611 cycles of
 the median 124.544 saved by substituting both, at 30 of 30 launches, while substituting the acquire load alone
@@ -143,8 +146,9 @@ store-release can cost more than a stronger barrier is already
 reported~\cite{liu2020barriers,arden2023riscv}, without a rule for when, and
 Liu et al. recommend measuring it for that reason. The rule measured here is
 caching state: substituting \texttt{dmb ish} and a plain store for
-\texttt{stlr} makes the contended loop 2.57 times faster and the L1-resident
-loop 2.75 times slower, so the comparison changes sign rather than magnitude. Two runs with
+\texttt{stlr} costs 2.5766 times fewer cycles per message when the cursor line
+is contended and 2.7008 times more when it is resident in L1, each at 30 of 30
+launches, so the comparison changes sign rather than magnitude. Two runs with
 different epoch counts agree on the contended figure to one part in a thousand.
 The obvious explanation is excluded by the counters: the barrier arm carries
 more L1D load misses than the acquire-release arm in every configuration and is
@@ -201,6 +205,24 @@ measurement files with one command.
 \end{itemize}
 
 \subsection{What this paper does not claim}
+
+A third run settles which of those numbers to trust. The replication above was
+measured in nanoseconds, because the hardware counters require root and an
+unattended script must not carry a password prompt, and a nanosecond ratio is a
+work ratio only if the two arms ran at similar clocks. Reading the counters
+directly over 30 launches and 900 records gives 2.5766 contended and 2.7008
+resident, each at 30 of 30. Recomputing the nanosecond ratios from the
+committed records of the earlier run with the same aggregation puts the
+contended figure 2.1 percent from its cycle counterpart and the resident figure
+7.3 percent from its own, and the resident cycle figure within 1.8 percent of
+the originally published 2.75. The frequency difference
+between the two compared arms is 1.0086 contended and 1.0611 resident, which
+accounts for the gap. The registered check on frequency spread was written over
+all five arms rather than over the compared pair and failed at 1.1922, driven by
+the unordered cost floor, which spends 10.198 cycles per message against 83.579
+and does not hold the core at the same frequency. That specification fault is
+recorded in the repository rather than repaired after the fact, and the
+consequence registered before the run stands: the figures above are cycles.
 
 The mechanism behind the store-side result is a hypothesis and is reported as
 one. A release store must not become visible before prior accesses are

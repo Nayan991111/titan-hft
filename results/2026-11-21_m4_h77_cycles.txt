@@ -956,3 +956,25 @@ bd launch=30 impl=ring order=fencedstore pad=128 cached=0 wait=isb epoch=2 messa
 bd launch=30 impl=ring order=fenced pad=128 cached=0 wait=isb epoch=2 messages=10000000 epoch_ms=221.572 ns_per_msg=22.157 sum_ok=1 invol_switches=1 head_off128=0 tail_off128=0 same_line=0 msg_cycles=97.063 msg_instructions=16.89 msg_l1d_miss=4.6726 msg_br_mispred=0.2408 core_ghz=4.381
 bd launch=30 impl=ring order=unordered pad=128 cached=0 wait=isb epoch=2 messages=10000000 epoch_ms=27.740 ns_per_msg=2.774 sum_ok=0 invol_switches=0 head_off128=0 tail_off128=0 same_line=0 msg_cycles=10.301 msg_instructions=13.18 msg_l1d_miss=2.7906 msg_br_mispred=0.0294 core_ghz=3.713
 bd launch=30 impl=ring order=acqrel pad=128 cached=1 wait=isb epoch=2 messages=10000000 epoch_ms=23.907 ns_per_msg=2.391 sum_ok=1 invol_switches=0 head_off128=0 tail_off128=0 same_line=0 msg_cycles=8.536 msg_instructions=12.25 msg_l1d_miss=0.9427 msg_br_mispred=0.0287 core_ghz=3.571
+
+DERIVED STATISTICS, appended by scripts/h77_verdicts.py from the records
+above. Recomputed from this file with its own parsing, its own median and its
+own exact binomial. Every number the manuscript quotes from this run appears
+here, so a figure in the paper traces to a line in a committed file.
+
+h77_inversion state=contended ratio=2.5766 wins=30 n=30 p=1.86e-09
+h77_inversion state=resident ratio=2.7008 wins=30 n=30 p=1.86e-09
+h77_pair state=contended freq_ratio=1.0086 cycle_ratio=2.5766 ns_ratio=2.5238 gap_pct=2.1
+h77_pair state=resident freq_ratio=1.0611 cycle_ratio=2.7008 ns_ratio=2.5174 gap_pct=7.3
+h77_freq cached=0 low_ghz=3.691 high_ghz=4.401 spread=1.1922
+h77_arm cached=0 order=acqrel msg_cycles=216.235 core_ghz=4.401
+h77_arm cached=0 order=fenced msg_cycles=94.750 core_ghz=4.374
+h77_arm cached=0 order=fencedload msg_cycles=186.435 core_ghz=4.384
+h77_arm cached=0 order=fencedstore msg_cycles=83.579 core_ghz=4.363
+h77_arm cached=0 order=unordered msg_cycles=10.198 core_ghz=3.691
+h77_freq cached=1 low_ghz=3.422 high_ghz=3.918 spread=1.1448
+h77_arm cached=1 order=acqrel msg_cycles=8.226 core_ghz=3.501
+h77_arm cached=1 order=fenced msg_cycles=20.648 core_ghz=3.918
+h77_arm cached=1 order=fencedload msg_cycles=8.079 core_ghz=3.422
+h77_arm cached=1 order=fencedstore msg_cycles=22.173 core_ghz=3.715
+h77_arm cached=1 order=unordered msg_cycles=6.659 core_ghz=3.521

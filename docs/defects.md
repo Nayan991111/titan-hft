@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-20: twelve closed, one partly closed, none open.**
+**Status at 2026-11-21: fourteen closed, none partly closed, none open. Fourteen entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -102,8 +102,8 @@ lead results. They can only read the summary and trust it. An artifact
 evaluation that asks for results to be reproduced rather than merely for the
 code to run would fail on this.
 
-**PARTLY CLOSED 2026-11-20. The lead results are recomputable; a cycle-level
-replication is not yet done.**
+Partly closed 2026-11-20, superseded by the full closure below. The lead
+results became recomputable then; the cycle-level replication came later.
 
 H76 re-ran the barrier cross and retained all 900 records, which are committed
 in `results/2026-11-20_m4_barrier_raw.txt`. Every median, interval and sign
@@ -125,6 +125,26 @@ similar frequency; the original verified that across its 540 lines at 4.035 to
 4.414 GHz and this run could not. A cycle-level replication needs an
 interactive run. The same applies to the run-length sweep, which uses
 `titan-stream ... pmu` and therefore also needs root.
+
+**CLOSED 2026-11-21.** H77 ran the cross interactively under `sudo` with the
+counters active: 30 launches, 900 records, every one carrying `msg_cycles`,
+`msg_instructions`, `msg_l1d_miss`, `msg_br_mispred` and `core_ghz`, in 3
+minutes 27 seconds on wall power.
+
+The inversion holds in cycles. Contended, 2.5766 at 30 of 30; resident, 2.7008
+at 30 of 30, so the sign change is a property of the work done and not of the
+clock it was done at. The five orders rank identically in cycles and in
+nanoseconds at both caching states, arm for arm. Correctness is 180 of 180 per
+correct ring and 0 of 180 for the cost floor.
+
+And the assumption that stood unverified was worth checking, because it was
+wrong where it mattered most. H76's nanosecond figure for the resident
+inversion was 2.5169. In cycles it is 2.7008, a difference of 7.3 percent, and
+the cycle figure agrees with the 2.75 the original PMU run published while the
+nanosecond replication did not. The frequency confound H76 could not measure
+accounts for the gap between its own number and the original. The paper now
+reports cycle ratios, which is what the registration said would happen if the
+frequency check failed.
 
 ---
 
@@ -527,3 +547,47 @@ instead of passing.
 **The standing correction.** No novelty claim enters this paper again without a
 search behind it, and the searches belong in the record rather than in my
 recollection.
+
+---
+
+## D14. A registered threshold measured the wrong thing
+
+**Found** 2026-11-21, by the threshold failing and the failure not meaning what
+it was written to mean.
+**Severity** a fault in the design of a pre-registration, which is the part of
+this project that is supposed to be above reproach. It did not corrupt a result,
+and it is recorded because the registration is the method.
+
+H77 part (d) required the spread of `core_ghz` across the five orders, highest
+over lowest, to be at or below 1.15 within each caching state. Its purpose was
+to establish that comparing two arms in nanoseconds is fair, because a
+nanosecond ratio is only a work ratio if the arms ran at similar clocks.
+
+It came back 1.1922 contended and 1.1448 resident, so it failed. But look at
+where the spread is. Contended, the extremes are the unordered cost floor at
+3.691 GHz and `acqrel` at 4.401 GHz, and the cost floor spends 10.198 cycles per
+message against `fencedstore`'s 83.579. An arm doing an order of magnitude less
+work per message does not hold the core at the same frequency, and it is already
+reported only as a cost floor because it fails its checksum in every epoch.
+Between the two arms that actually form the comparison the frequency ratio is
+1.0086 contended and 1.0611 resident.
+
+So the threshold was written over all five arms when the claim it protects
+concerns a pair. It failed for a reason that is real but is not the reason it was
+asking about. A threshold that can fail without its failure meaning what it
+says is a badly specified threshold, and specifying it was my work.
+
+**CLOSED 2026-11-21** the failure is reported as a failure, because a
+registration that gets reinterpreted after the data arrives is worth nothing.
+The registered consequence fires as written and the paper now reports cycle
+ratios. Where the spread comes from is recorded beside the verdict so a reader
+can see what failed and what did not. Any future frequency check is specified
+over the arms being compared, not over every arm in the run.
+
+**It caught something anyway, which is the part worth keeping.** The resident
+figure moves from 2.5169 in nanoseconds to 2.7008 in cycles, 7.3 percent, and
+the cycle figure agrees with the 2.75 the original PMU run published where H76's
+nanosecond replication did not. A frequency confound of 6.1 percent between the
+two compared arms, which the five-arm threshold did not isolate, is what sat
+between H76 and the original. The paper is on firmer ground for having moved to
+cycles, and the badly specified threshold is the reason it did.

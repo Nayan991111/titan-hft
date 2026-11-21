@@ -87,6 +87,9 @@ PERCENT: dict[str, tuple[str, str]] = {
     "95": ("cite", "khayet2026arm"),
     "1": ("cite", "khayet2026arm"),
     "8.94": ("cite", "wrenger2024m1"),
+    "7.3": ("measured", "2026-11-21_m4_h77_cycles.txt"),
+    "2.1": ("measured", "2026-11-21_m4_h77_cycles.txt"),
+    "1.8": ("measured", "2026-11-21_m4_h77_cycles.txt"),
 }
 
 # Numbers that are part of the typesetting rather than the science. Each needs
