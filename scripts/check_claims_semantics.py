@@ -141,6 +141,27 @@ def main():
                 bad.append(f"'{frag}' appears without naming the Fano factor nearby; "
                            "the result is a comparison between two predictors, not one number")
 
+    # arXiv's submission form caps the abstract field at 1920 characters and
+    # silently truncates or rejects beyond it. The abstract reached 909 words
+    # and about 5800 characters by accretion, every addition individually
+    # justified, and the paper could not have been submitted anywhere. A limit
+    # that lives in a web form is invisible until the day it blocks you, so it
+    # lives here instead. See D33.
+    ARXIV_ABSTRACT_CHARS = 1920
+    ab = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", tex, re.S)
+    if not ab:
+        bad.append("the manuscript has no abstract")
+    else:
+        plain = re.sub(r"\\[a-zA-Z]+(\{[^}]*\})?", " ", ab.group(1)).strip()
+        plain = re.sub(r"\s+", " ", plain)
+        n = len(plain)
+        if n > ARXIV_ABSTRACT_CHARS:
+            bad.append(f"the abstract is {n} characters and arXiv accepts "
+                       f"{ARXIV_ABSTRACT_CHARS}; it cannot be submitted as it stands")
+        else:
+            print(f"abstract             : {n} characters, {len(plain.split())} words, "
+                  f"{ARXIV_ABSTRACT_CHARS - n} under the arXiv limit")
+
     # The register's status line must agree with its own markers. It did not,
     # the first time the two were written in the same commit.
     # The map stopped at ten and the register reached eleven, so the check

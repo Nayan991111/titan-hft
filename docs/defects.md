@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty two closed, none partly closed, none open. Thirty two entries in all.**
+**Status at 2026-11-22: thirty three closed, none partly closed, none open. Thirty three entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1460,3 +1460,41 @@ carry each other's statistics because part (g) of H81 is the agreement of their
 directions, and that pair is listed with its reason. Eleven derived keys are
 checked, and the check was confirmed to fail on an invented h99 key before
 being trusted.
+
+---
+
+## D33. The abstract had grown past what any venue accepts
+
+**Found** 2026-11-22, while finishing the manuscript.
+**Severity** the paper could not have been submitted anywhere, and nothing in
+the project would have said so until a submission form refused it.
+
+The abstract had reached 909 words, roughly 5800 characters. arXiv's submission
+form caps that field at 1920 characters. IEEE and the other targets expect
+something closer to 250 words. The paper was structurally complete, every gate
+passed, and it was unsubmittable.
+
+Nothing went wrong in a single step. The abstract began at a reasonable length
+and each result added a sentence that was individually justified: the cost
+fraction, the cross of the two halves, the measurement hazard, the clustering
+ladder, the protocol size. Every addition was true and sourced. The sum was a
+page of prose where a paragraph belongs, and because no check looked at its
+length, the growth was invisible from inside the project.
+
+Two substantive overclaims were found in the same pass and corrected rather
+than carried into the short version. The abstract said that a rule for when a
+store-release costs more than a stronger barrier "is what we measure"; the
+paper measures three conditions that decide it, one of them non-monotone and
+confounded, which is not a rule. And the related work section said "the rule
+measured here is caching state", written before ring capacity was known to
+reverse the comparison again.
+
+**CLOSED 2026-11-22** The abstract is 1654 characters and 265 words, 266 under
+the arXiv limit, and states the capacity dependence, the waiting ratio and that
+the mechanism is not identified, which the long version did not. The detail it
+shed was already in the contributions subsection, where it belongs.
+
+`scripts/check_claims_semantics.py` now fails when the abstract exceeds 1920
+characters and prints the margin on every run, and the check was confirmed to
+fail on a padded abstract before being trusted. A limit that lives in a web
+form is invisible until the day it blocks you, so it lives in the gate instead.
