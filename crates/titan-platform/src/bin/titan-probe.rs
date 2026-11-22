@@ -19,6 +19,10 @@ static A: CountingAlloc = CountingAlloc;
 
 fn main() {
     let pmu = std::env::args().any(|a| a == "pmu");
+    if std::env::args().any(|a| a == "events") {
+        dump_events();
+        return;
+    }
     println!("== platform");
     println!("page_size={}", page_size());
     let (n, d) = clock::mach_timebase();
@@ -260,6 +264,37 @@ fn storemiss_passes(tag: &str, evs: &[&[&str]]) {
     report("rmw_64mib_expect_both", STORES, &c0);
 
     std::hint::black_box((&big, &small));
+}
+
+/// Every event the performance database on this machine offers.
+///
+/// Written because a registered threshold was built on an event that cannot
+/// answer it. `L1D_CACHE_MISS_ST_NONSPEC` counts retired stores that missed in
+/// L1D, and the ring's stores land in lines that are already present, so the
+/// quantity is zero on both threads and no rerun changes that. Choosing a
+/// replacement from memory is how the first one was chosen. This prints the
+/// database so the choice is made against what the hardware actually exposes,
+/// and the output is committed so the choice can be audited.
+fn dump_events() {
+    let k = match Kperf::open() {
+        Ok(k) => k,
+        Err(e) => {
+            println!("events_open_error=\"{e}\"");
+            return;
+        }
+    };
+    match k.events() {
+        Ok(evs) => {
+            println!("event_count={}", evs.len());
+            for e in evs {
+                println!("event name={} alias={} desc={}",
+                         e.name,
+                         if e.alias.is_empty() { "-" } else { &e.alias },
+                         if e.description.is_empty() { "-" } else { &e.description });
+            }
+        }
+        Err(e) => println!("events_error=\"{e}\""),
+    }
 }
 
 fn run_pmu(mode: CountMode) {

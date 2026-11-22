@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-21: twenty three closed, none partly closed, none open. Twenty three entries in all.**
+**Status at 2026-11-22: twenty five closed, none partly closed, none open. Twenty five entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1031,3 +1031,92 @@ asserts its anchor before replacing and reads the file back afterwards. The
 pattern is the one the register keeps recording in the measurements, arriving
 in the instrument used to write the measurements down: a step that reports
 success without checking the thing it claims to have done.
+
+---
+
+## D24. The cost floor's incorrectness is a race, not a property
+
+**Found** 2026-11-22, by H79 part (e) failing.
+**Severity** a correctness threshold that has held across every run of this
+project turns out to have been measuring the thread arrangement.
+
+The unordered arm exists as a cost floor. It has no ordering and is expected
+to produce a wrong sum, and (e) has required `sum_ok` to be 0 of 180 for it in
+every registered run, which it has been. Measured on the producer thread it is
+1 in 137 of 180 records.
+
+Nothing about the arm changed. The consumer is spawned in this mode instead of
+the producer, the interleaving changes, and a race that had always resolved
+one way now resolves the other way three times in four. The arm is exactly as
+incorrect as it was.
+
+The threshold was written as a property of the arm. It is a property of the
+arm and the schedule together, and the earlier runs did not reveal that
+because they all shared one schedule. A test that passes consistently under
+the only arrangement ever tried is not evidence of a stable property, and the
+consistency is what made it look like one.
+
+**CLOSED 2026-11-22** (e) is recorded as refuted. The registered meaning of
+the unordered arm narrows to what it can support: in a given thread
+arrangement it either does or does not produce correct sums, and the figure is
+reported per run rather than asserted as 0. The paper gains the observation
+rather than hiding it, because it is worth stating plainly: a ring with no
+ordering at all passed its own correctness check in 76 percent of records
+once the threads swapped roles, which is why the correctness of a memory
+ordering implementation cannot be established by running it.
+
+---
+
+## D25. The event cannot answer the question, on either thread
+
+**Found** 2026-11-22, by H79 part (a) returning 0/0 after the thread was
+corrected.
+**Severity** terminal for the threshold as written. This is not a measurement
+to retry.
+
+D22 established that H78 part (a) read the consumer while the arms differ in
+the producer's store, and H79 moved the counters to the producer. Every arm
+read exactly 0.0000 retired store misses contended there as well. Resident,
+two arms read 0.0002 and the rest read zero.
+
+The explanation is in what the event counts. `L1D_CACHE_MISS_ST_NONSPEC`
+counts retired stores that missed in the first level data cache, and a miss
+means the line was absent. The ring's stores go to slots cycled through a
+1024 entry buffer and to a cursor the thread writes constantly, so the lines
+are present. A store to a present line held without write permission needs
+ownership, not a fill, and an upgrade is not a miss by this counter's
+definition. The quantity part (a) was built on does not occur in this
+workload on either side of the ring.
+
+So (a) is closed as unmeasurable with this event rather than left pending.
+Rerunning it on a third arrangement would return the same zero for the same
+reason. **The consequence for the paper is stated rather than worked around:
+the throttling account is not excluded by store miss evidence, and the paper
+will not claim that it is.** What the paper does have on that point is the
+waiting decomposition, which is strong and now replicated on both threads at
+0.2338 and 0.2161, and the consumer side load miss counts, which are reported
+with their scope named.
+
+**The guard that was supposed to catch this passed.** Part (b) was written
+after D19 precisely so that a zero counter would be recorded as a failed
+measurement rather than mistaken for a result, and it required the median
+store miss to be strictly above zero for at least one arm in at least one
+caching state. It passed, at 0.0002, from two resident arms, while every
+contended arm, which is the only cell part (a) uses, read exactly zero. The
+guard was scoped more widely than the thing it guards, so it reported
+measurable for a comparison that was not measurable.
+
+That is the fourth time in this project that a threshold was precise,
+checkable, fixed in advance and scoped to the wrong thing: D14 over five arms
+instead of a pair, D20 over an absolute instead of a composition, D22 over the
+wrong thread, and now a measurability guard over all cells instead of the
+cells under test. The correction is narrow and mechanical, and it is the only
+one that has worked: a threshold must name the exact cells its claim is
+evaluated on, and a guard must be evaluated on exactly the cells it guards.
+
+**CLOSED 2026-11-22** (a) is retired as unmeasurable with this event, with the
+reason recorded. `titan-probe events` dumps the full event database to a
+committed file so that any replacement counter is chosen against what the
+hardware exposes rather than from memory, which is how the first one was
+chosen. No new hypothesis is registered on this question until that file
+exists and a candidate event's definition has been read.

@@ -118,8 +118,10 @@ def main():
         a = med(per[("acqrel", "0")]["msg_l1d_store_miss"])
         f2 = med(per[("fencedstore", "0")]["msg_l1d_store_miss"])
         if a == 0:
-            v["a"] = (None, f"UNEVALUABLE, the acquire-release arm read 0.0000 "
-                      f"contended while fencedstore read {f2:.4f}")
+            v["a"] = (None, f"UNEVALUABLE, both compared arms read 0.0000 "
+                      f"contended, so the ratio is 0/0 again. (b) passed on "
+                      f"{hi:.4f} from a cell this comparison does not use. "
+                      f"See docs/defects.md D25")
         else:
             w, n = wins(launch, "fencedstore", "acqrel", "0", "msg_l1d_store_miss")
             v["a"] = (f2 / a >= 0.95, f"contended store-miss ratio {f2 / a:.4f}, "
@@ -133,8 +135,9 @@ def main():
             mine, theirs = ranking(per, cc, "ns_per_msg"), ranking(rper, cc, "ns_per_msg")
             same &= mine == theirs
             detail.append(f"{lab} {'same' if mine == theirs else f'{mine} vs {theirs}'}")
+        side_txt = rside if rside else "consumer, recorded before the field existed"
         v["c"] = (same, f"ranking by median ns_per_msg against {REF.name} "
-                  f"(measured_side={rside}): " + "; ".join(detail))
+                  f"(measured_side={side_txt}): " + "; ".join(detail))
     else:
         v["c"] = (None, f"UNEVALUABLE, {REF.name} not found")
 
