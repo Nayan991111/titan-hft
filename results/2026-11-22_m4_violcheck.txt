@@ -1,0 +1,19 @@
+MEMORY ORDER VIOLATION COUNTER VALIDITY. Apple M4.
+Run 2026-11-22 19:49 IST. ST_MEM_ORDER_VIOL_LD_NONSPEC read exactly
+0.0000 on every arm of 1800 records in H80 and H81, which refuted one
+registered part and left another with no ratio. That zero is not a
+measurement until the event is shown to discriminate. The expected
+ordering of the two passes below was fixed in the source before the
+counter was read: the aliasing pass must count far more than the control.
+See docs/defects.md D27, which is OPEN pending this file.
+
+MACHINE : Mac16,13 , 10 cpus, 4 performance
+OS      : ProductVersion 27.2.1, BuildVersion 26B131
+COMMIT  : 9b963a7d8411716ec4c0deac45d95ebf2f700f4e
+POWER   : not applicable, a counter validity check with no timing claim
+
+pmu_permission=true
+violcheck_events ["FIXED_CYCLES", "ST_MEM_ORDER_VIOL_LD_NONSPEC", "L1D_CACHE_WRITEBACK", "LDST_UNIT_OLD_L1D_CACHE_MISS"]
+violcheck pass=aliasing_expect_violations ops=4000000 mem_order_viol_per_op=0.000000 writeback_per_op=0.0005 wait_cycles_per_op=8.8400 cycles_per_op=21.64
+violcheck pass=control_expect_few ops=4000000 mem_order_viol_per_op=0.000000 writeback_per_op=0.0001 wait_cycles_per_op=10.0321 cycles_per_op=21.50
+violcheck_verdict aliasing_total=0 control_total=0 counter_discriminates=no, both zero, the event is inert here
