@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty closed, none partly closed, none open. Thirty entries in all.**
+**Status at 2026-11-22: thirty one closed, none partly closed, none open. Thirty one entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1374,3 +1374,49 @@ and H83 gave the sign reversal with capacity and a matched duration comparison
 that neither was designed to produce. A guard that fires is not a wasted run.
 It is the difference between a paper that reports what it measured and one that
 reports what it hoped.
+
+---
+
+## D31. A verdict script that interprets, and overstated what it had
+
+**Found** 2026-11-22, by reading H84's table rather than its verdicts.
+**Severity** five thresholds held and the sentence printed under them claimed
+more than they establish. Had that sentence been copied into the paper it would
+have been the easiest finding in the project for a reviewer to break.
+
+H84's registered parts all hold. The comparison does change sign with ring
+capacity, acqrel faster at capacity 2 in 20 of 20 launches and slower at 1024 in
+20 of 20, and coherence traffic carries no arm specific component beyond 1.2168
+against a band of 1.50. Those are the measurements and they stand.
+
+Beneath them the script printed, as a REGISTERED READING, that the paper's
+central claim is bounded to rings of capacity 16 and above and that capacity is
+a third governing variable. I wrote that sentence into the script before the run,
+as a registered consequence, and both halves of it go further than the data.
+
+The winner across capacities 2, 4, 8, 16 and 1024 is acqrel, fencedstore,
+acqrel, fencedstore, fencedstore. Three sign changes over five points. A
+boundary at 16 rests on the two points above it while the region below
+alternates, and no threshold was registered over that region at all.
+
+And capacity is not a separable variable in this design. The slot type is eight
+bytes and the slot region is page aligned, so capacity alone fixes the slot
+array's footprint, 16, 32, 64, 128 and 8192 bytes, which first fills a 128 byte
+line at exactly the capacity where the acquire-release arm breaks by 2.716 with
+refills and writebacks each rising near fourfold. Capacity alone also fixes how
+far the producer may run ahead. Three candidate causes move as one, and naming
+the one that happens to label the axis is not an inference.
+
+**CLOSED 2026-11-22** The reading is withdrawn and replaced with what the data
+supports: the sign of the comparison depends on ring capacity over the range
+measured, non-monotonically, and which property of the ring governs it is open.
+H85 is registered to separate footprint from slot count and run-ahead with a two
+by two that changes the footprint by sixteen while holding both others fixed.
+
+**The lesson is about where interpretation lives.** A registered consequence is
+meant to bind the analysis in advance, and it does that well for a threshold,
+which is arithmetic. It does it badly for a sentence, which can smuggle an
+extrapolation into a place where it looks pre-approved. Thresholds stay in the
+scripts. Readings of them belong in the register and the paper, where they can
+be argued with, and from now the scripts print the numbers and name the row to
+read rather than announcing what the numbers mean.

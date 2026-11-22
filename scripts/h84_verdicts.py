@@ -174,21 +174,16 @@ def main():
     assert s + r + u == len(v), "the tally does not account for every part"
     print()
     print(f"{s} supported, {r} refuted, {u} unevaluable, of {len(v)} parts")
-    if v["b"][0] and v["c"][0]:
-        print()
-        print("REGISTERED READING: the comparison changes sign with ring capacity, so")
-        print("the paper's central claim is bounded to rings of capacity 16 and above")
-        print("and capacity is a third governing variable alongside the caching state")
-        print("and the load against store side split.")
-    if v["d"][0] is True:
-        print()
-        print("REGISTERED READING: coherence traffic carries no arm specific component")
-        print("large enough to be the mechanism, so the paper states that the mechanism")
-        print("remains open rather than naming coherence traffic as the cause.")
-    elif v["d"][0] is False:
-        print()
-        print("REGISTERED READING: there is an arm specific traffic component beyond")
-        print("duration at one or more capacities, and its size is above.")
+    # D31: a threshold is arithmetic and belongs here; a reading of it is an
+    # argument and belongs in the register and the paper, where it can be
+    # disagreed with. This script used to print its own interpretation under
+    # the verdicts, which is where an extrapolation looks pre-approved. It
+    # names the row to read instead.
+    print()
+    print("Read the H84 row of docs/experiments.md for what these verdicts do and")
+    print("do not license. In short: the dependence on capacity is not monotone,")
+    print("three sign changes fall across these five points, and capacity is")
+    print("confounded here with the slot footprint and the producer run-ahead.")
     return 0
 
 

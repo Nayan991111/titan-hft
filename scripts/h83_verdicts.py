@@ -182,12 +182,12 @@ def main():
     print(f"{s} supported, {r} refuted, {u} unevaluable, of {len(v)} parts")
     if v["c"][0] and v["d"][0]:
         print()
-        print("REGISTERED READING: there is arm specific coherence traffic that")
+        print("See the H83 row of docs/experiments.md. there is arm specific coherence traffic that")
         print("duration does not explain, and the residual above is its size. This is")
         print("the first positive mechanism this project has for the inversion.")
     elif v["c"][0] is False or v["d"][0] is False:
         print()
-        print("REGISTERED READING: the traffic difference is duration, and the paper")
+        print("See the H83 row of docs/experiments.md. the traffic difference is duration, and the paper")
         print("says the mechanism remains open.")
     return 0
 
