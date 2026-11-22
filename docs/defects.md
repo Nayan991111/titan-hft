@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: twenty nine closed, none partly closed, none open. Twenty nine entries in all.**
+**Status at 2026-11-22: thirty closed, none partly closed, none open. Thirty entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1328,3 +1328,49 @@ moves acqrel's duration by a third. That is arm specific coherence traffic which
 duration does not explain, and it is exactly what H83 is registered to test
 properly. It is written here rather than in the paper because fitting a
 threshold to data already seen is the practice this protocol exists to prevent.
+
+---
+
+## D30. A threshold calibrated on the wrong machine
+
+**Found** 2026-11-22, by H83's lever guard refusing the regression it gated for
+the second time in two attempts.
+**Severity** a guard was set to a value that no measurement on the target
+machine supported, and it blocked a run that would otherwise have been fine.
+
+H83 registered that the capacity lever must move each arm's cost by at least
+1.50 before a regression across the arms would be read. Measured on the M4, the
+fenced-store arm spans 2.0606 and the acquire-release arm 1.4205, so the guard
+fires and parts (c) and (d) are unevaluable.
+
+The threshold came from this project's own development container, an x86 Linux
+machine, where the same sweep spans 21.5 and 2.7. I ran the lever there, saw it
+move both arms by a wide margin, and wrote 1.50 as a comfortable floor. A
+lever's magnitude is a property of the machine, and this project's standing rule
+is to never assume a fact that is only knowable on the measurement machine. I
+broke it in the one place where the rule is easiest to forget, which is a
+threshold rather than a result.
+
+What makes it worse is that the Linux numbers were not merely different in size
+but opposite in shape. There, a smaller ring made the acquire-release arm
+dramatically more expensive, 275 nanoseconds per message at capacity 2 against
+12.8 at 1024. On the M4 capacity 2 is the cheapest cell for that arm, 154.386
+cycles against 208.656 at 1024. I had the direction backwards and would not
+have known it from the container.
+
+**CLOSED 2026-11-22** The threshold is not lowered to fit what was measured,
+because fitting a guard to the data it guards is the practice this protocol
+exists to prevent. H83 keeps its unevaluable verdicts and its data is not
+reinterpreted. H84 instead asks the question the M4 data actually poses, using
+a natural matched duration cell rather than a regression that needs a wide
+lever, and any future lever threshold is to be taken from a pilot on the
+measurement machine and cited to its file.
+
+**The guard pattern is working and that is worth recording too.** Two
+registered discriminators in a row have been stopped by their own guards before
+they could produce a confident answer from an unsuitable design, and both runs
+were still worth their time: H82 gave the non overlap of writebacks per cycle
+and H83 gave the sign reversal with capacity and a matched duration comparison
+that neither was designed to produce. A guard that fires is not a wasted run.
+It is the difference between a paper that reports what it measured and one that
+reports what it hoped.

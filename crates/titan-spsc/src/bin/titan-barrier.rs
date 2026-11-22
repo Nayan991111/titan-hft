@@ -221,6 +221,21 @@ fn cap_sweep() -> bool {
 /// Capacities in case order, so the record carries the one it ran under.
 const CAP_SWEEP: [usize; 8] = [2, 16, 128, 1024, 2, 16, 128, 1024];
 
+/// A finer sweep around the capacity at which the comparison changes sign.
+///
+/// H83 found the acquire-release arm faster at capacity 2, by 1.0888, and the
+/// fenced-store arm faster by 2.1759 at 16, 2.6359 at 128 and 2.4444 at 1024.
+/// The crossover therefore lies between 2 and 16 and nothing in this project
+/// had looked there. These five capacities bracket it.
+const CAP_FINE: [usize; 10] = [2, 4, 8, 16, 1024, 2, 4, 8, 16, 1024];
+
+/// Vary the ring capacity finely, to locate where the comparison changes sign.
+fn cap_fine() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "capfine"))
+}
+
 fn probe_spec() -> &'static ProbeSpec {
     const DEFAULT: ProbeSpec = ProbeSpec {
         name: "default",
@@ -333,7 +348,20 @@ fn main() {
     // its regression across them was unevaluable. That is D29. Ring capacity is
     // a lever that acts on both: a smaller ring forces the producer to wait on
     // the consumer's cursor more often whatever the ordering costs.
-    let cases: Vec<(Case, bool)> = if cap_sweep() {
+    let cases: Vec<(Case, bool)> = if cap_fine() {
+        vec![
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+        ]
+    } else if cap_sweep() {
         vec![
             (case::<AcqRel, Pad128, SpinHint, false>, true),
             (case::<AcqRel, Pad128, SpinHint, false>, true),
@@ -371,7 +399,9 @@ fn main() {
     };
     // One capacity per case, in case order, so a record carries the ring it ran
     // under rather than a constant that stopped being true.
-    let caps: Vec<usize> = if cap_sweep() {
+    let caps: Vec<usize> = if cap_fine() {
+        CAP_FINE.to_vec()
+    } else if cap_sweep() {
         CAP_SWEEP.to_vec()
     } else {
         vec![CAPACITY; cases.len()]
@@ -381,11 +411,13 @@ fn main() {
     println!(
         "bd_config messages={n} epochs={epochs} cases={} capacity={} pmu={} measured_side={} counters={} arms={}",
         cases.len(),
-        if cap_sweep() { "swept".to_string() } else { CAPACITY.to_string() },
+        if cap_sweep() || cap_fine() { "swept".to_string() } else { CAPACITY.to_string() },
         pmu.is_some(),
         if producer_side() { "producer" } else { "consumer" },
         probe_spec().name,
-        if cap_sweep() {
+        if cap_fine() {
+            "capfine"
+        } else if cap_sweep() {
             "capsweep"
         } else if wait_sweep() {
             "waitsweep"
