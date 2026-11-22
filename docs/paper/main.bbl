@@ -21,6 +21,10 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
+\bibitem{maciejewski2026cme}
+V.~Maciejewski, ``Packets, transactions and queues: Design principles for {HFT}
+  systems from a measurement study of {CME} market data,'' 2026.
+
 \bibitem{khayet2026arm}
 Y.~Khayet and A.~Morrison, ``Arm weak memory consistency on apple silicon: What
   is it good for?'' in \emph{Proceedings of the 31st ACM International
@@ -77,11 +81,20 @@ A.~G. Hawkes, ``Spectra of some self-exciting and mutually exciting point
 Y.~Ogata, ``On {L}ewis' simulation method for point processes,'' \emph{IEEE
   Transactions on Information Theory}, vol.~27, no.~1, pp. 23-31, 1981.
 
+\bibitem{weaver2008trusted}
+V.~M. Weaver and S.~A. McKee, ``Can hardware performance counters be trusted?''
+  in \emph{Proc. IEEE Int. Symp. on Workload Characterization (IISWC)}, 2008,
+  pp. 141-150.
+
 \bibitem{emurian2014pitfalls}
 L.~Emurian, A.~Raghavan, L.~Shao, J.~M. Rosen, M.~Papaefthymiou, K.~Pipe, T.~F.
   Wenisch, and M.~Martin, ``Pitfalls of accurately benchmarking thermally
   adaptive chips,''
   \url{https://acg.cis.upenn.edu/papers/wddd14_pitfalls_thermadaptive_paper.pdf},
   2014.
+
+\bibitem{ousterhout2018deeper}
+J.~Ousterhout, ``Always measure one level deeper,'' \emph{Communications of the
+  ACM}, vol.~61, no.~7, 2018.
 
 \end{thebibliography}
