@@ -19,6 +19,72 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RES = ROOT / "results"
 
+POWER_WORDS = {
+    "on wall power": ("AC", "wall power"),
+    "on ac power": ("AC", "wall power"),
+    "on battery": ("Battery", "battery"),
+}
+
+
+def check_register_claims(bad: list) -> None:
+    """A power claim in a register row must match a run that row cites.
+
+    The H79 row said the run was on wall power. Nobody had read the file. The
+    operator then reported running without the charger, so a measurement
+    condition that was never checked was one commit from the paper.
+
+    Two things keep this from being an over-strict check, which is the kind
+    that gets switched off. Only table rows are examined, because the
+    register's prose discusses power states as methodology and history rather
+    than as claims about a particular run. And a row that cites several runs
+    passes when any one of them matches, because the claim attaches to the run
+    it describes, and a row often cites both a preliminary run and the one
+    that replaced it.
+
+    The limit of that second rule is stated rather than hidden: a row citing
+    several runs passes when any of them records the claimed state, not when
+    the one the sentence is about does. That is why the four claims this check
+    first caught were corrected in every row they appeared in, including the
+    two rows it did not flag, by reading the file the sentence names instead
+    of trusting the check. See D26.
+    """
+    exp = ROOT / "docs" / "experiments.md"
+    if not exp.exists():
+        return
+    checked = 0
+    for line in exp.read_text(encoding="utf-8").split("\n"):
+        if not line.startswith("|"):
+            continue
+        low = line.lower()
+        claims = [w for w in POWER_WORDS if w in low]
+        if not claims:
+            continue
+        files = re.findall(r"results/([\w.\-]+\.txt)", line)
+        if not files:
+            continue
+        row = line.split("|")[1].strip()[:8]
+        for claim in claims:
+            token = POWER_WORDS[claim][0]
+            seen, matched = [], False
+            for fn in files:
+                f = RES / fn
+                if not f.exists():
+                    continue
+                head = "".join(f.open(encoding="utf-8", errors="replace").readlines()[:40])
+                for v in re.findall(r"^POWER\s*:\s*(.+)$", head, re.M):
+                    seen.append(f"{fn}={v.strip()[:40]!r}")
+                    if token in v:
+                        matched = True
+            if matched:
+                checked += 1
+            else:
+                bad.append(("docs/experiments.md",
+                            f"row {row} claims {POWER_WORDS[claim][1]} and no run it "
+                            f"cites records that; the cited runs say "
+                            f"{'; '.join(seen) if seen else 'nothing'}"))
+    print(f"register power claims : {checked} verified against a cited run")
+
+
 def main() -> int:
     missing, na, nr, ac, batt, other = [], [], [], [], [], []
     for f in sorted(RES.glob("*.txt")):
@@ -46,6 +112,7 @@ def main() -> int:
             other.append((f.name, v[:60]))
 
     print(f"files checked        : {len(list(RES.glob('*.txt')))}")
+    check_register_claims(other if isinstance(other, list) else [])
     print(f"wall power           : {len(ac)}")
     print(f"battery              : {len(batt)}")
     print(f"not applicable       : {len(na)}")

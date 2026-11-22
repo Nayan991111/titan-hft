@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: twenty five closed, none partly closed, none open. Twenty five entries in all.**
+**Status at 2026-11-22: twenty six closed, none partly closed, none open. Twenty six entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1120,3 +1120,44 @@ committed file so that any replacement counter is chosen against what the
 hardware exposes rather than from memory, which is how the first one was
 chosen. No new hypothesis is registered on this question until that file
 exists and a candidate event's definition has been read.
+
+---
+
+## D26. The register asserted power states that were never recorded
+
+**Found** 2026-11-22, by a check written minutes earlier for my own error.
+**Severity** four rows of the register stated a measurement condition as
+though it had been measured. One of them was one commit from the paper.
+
+The H79 row was written as "on wall power" without the file being read. The
+operator then reported having run it without the charger. Nothing had checked,
+because nothing could: the register's power claims were prose and the files'
+POWER lines were data, and the two had never been compared.
+
+Comparing them found three more, all older than the H79 row. The register said
+H64 re-measured a case "on wall power" in four separate rows; H64's run,
+`results/2026-11-16_m4_crosscore.txt`, records no power state. It said the H17
+retest ran on wall power; both runs it cites record none, and the `_ac` in one
+filename is a naming convention, not a field. It reported H66's clocks as
+4.045 to 4.062 GHz on AC against 4.044 to 4.049 on battery; the clocks are
+measured and the labels were not recorded anywhere.
+
+The cause is dated. Power capture began on 2026-11-17, and 25 of the 41 result
+files predate it and say so honestly in their own headers. The claims about
+those runs came from the operator's memory of the day and were typed into the
+register in the same voice as the measured figures, where nothing
+distinguished them.
+
+This is D12's successor and the pair is worth reading together. D12 found that
+the files did not record their power state. D26 finds the register asserting
+power states for exactly those files. Fixing the first created the conditions
+for the second: once most runs carried a real POWER line, a row asserting one
+looked like it had been checked.
+
+**CLOSED 2026-11-22** All four claims are corrected to say what is recorded
+and what is not, in every row they appear in, including the two the check did
+not flag, because the check verifies that some run a row cites records the
+claimed state and not that the run the sentence is about does. That limit is
+written into the check itself rather than left for someone to discover. Three
+register power claims now verify against a cited run, and the H79 row asserts
+no power state until its file is read.
