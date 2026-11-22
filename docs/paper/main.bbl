@@ -21,13 +21,6 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
-\bibitem{emurian2014pitfalls}
-L.~Emurian, A.~Raghavan, L.~Shao, J.~M. Rosen, M.~Papaefthymiou, K.~Pipe, T.~F.
-  Wenisch, and M.~Martin, ``Pitfalls of accurately benchmarking thermally
-  adaptive chips,''
-  \url{https://acg.cis.upenn.edu/papers/wddd14_pitfalls_thermadaptive_paper.pdf},
-  2014.
-
 \bibitem{khayet2026arm}
 Y.~Khayet and A.~Morrison, ``Arm weak memory consistency on apple silicon: What
   is it good for?'' in \emph{Proceedings of the 31st ACM International
@@ -83,5 +76,12 @@ A.~G. Hawkes, ``Spectra of some self-exciting and mutually exciting point
 \bibitem{ogata1981thinning}
 Y.~Ogata, ``On {L}ewis' simulation method for point processes,'' \emph{IEEE
   Transactions on Information Theory}, vol.~27, no.~1, pp. 23-31, 1981.
+
+\bibitem{emurian2014pitfalls}
+L.~Emurian, A.~Raghavan, L.~Shao, J.~M. Rosen, M.~Papaefthymiou, K.~Pipe, T.~F.
+  Wenisch, and M.~Martin, ``Pitfalls of accurately benchmarking thermally
+  adaptive chips,''
+  \url{https://acg.cis.upenn.edu/papers/wddd14_pitfalls_thermadaptive_paper.pdf},
+  2014.
 
 \end{thebibliography}
