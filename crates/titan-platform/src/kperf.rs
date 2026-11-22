@@ -479,6 +479,29 @@ pub mod events {
     /// Retired data barrier instructions, so a claim that a barrier is present
     /// can be counted rather than assumed.
     pub const BARRIERS: &[&str] = &["INST_BARRIER"];
+
+    /// Dirty lines leaving L1D toward the shared L2.
+    ///
+    /// This is the counter the throttling account needed from the start.
+    /// `L1D_CACHE_MISS_ST_NONSPEC` counts retired stores that missed, and a
+    /// miss means the line was absent, which never happens to a ring cursor
+    /// written in a tight loop. A dirty line handed to L2 is the ownership
+    /// transfer a contended cursor actually forces, and it is an event that
+    /// certainly occurs in this workload rather than one that certainly does
+    /// not. See D25.
+    pub const L1D_WRITEBACK: &[&str] = &["L1D_CACHE_WRITEBACK"];
+
+    /// Retired stores that triggered a memory order violation against a load.
+    ///
+    /// A violation costs a pipeline flush and replay. If the release store
+    /// arm incurs more of them than the barrier arm under contention, that is
+    /// a mechanism for the inversion rather than a correlate of it: a full
+    /// barrier drains the pipeline and leaves no speculative load to be
+    /// ordered wrongly, where a release store permits one.
+    pub const MEM_ORDER_VIOL: &[&str] = &["ST_MEM_ORDER_VIOL_LD_NONSPEC"];
+
+    /// Lines refilled into L1D, the inbound half of the same traffic.
+    pub const L1D_REFILL: &[&str] = &["ARM_L1D_CACHE_REFILL"];
 }
 
 #[cfg(test)]

@@ -128,17 +128,14 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
             // programmed. Emitting store-probe data under msg_l1d_miss would
             // put a wrong name on a committed record, which is exactly the
             // class of defect this register keeps recording.
-            let (n2, n3) = if store_probe() {
-                ("msg_l1d_store_miss", "msg_ldst_wait_cycles")
-            } else {
-                ("msg_l1d_miss", "msg_br_mispred")
-            };
+            let spec = probe_spec();
+            let f = |v: f64, p: usize| format!("{:.*}", p, v);
             format!(
-                " msg_cycles={:.3} msg_instructions={:.2} {n2}={:.4} {n3}={:.4} core_ghz={:.3}",
+                " msg_cycles={:.3} {}={} {}={} {}={} core_ghz={:.3}",
                 per(d[0]),
-                per(d[1]),
-                per(d[2]),
-                per(d[3]),
+                spec.fields[0], f(per(d[1]), spec.decimals[0]),
+                spec.fields[1], f(per(d[2]), spec.decimals[1]),
+                spec.fields[2], f(per(d[3]), spec.decimals[2]),
                 d[0] as f64 / secs / 1e9
             )
         }
@@ -189,6 +186,77 @@ fn store_probe() -> bool {
     *F.get_or_init(|| std::env::args().any(|a| a == "storeprobe"))
 }
 
+/// What a counter mode programs and what it calls the fields it emits.
+///
+/// The two were separate before, an array of events in one place and a pair of
+/// field names in another, and they drifted: a diagnostic read the store miss
+/// column at a fixed index that held the instruction counter under one of the
+/// two event sets, and printed instruction counts under a store miss heading.
+/// That is D21. Keeping them in one structure means a mode cannot name a field
+/// it did not program, and `assert_programmed` then checks that the hardware
+/// resolved the events this mode asked for, in the order it asked for them,
+/// before a single record is written.
+struct ProbeSpec {
+    name: &'static str,
+    events: [&'static [&'static str]; 4],
+    fields: [&'static str; 3],
+    decimals: [usize; 3],
+}
+
+fn probe_spec() -> &'static ProbeSpec {
+    const DEFAULT: ProbeSpec = ProbeSpec {
+        name: "default",
+        events: [events::CYCLES, events::INSTRUCTIONS, events::L1D_LOAD_MISS,
+                 events::BRANCH_MISPREDICT],
+        fields: ["msg_instructions", "msg_l1d_miss", "msg_br_mispred"],
+        decimals: [2, 4, 4],
+    };
+    const STORE: ProbeSpec = ProbeSpec {
+        name: "storeprobe",
+        events: [events::CYCLES, events::INSTRUCTIONS, events::L1D_STORE_MISS,
+                 events::LDST_WAIT_MISS],
+        fields: ["msg_instructions", "msg_l1d_store_miss", "msg_ldst_wait_cycles"],
+        decimals: [2, 4, 4],
+    };
+    // The throttling question, on counters that can answer it. Writebacks are
+    // the ownership transfer a contended cursor forces, and memory order
+    // violations are a mechanism for the inversion rather than a correlate.
+    const VIOL: ProbeSpec = ProbeSpec {
+        name: "violprobe",
+        events: [events::CYCLES, events::L1D_WRITEBACK, events::MEM_ORDER_VIOL,
+                 events::LDST_WAIT_MISS],
+        fields: ["msg_l1d_writeback", "msg_mem_order_viol", "msg_ldst_wait_cycles"],
+        decimals: [4, 4, 4],
+    };
+    if std::env::args().any(|a| a == "violprobe") {
+        &VIOL
+    } else if store_probe() {
+        &STORE
+    } else {
+        &DEFAULT
+    }
+}
+
+/// Refuse to measure if the hardware did not give this mode the events it
+/// asked for, in order. A counter that silently resolved to something else, or
+/// to nothing, is how nine hundred records came to carry a field that was
+/// never programmed. Failing here costs one run; not failing here cost two.
+fn assert_programmed(s: &Session) {
+    let spec = probe_spec();
+    let got = s.names();
+    if got.len() != 4 {
+        eprintln!("pmu programmed {} counters, expected 4, mode {}", got.len(), spec.name);
+        std::process::exit(3);
+    }
+    for (i, cands) in spec.events.iter().enumerate() {
+        if !cands.contains(&got[i].as_str()) {
+            eprintln!("pmu slot {i} resolved to {} which is not among {:?}, mode {}",
+                      got[i], cands, spec.name);
+            std::process::exit(3);
+        }
+    }
+}
+
 type Case = fn(usize, usize, Option<&Session>) -> bool;
 
 fn main() {
@@ -197,18 +265,15 @@ fn main() {
     let epochs: usize = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(3);
     let pmu = if args.iter().any(|a| a == "pmu") {
         match Kperf::open().and_then(|k| {
-            // `storeprobe` swaps the two configurable counters for the pair
-            // that separates miss count from miss waiting time. H78 needs that
-            // separation; nothing else does, so the default is unchanged and
-            // every earlier results file stays comparable.
-            k.session(&[
-                events::CYCLES,
-                events::INSTRUCTIONS,
-                if store_probe() { events::L1D_STORE_MISS } else { events::L1D_LOAD_MISS },
-                if store_probe() { events::LDST_WAIT_MISS } else { events::BRANCH_MISPREDICT },
-            ])
+            // The mode decides the events and the field names together, so
+            // the default stays exactly as it was and every earlier results
+            // file remains comparable. See probe_spec and D21.
+            k.session(&probe_spec().events)
         }) {
-            Ok(s) => Some(s),
+            Ok(s) => {
+                assert_programmed(&s);
+                Some(s)
+            }
             Err(e) => {
                 eprintln!("pmu unavailable: {e}");
                 std::process::exit(2);
@@ -235,11 +300,11 @@ fn main() {
         (case::<Unordered, Pad128, SpinHint, true>, false),
     ];
     println!(
-        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={} measured_side={} store_probe={}",
+        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={} measured_side={} counters={}",
         cases.len(),
         pmu.is_some(),
         if producer_side() { "producer" } else { "consumer" },
-        store_probe()
+        probe_spec().name
     );
     // Arms rotate by a stride coprime with the arm count so that position in
     // the epoch is not fixed per arm; 3 and 10 are coprime.
