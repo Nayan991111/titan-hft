@@ -117,8 +117,15 @@ def main() -> int:
         """
         raw = text_of(p)
         nums = sorted(re.findall(r"-?\d+(?:\.\d+)?", raw))
-        words = sorted(w.lower() for w in re.findall(r"[A-Za-z]{2,}", raw))
-        return nums, words
+        # Word tokens are not stable either. pdftotext breaks a label wherever
+        # the glyph spacing suggests a gap, so the same "unordered" came out as
+        # un + ord + ered on one machine and unord + ered on the other, and
+        # comparing word multisets reported labels lost and gained while the
+        # numbers were identical. Concatenating every letter removes the
+        # fragmentation entirely: the same label yields the same string however
+        # it was split. D35.
+        letters = "".join(re.findall(r"[a-z]+", raw.lower()))
+        return nums, letters
 
     try:
         import matplotlib  # noqa: F401
@@ -145,12 +152,11 @@ def main() -> int:
                         an, aw = after
                         lost_n = sorted(set(bn) - set(an))[:6]
                         new_n = sorted(set(an) - set(bn))[:6]
-                        lost_w = sorted(set(bw) - set(aw))[:6]
-                        new_w = sorted(set(aw) - set(bw))[:6]
-                        bad.append(f"{n}: committed figure has numbers {lost_n} that a "
-                                   f"fresh regeneration does not, and the regeneration has "
-                                   f"{new_n} that it does not; labels lost {lost_w}, "
-                                   f"gained {new_w}")
+                        same_text = bw == aw
+                        bad.append(f"{n}: numbers in the committed figure and absent from "
+                                   f"a regeneration {lost_n}, numbers in the regeneration "
+                                   f"and absent from the committed figure {new_n}, "
+                                   f"letter content identical: {same_text}")
                         bad.append(f"{n} is stale: regenerating from committed data "
                                    f"changes its content, so the committed figure no "
                                    f"longer matches the records it draws")

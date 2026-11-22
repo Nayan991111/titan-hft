@@ -502,6 +502,22 @@ pub mod events {
 
     /// Lines refilled into L1D, the inbound half of the same traffic.
     pub const L1D_REFILL: &[&str] = &["ARM_L1D_CACHE_REFILL"];
+
+    /// Cycles in which the scheduler issued at least one uop to any unit.
+    ///
+    /// Divided by cycles this is the fraction of time the core was making
+    /// forward progress at all, which is the quantity the throttling account
+    /// needs. If a full barrier is faster because it suppresses the issue rate
+    /// and so avoids a coherence storm, the barrier arm must issue on fewer
+    /// cycles than the release-store arm. If it issues on more, it is simply
+    /// making more progress and throttling is not the mechanism.
+    pub const ISSUE_ACTIVE: &[&str] = &["SCHEDULE_UOP_ANY"];
+
+    /// Cycles with no operation sent for execution because of the backend.
+    pub const STALL_BACKEND: &[&str] = &["ARM_STALL_BACKEND"];
+
+    /// All retired uops, as a check that the arms do comparable work.
+    pub const RETIRED_UOPS: &[&str] = &["RETIRE_UOP"];
 }
 
 #[cfg(test)]

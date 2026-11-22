@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty four closed, none partly closed, none open. Thirty four entries in all.**
+**Status at 2026-11-22: thirty five closed, none partly closed, none open. Thirty five entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1541,3 +1541,39 @@ must compare the thing it cares about and nothing else. Every time a comparison
 has been allowed to carry incidental detail, bytes in D7 and D17 and layout
 here, it has fired on correct work. The question to ask of any new check is what
 it would take for it to fail while the work is right.
+
+---
+
+## D35. The same false alarm again, one level down
+
+**Found** 2026-11-22, by the measurement machine failing the gate D34 had just
+repaired.
+**Severity** a correct commit was blocked twice by the same check, for the same
+reason, in the same hour.
+
+D34 replaced a layout-sensitive text comparison with a comparison of numeric
+and alphabetic tokens. The next run on the measurement machine failed again,
+and the diagnostic that D34 added is what settled it: zero numeric differences,
+and the labels reported as lost and gained were `ord`, `tor`, `un` against
+`dl`, `nce`, `nord`, `oa`. Those are fragments. `pdftotext` breaks a label
+wherever glyph spacing suggests a gap, so the same word came out as `un` plus
+`ord` plus `ered` on one machine and `unord` plus `ered` on the other, and a
+multiset of word tokens is no more stable than the layout was.
+
+The numbers were identical, which is the thing the check exists to protect. I
+removed layout and left tokenisation, which is layout at one remove.
+
+**CLOSED 2026-11-22** The letters of the extracted text are concatenated into a
+single string, so the same label yields the same content however it was split,
+and the numbers are still compared as a multiset. Swapping one figure's content
+for another's was confirmed to fail, reporting both the numeric differences and
+that the letter content differs, before the new form was trusted.
+
+**Four entries now, on one question.** D7 established that cross-machine PDF
+byte identity is not achievable. D17 recorded demanding it again four days
+later. D34 removed layout and kept tokenisation. D35 removed tokenisation. The
+error each time was to compare an artifact of rendering alongside the content,
+and the diagnostic added in D34 is what made D35 take minutes instead of an
+evening. The rule, now stated once rather than rediscovered: a check that spans
+two machines compares the quantity under claim and nothing that travels with
+it, and it prints what differs rather than only that something did.

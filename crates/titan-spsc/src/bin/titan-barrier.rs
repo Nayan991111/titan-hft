@@ -272,7 +272,20 @@ fn probe_spec() -> &'static ProbeSpec {
         fields: ["msg_l1d_writeback", "msg_l1d_refill", "msg_ldst_wait_cycles"],
         decimals: [4, 4, 4],
     };
-    if std::env::args().any(|a| a == "trafficprobe") {
+    // The one mechanism in the audit list that no run has tested: that a full
+    // barrier is faster under contention because it suppresses the issue rate
+    // and so prevents a coherence storm, rather than because it reorders less.
+    // Issue-active cycles over total cycles is that quantity directly.
+    const ISSUE: ProbeSpec = ProbeSpec {
+        name: "issueprobe",
+        events: [events::CYCLES, events::ISSUE_ACTIVE, events::STALL_BACKEND,
+                 events::RETIRED_UOPS],
+        fields: ["msg_issue_active", "msg_stall_backend", "msg_retired_uops"],
+        decimals: [4, 4, 2],
+    };
+    if std::env::args().any(|a| a == "issueprobe") {
+        &ISSUE
+    } else if std::env::args().any(|a| a == "trafficprobe") {
         &TRAFFIC
     } else if std::env::args().any(|a| a == "violprobe") {
         &VIOL
