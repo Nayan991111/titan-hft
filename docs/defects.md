@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: twenty seven closed, none partly closed, one open. Twenty eight entries in all.**
+**Status at 2026-11-22: twenty nine closed, none partly closed, none open. Twenty nine entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1191,8 +1191,35 @@ field pattern now matches any `msg_` field by shape, and the two files are
 listed as pending against this entry, reported on every run, so no claim can
 quietly rest on them.
 
-**OPEN.** `titan-probe` gains a validation pass with its expected outcome
-fixed in the source before the counter is read: an aliasing loop whose store
+**CLOSED 2026-11-22, against the reading that was convenient.** The validation
+pass ran and the counter did not move. The aliasing loop, built to trigger
+violations, reported 0.000000 per operation, and so did the control. The two
+passes did behave differently, writebacks 0.0005 against 0.0001, so the loops
+were not identical, and cycles per operation were 21.64 against 21.50, so
+neither pass paid a replay penalty.
+
+Two explanations survive and this project cannot separate them: the event is
+inert on this part, or the aliasing loop produced no violations because store
+to load forwarding resolved every collision without one. Either way the zero in
+H80, H81 and H82 is not evidence that the ring triggers no memory order
+violations.
+
+**So part (c) of H80 and of H81 is downgraded from REFUTED to UNEVALUABLE.** It
+had been recorded as a refutation resting on this counter, and a refutation
+resting on a counter never seen to move is not a refutation. The paper makes no
+claim about memory order violations in either direction, and the mechanism is
+neither tested nor excluded.
+
+The line stops here rather than continuing. Two attempts have failed to move
+this counter and a third would spend the evening chasing an instrument while
+twelve points of submission mechanics and twelve of prose sit untouched. The
+violation counter is retired from the harness: `violprobe` remains only so the
+three existing files can be read, and a new `trafficprobe` mode replaces it
+with `ARM_L1D_CACHE_REFILL`, the inbound half of the same coherence traffic,
+which does count.
+
+The validation pass is kept, with its expected outcome still fixed in the
+source before the counter is read: an aliasing loop whose store
 address depends on a pointer chase, so it resolves late and the following load
 issues first, with the load's address colliding with the store's on an
 unpredictable half of iterations so the disambiguation predictor cannot learn
@@ -1255,3 +1282,49 @@ which returns the list rather than a boolean, and the tally tested identity
 against `True`. Six parts were listed and five counted. The expression is a
 boolean now and the tally asserts that it accounts for every part, so a
 summary can no longer disagree with the lines above it.
+
+---
+
+## D29. A duration lever that acted on one arm only
+
+**Found** 2026-11-22, by H82's own guard refusing the regression it gated.
+**Severity** the discriminating experiment could not be evaluated, which is the
+guard working, and the design error was mine.
+
+H82 varied the wait strategy to move duration while holding the ordering
+instruction fixed, so that coherence traffic could be regressed against time
+and the arms compared on one line. Across spin, isb, yield and wfe the
+acquire-release arm's cost spanned 1.3295, above the registered floor of 1.25,
+and the fenced-store arm's spanned 1.1137, below it. Parts (c) and (d) are
+unevaluable.
+
+The reason is obvious in hindsight and should have been obvious in advance. The
+wait strategy determines what a thread does while waiting, so it moves an arm
+in proportion to how much of that arm's cost is waiting. The acquire-release
+arm spends 142 of its 220 contended cycles waiting; the fenced-store arm spends
+22 of 86. A lever made of waiting therefore barely touches the arm whose cost
+is the barrier. Registering a regression across two arms while choosing a lever
+that only moves one of them is an error of design, not of thresholds.
+
+The correction is a lever that acts on both, and it has to be shown to act on
+both before the regression is registered rather than discovered afterwards. Ring
+capacity is such a lever: a smaller ring makes the producer wait on the
+consumer's cursor more often whatever the ordering costs. Across capacities 2,
+16, 128 and 1024 the two arms span 21.5 and 2.7 in cost, both far above the
+floor, and H83 registers the lever check as its first guard so that the same
+failure stops the run instead of the analysis.
+
+**CLOSED 2026-11-22** `titan-barrier` takes ring capacity as a per case value
+rather than a constant, records it in every record as `cap=`, and gains a
+`capsweep` mode. The eight cells were run and checked correct before H83's
+thresholds were written. H82 keeps its unevaluable verdicts; its data is not
+reinterpreted.
+
+**What H82 found anyway, recorded as post hoc and not as a result.** Across all
+eight cells the two arms never cross on writebacks per cycle: the
+acquire-release arm reaches at most 0.005028 and the fenced-store arm falls no
+lower than 0.005335, a separation of 1.0612 to 1.2781, while the wait strategy
+moves acqrel's duration by a third. That is arm specific coherence traffic which
+duration does not explain, and it is exactly what H83 is registered to test
+properly. It is written here rather than in the paper because fitting a
+threshold to data already seen is the practice this protocol exists to prevent.

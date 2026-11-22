@@ -49,10 +49,11 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
     epoch: usize,
     n: usize,
     pmu: Option<&Session>,
+    cap: usize,
 ) -> bool {
     let warm = n / 10 + 1000;
     let total = (warm + n) as u64;
-    let (mut tx, mut rx) = channel::<O, P, W, C>(CAPACITY);
+    let (mut tx, mut rx) = channel::<O, P, W, C>(cap);
     let (ha, ta) = tx.inner.index_addresses();
     let layout = format!(
         " head_off128={} tail_off128={} same_line={}",
@@ -142,7 +143,7 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
         _ => String::new(),
     };
     println!(
-        "bd impl=ring order={} pad={} cached={} wait={} epoch={epoch} messages={n} epoch_ms={:.3} ns_per_msg={ns_per_msg:.3} sum_ok={} invol_switches={invol}{layout}{pmu_txt}",
+        "bd impl=ring order={} pad={} cap={cap} cached={} wait={} epoch={epoch} messages={n} epoch_ms={:.3} ns_per_msg={ns_per_msg:.3} sum_ok={} invol_switches={invol}{layout}{pmu_txt}",
         O::NAME,
         P::ALIGN,
         C as u8,
@@ -210,6 +211,16 @@ fn wait_sweep() -> bool {
     *F.get_or_init(|| std::env::args().any(|a| a == "waitsweep"))
 }
 
+/// Vary the ring capacity at a fixed arm and wait strategy.
+fn cap_sweep() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "capsweep"))
+}
+
+/// Capacities in case order, so the record carries the one it ran under.
+const CAP_SWEEP: [usize; 8] = [2, 16, 128, 1024, 2, 16, 128, 1024];
+
 fn probe_spec() -> &'static ProbeSpec {
     const DEFAULT: ProbeSpec = ProbeSpec {
         name: "default",
@@ -235,7 +246,20 @@ fn probe_spec() -> &'static ProbeSpec {
         fields: ["msg_l1d_writeback", "msg_mem_order_viol", "msg_ldst_wait_cycles"],
         decimals: [4, 4, 4],
     };
-    if std::env::args().any(|a| a == "violprobe") {
+    // ST_MEM_ORDER_VIOL_LD_NONSPEC read zero in H80, H81, H82 and in a
+    // validation pass whose aliasing loop was built to trigger violations, so
+    // it is not carried into a new mode. L1D_CACHE_REFILL is the inbound half
+    // of the same coherence traffic and does count. See D27.
+    const TRAFFIC: ProbeSpec = ProbeSpec {
+        name: "trafficprobe",
+        events: [events::CYCLES, events::L1D_WRITEBACK, events::L1D_REFILL,
+                 events::LDST_WAIT_MISS],
+        fields: ["msg_l1d_writeback", "msg_l1d_refill", "msg_ldst_wait_cycles"],
+        decimals: [4, 4, 4],
+    };
+    if std::env::args().any(|a| a == "trafficprobe") {
+        &TRAFFIC
+    } else if std::env::args().any(|a| a == "violprobe") {
         &VIOL
     } else if store_probe() {
         &STORE
@@ -264,7 +288,7 @@ fn assert_programmed(s: &Session) {
     }
 }
 
-type Case = fn(usize, usize, Option<&Session>) -> bool;
+type Case = fn(usize, usize, Option<&Session>, usize) -> bool;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -303,7 +327,24 @@ fn main() {
     // cannot tell a cause from a consequence, which is D28. Two arms across
     // four wait strategies, contended only, puts both on the same duration
     // axis without changing the instruction under test.
-    let cases: Vec<(Case, bool)> = if wait_sweep() {
+    // The wait strategy moved acqrel's cost by 1.3295 and fencedstore's by only
+    // 1.1137, because fencedstore is dominated by the barrier and not by
+    // waiting, so H82's duration axis existed for one arm and not the other and
+    // its regression across them was unevaluable. That is D29. Ring capacity is
+    // a lever that acts on both: a smaller ring forces the producer to wait on
+    // the consumer's cursor more often whatever the ordering costs.
+    let cases: Vec<(Case, bool)> = if cap_sweep() {
+        vec![
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+        ]
+    } else if wait_sweep() {
         vec![
             (case::<AcqRel, Pad128, Spin, false>, true),
             (case::<AcqRel, Pad128, SpinHint, false>, true),
@@ -328,13 +369,29 @@ fn main() {
         (case::<Unordered, Pad128, SpinHint, true>, false),
         ]
     };
+    // One capacity per case, in case order, so a record carries the ring it ran
+    // under rather than a constant that stopped being true.
+    let caps: Vec<usize> = if cap_sweep() {
+        CAP_SWEEP.to_vec()
+    } else {
+        vec![CAPACITY; cases.len()]
+    };
+    assert_eq!(caps.len(), cases.len(), "one capacity per case");
+
     println!(
-        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={} measured_side={} counters={} arms={}",
+        "bd_config messages={n} epochs={epochs} cases={} capacity={} pmu={} measured_side={} counters={} arms={}",
         cases.len(),
+        if cap_sweep() { "swept".to_string() } else { CAPACITY.to_string() },
         pmu.is_some(),
         if producer_side() { "producer" } else { "consumer" },
         probe_spec().name,
-        if wait_sweep() { "waitsweep" } else { "orders" }
+        if cap_sweep() {
+            "capsweep"
+        } else if wait_sweep() {
+            "waitsweep"
+        } else {
+            "orders"
+        }
     );
     // Arms rotate by a stride coprime with the arm count so that position in
     // the epoch is not fixed per arm; 3 and 10 are coprime.
@@ -343,7 +400,7 @@ fn main() {
         for k in 0..cases.len() {
             let idx = (k + epoch * 3) % cases.len();
             let (f, must_be_exact) = cases[idx];
-            let ok = f(epoch, n, pmu.as_ref());
+            let ok = f(epoch, n, pmu.as_ref(), caps[idx]);
             if must_be_exact && !ok {
                 broken.push(format!("case{idx}/epoch{epoch}"));
             }

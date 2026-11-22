@@ -41,17 +41,16 @@ FIELD = re.compile(r"\b(msg_[a-z0-9_]+|core_ghz)=([0-9.]+)")
 # when the validation lands, in either direction: a counter shown to work
 # makes the zero a real measurement, and a counter shown to be inert makes
 # every claim resting on it unevaluable.
-PENDING = {
-    ("2026-11-22_m4_h80_viol_prodside.txt", "msg_mem_order_viol"):
-        "D27, OPEN: zero on every arm, and no evidence yet that this event can "
-        "read non-zero on this part",
-    ("2026-11-22_m4_h81_viol_consumer.txt", "msg_mem_order_viol"):
-        "D27, OPEN: zero on every arm, and no evidence yet that this event can "
-        "read non-zero on this part",
-}
+PENDING: dict[tuple[str, str], str] = {}
+
+REASON_D27 = (
+    "D27, closed: the event read zero in three runs and in a validation pass whose aliasing loop was built to trigger violations, so no claim rests on it and the mode that programmed it is retired")
 
 # (file, field): the defect that explains why this one is allowed to be dead.
 EXCEPTIONS = {
+    ("2026-11-22_m4_h80_viol_prodside.txt", "msg_mem_order_viol"): REASON_D27,
+    ("2026-11-22_m4_h81_viol_consumer.txt", "msg_mem_order_viol"): REASON_D27,
+    ("2026-11-22_m4_h82_waitsweep.txt", "msg_mem_order_viol"): REASON_D27,
     ("2026-11-21_m4_h78_storeprobe.txt", "msg_l1d_store_miss"):
         "D19 and D21: the event read zero on every arm, part (a) is recorded "
         "as unevaluable rather than passed, and the run is to be redone once "
