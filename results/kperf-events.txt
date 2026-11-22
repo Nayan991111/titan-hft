@@ -1,0 +1,119 @@
+PERFORMANCE EVENT DATABASE ON THIS MACHINE. Apple M4.
+Run 2026-11-22 18:50 IST. Dumped because a registered threshold
+was built on an event that cannot answer it: L1D_CACHE_MISS_ST_NONSPEC
+counts retired stores that missed in L1D, and the ring's stores land in
+lines already present, so the quantity is zero on both threads. Any
+replacement counter is to be chosen against this list and its own
+description, not from memory. See docs/defects.md D25.
+
+MACHINE : Mac16,13 , 10 cpus, 4 performance
+OS      : ProductVersion 27.2.1, BuildVersion 26B131
+COMMIT  : 6fc1cdd0405c284082d7e84b5e2ee1271a8ae3e0
+POWER   : not applicable, a database listing with no measurement and no
+          timing claim of any kind
+
+event_count=104
+event name=ARM_BR_MIS_PRED alias=- desc=Mispredicted or not predicted branch Speculatively executed
+event name=ARM_BR_PRED alias=- desc=Predictable branch Speculatively executed
+event name=ARM_L1D_CACHE alias=- desc=Level 1 data cache access
+event name=ARM_L1D_CACHE_LMISS_RD alias=- desc=Level 1 data cache long-latency read miss
+event name=ARM_L1D_CACHE_RD alias=- desc=Attributable Level 1 data cache access, read
+event name=ARM_L1D_CACHE_REFILL alias=- desc=Level 1 data cache refill
+event name=ARM_STALL alias=- desc=No operation sent for execution
+event name=ARM_STALL_BACKEND alias=- desc=No operation issued due to the backend
+event name=ARM_STALL_FRONTEND alias=- desc=No operation issued due to the frontend
+event name=ARM_STALL_SLOT alias=- desc=No operation sent for execution on a slot
+event name=ARM_STALL_SLOT_BACKEND alias=- desc=No operation sent for execution on a Slot due to the backend
+event name=ARM_STALL_SLOT_FRONTEND alias=- desc=No operation sent for execution on a Slot due to the frontend
+event name=ATOMIC_OR_EXCLUSIVE_FAIL alias=- desc=Atomic or exclusive instruction failed due to contention.  For exclusives, incorrectly undercounts for exclusives when the cache line is initially found in shared state, however counts correctly for atomics.
+event name=ATOMIC_OR_EXCLUSIVE_SUCC alias=- desc=Atomic or exclusive instruction successfully completed.  For exclusives, incorrectly undercounts for exclusives when the cache line is initially found in shared state, however counts correctly for atomics.
+event name=BRANCH_CALL_INDIR_MISPRED_NONSPEC alias=- desc=Retired indirect call instructions mispredicted
+event name=BRANCH_COND_MISPRED_NONSPEC alias=- desc=Retired conditional branch instructions that mispredicted
+event name=BRANCH_INDIR_MISPRED_NONSPEC alias=- desc=Retired indirect branch instructions including calls and returns that mispredicted
+event name=BRANCH_MISPRED_NONSPEC alias=- desc=Instruction architecturally executed, mispredicted branch
+event name=BRANCH_RET_INDIR_MISPRED_NONSPEC alias=- desc=Retired return instructions that mispredicted
+event name=CORE_ACTIVE_CYCLE alias=- desc=Cycles while the core was active
+event name=DECODE_UOP alias=- desc=Decoded uops
+event name=FETCH_RESTART alias=- desc=Fetch Unit internal restarts for any reason. Does not include branch mispredicts
+event name=FIXED_CYCLES alias=Cycles desc=-
+event name=FIXED_INSTRUCTIONS alias=Instructions desc=-
+event name=FLUSH_RESTART_OTHER_NONSPEC alias=- desc=Pipeline flush and restarts that were not due to branch mispredictions or memory order violations
+event name=INST_ALL alias=- desc=All retired instructions
+event name=INST_BARRIER alias=- desc=Retired data barrier instructions
+event name=INST_BRANCH alias=- desc=Retired branch instructions including calls and returns
+event name=INST_BRANCH_CALL alias=- desc=Retired subroutine call instructions
+event name=INST_BRANCH_COND alias=- desc=Retired conditional branch instructions.  On M3 and prior, incorrectly only counts only B.cond instructions, where on M4 and following, adds CBZ/CBNZ/TBZ/TBNZ instructions to form the complete set of conditional branch instructions.
+event name=INST_BRANCH_INDIR alias=- desc=Retired indirect branch instructions including indirect calls
+event name=INST_BRANCH_RET alias=- desc=Retired subroutine return instructions
+event name=INST_BRANCH_TAKEN alias=- desc=Retired taken branch instructions
+event name=INST_INT_ALU alias=- desc=Retired non-branch and non-load/store Integer Unit instructions
+event name=INST_INT_LD alias=- desc=Retired load Integer Unit instructions
+event name=INST_INT_ST alias=- desc=Retired store Integer Unit instructions.  Does not count DC ZVA (Data Cache Zero by VA).
+event name=INST_LDST alias=- desc=Retired load and store instructions.  Does not count DC ZVA (Data Cache Zero by VA).
+event name=INST_SIMD_ALU alias=- desc=Retired non-load/store Advanced SIMD and FP Unit instructions
+event name=INST_SIMD_ALU_VEC alias=- desc=Retired non-load/store vector Advanced SIMD instructions
+event name=INST_SIMD_LD alias=- desc=Retired load Advanced SIMD and FP Unit instructions
+event name=INST_SIMD_ST alias=- desc=Retired store Advanced SIMD and FP Unit instructions
+event name=INST_SME_ENGINE_ALU alias=- desc=Retired non-load/store SME engine instructions
+event name=INST_SME_ENGINE_LD alias=- desc=Retired load SME engine instructions
+event name=INST_SME_ENGINE_PACKING_FUSED alias=- desc=Retired non-load/store SME engine instructions that were packed with another to reduce instruction bandwidth to the SME engine
+event name=INST_SME_ENGINE_SCALARFP alias=- desc=Retired scalar floating-point SME engine instructions
+event name=INST_SME_ENGINE_ST alias=- desc=Retired store SME engine instructions
+event name=INTERRUPT_PENDING alias=- desc=Cycles while an interrupt was pending because it was masked
+event name=L1D_CACHE_MISS_LD alias=- desc=Loads that missed the L1 Data Cache
+event name=L1D_CACHE_MISS_LD_NONSPEC alias=- desc=Retired loads that missed in the L1 Data Cache
+event name=L1D_CACHE_MISS_ST alias=- desc=Stores that missed the L1 Data Cache
+event name=L1D_CACHE_MISS_ST_NONSPEC alias=- desc=Retired stores that missed in the L1 Data Cache
+event name=L1D_CACHE_WRITEBACK alias=- desc=Dirty cache lines written back from the L1D Cache toward the Shared L2 Cache
+event name=L1D_TLB_ACCESS alias=- desc=Load and store accesses to the L1 Data TLB
+event name=L1D_TLB_FILL alias=- desc=Translations filled into the L1 Data TLB
+event name=L1D_TLB_MISS alias=- desc=Load and store accesses that missed the L1 Data TLB
+event name=L1D_TLB_MISS_NONSPEC alias=- desc=Retired loads and stores that missed in the L1 Data TLB
+event name=L1I_CACHE_MISS_DEMAND alias=- desc=Demand fetch misses that require a new cache line fill of the L1 Instruction Cache
+event name=L1I_TLB_FILL alias=- desc=Translations filled into the L1 Instruction TLB
+event name=L1I_TLB_MISS_DEMAND alias=- desc=Demand instruction fetches that missed in the L1 Instruction TLB
+event name=L2_TLB_MISS_DATA alias=- desc=Loads and stores that missed in the L2 TLB
+event name=L2_TLB_MISS_INSTRUCTION alias=- desc=Instruction fetches that missed in the L2 TLB
+event name=LDST_SME_PRED_INACTIVE alias=- desc=SME engine load and store uops where all lanes are inactive due to the governing predicate.  For a page-crossing load or store, the event may incorrectly count when all of the elements of the low page are predicated off, even if some of the elements on the high page are active. In Apple silicon cores, where predication is recommend primarily for data structure edge control (discarding elements 'past the end of the data structure'), this scenario should not be common.
+event name=LDST_SME_XPG_UOP alias=- desc=SME engine load and store accesses that crossed a 16KiB page boundary.  An access is considered cross-page if any bytes are accessed in the high portion (second page), regardless if any bytes are accessed in the low portion (first page), after predication is applied. An SME operation that only touches the low portion (first page) after predication is applied is not considered cross-page.
+event name=LDST_UNIT_OLD_L1D_CACHE_MISS alias=- desc=Cycles while an old load or store uop is waiting for data after an L1 Data Cache miss
+event name=LDST_UNIT_WAITING_OLD_L1D_CACHE_MISS alias=- desc=Cycles while an old load or store uop is waiting for data after an L1 Data Cache miss, and no uop was issued by the scheduler, prioritized
+event name=LDST_UNIT_WAITING_SME_ENGINE_INST_QUEUE_FULL alias=- desc=Cycles while the instruction queue to the SME engine is full, and no uop was issued by the scheduler with no critical miss, prioritized
+event name=LDST_UNIT_WAITING_SME_ENGINE_MEM_DATA alias=- desc=Cycles while the core is waiting for the SME engine to produce memory data, and no uop was issued by the scheduler, prioritized
+event name=LDST_X64_UOP alias=- desc=Load and store uops that crossed a 64B boundary
+event name=LDST_XPG_UOP alias=- desc=Load and store uops that crossed a 16KiB page boundary.  An SME access is considered cross-page if any bytes are accessed in the high portion (second page), regardless if any bytes are accessed in the low portion (first page), after predication is applied. An SME operation that only touches the low portion (first page) after predication is applied is not considered cross-page.
+event name=LD_BLOCKED_BY_SME_LDST alias=- desc=Core load uops blocked by SME accesses to same 4KiB page
+event name=LD_NT_UOP alias=- desc=Load uops that executed with non-temporal hint; excludes SSVE/SME loads because they utilize the Store Unit
+event name=LD_SME_NORMAL_UOP alias=- desc=SME engine load uops with Normal memory type
+event name=LD_SME_NT_UOP alias=- desc=SME engine load uops that executed with non-temporal hint
+event name=LD_UNIT_UOP alias=- desc=Uops that flowed through the Load Unit
+event name=LD_UNIT_WAITING_YOUNG_L1D_CACHE_MISS alias=- desc=Cycles while a younger load uop is waiting for data after an L1 Data Cache miss, and no uop was issued by the scheduler with no critical miss, prioritized
+event name=MAP_DISPATCH_BUBBLE alias=- desc=Cycles while the Map Unit had no uops to process and was not stalled
+event name=MAP_DISPATCH_BUBBLE_IC alias=- desc=Cycles while the Map Unit had no uops to process due to L1 Instruction Cache and was not stalled
+event name=MAP_DISPATCH_BUBBLE_ITLB alias=- desc=Cycles while the Map Unit had no uops to process due to L1 Instruction TLB and was not stalled
+event name=MAP_DISPATCH_BUBBLE_SLOT alias=- desc=Slots where the Map Unit had no uops to process and was not stalled
+event name=MAP_INT_SME_UOP alias=- desc=Mapped core Integer Unit uops for SME engine instructions
+event name=MAP_INT_UOP alias=- desc=Mapped Integer Unit uops
+event name=MAP_LDST_UOP alias=- desc=Mapped Load and Store Unit uops, including GPR to vector register converts.  Includes all instructions sent to the SME engine because they are processed through the Store Unit.
+event name=MAP_RECOVERY alias=- desc=Cycles while the Map Unit was stalled while recovering from a flush and restart
+event name=MAP_REWIND alias=- desc=Cycles while the Map Unit was blocked while rewinding due to flush and restart
+event name=MAP_SIMD_UOP alias=- desc=Mapped Advanced SIMD and FP Unit uops
+event name=MAP_STALL alias=- desc=Cycles while the Map Unit was stalled for any reason
+event name=MAP_STALL_DISPATCH alias=- desc=Cycles while the Map Unit was stalled because of Dispatch back pressure
+event name=MAP_STALL_NONRECOVERY alias=- desc=Cycles while the Map Unit was stalled for any reason other than recovery
+event name=MAP_UOP alias=- desc=Mapped uops
+event name=MMU_TABLE_WALK_DATA alias=- desc=Table walk memory requests on behalf of data accesses
+event name=MMU_TABLE_WALK_INSTRUCTION alias=- desc=Table walk memory requests on behalf of instruction fetches
+event name=RETIRE_UOP alias=- desc=All retired uops
+event name=SCHEDULE_EMPTY alias=- desc=Cycles while the uop scheduler is empty
+event name=SCHEDULE_UOP_ANY alias=- desc=Cycles while the uop scheduler issued at least 1 uop to any execution unit
+event name=SCHEDULE_WAITING_SME_ENGINE_REG_DATA alias=- desc=Cycles while the core is waiting for register, predicate, or flag data from the SME engine, and no uop was issued by the scheduler with no critical miss, prioritized
+event name=SME_ENGINE_SM_ENABLE alias=- desc=Transitions into SME engine Streaming Mode (PSTATE.SM: 0 to 1)
+event name=SME_ENGINE_SM_ZA_ENABLE alias=- desc=Simultaneous transitions into SME engine Streaming Mode and ZA Mode (PSTATE.SM: 0 to 1 and PSTATE.ZA: 0 to 1)
+event name=SME_ENGINE_ZA_ENABLED_SM_DISABLED alias=- desc=Cycles while SME engine ZA Mode is enabled but Streaming Mode is not (PSTATE.ZA=1 and PSTATE.SM=0)
+event name=ST_BARRIER_BLOCKED_BY_SME_LDST alias=- desc=Core store uops blocked by SME accesses to same 4KiB page, and any barriers or store-release uops blocked by SME accesses
+event name=ST_MEM_ORDER_VIOL_LD_NONSPEC alias=- desc=Retired core store uops that triggered memory order violations with core load uops
+event name=ST_NT_UOP alias=- desc=Store uops that executed with non-temporal hint; includes SSVE/SME loads because they utilize the Store Unit
+event name=ST_SME_NORMAL_UOP alias=- desc=SME engine store uops with Normal memory type
+event name=ST_SME_NT_UOP alias=- desc=SME engine store uops that executed with non-temporal hint
+event name=ST_UNIT_UOP alias=- desc=Uops that flowed through the Store Unit

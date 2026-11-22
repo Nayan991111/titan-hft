@@ -1,0 +1,29 @@
+WHICH CAUSE EXPLAINS THE H78 STORE MISS ZERO. Apple M4.
+Run 2026-11-22 18:30 IST. Every column below is labelled with the
+event name the session reports, not by position. The previous attempt
+labelled by position, printed the fixed instruction counter under a store
+miss heading, and was caught by its own prediction failing: the 4 KiB
+pass, which must barely miss, read higher than the 64 MiB pass, which
+must miss on nearly every store. See docs/defects.md D19, D21 and D22.
+
+MACHINE : Mac16,13 , 10 cpus, 4 performance
+OS      : ProductVersion 27.2.1, BuildVersion 26B131
+RUSTC   : rustc 1.92.0 (ded5c06cf 2025-12-08)
+COMMIT  : bda143b5a3ed9990e0ae515bc9401a1f09977889
+POWER   : not applicable, counter allocation check with no timing claim
+
+pmu_permission=true
+pmu_add_errs=[("FIXED_CYCLES", 0), ("FIXED_INSTRUCTIONS", 0), ("L1D_CACHE_MISS_LD", 0), ("BRANCH_MISPRED_NONSPEC", 0)]
+pmu_add_errs=[("FIXED_CYCLES", 0), ("FIXED_INSTRUCTIONS", 0), ("L1D_CACHE_MISS_LD", 0), ("BRANCH_MISPRED_NONSPEC", 0)]
+pmu_add_errs=[("FIXED_CYCLES", 0), ("FIXED_INSTRUCTIONS", 0), ("L1D_CACHE_MISS_LD", 0), ("BRANCH_MISPRED_NONSPEC", 0)]
+pmu_add_errs=[("FIXED_CYCLES", 0), ("FIXED_INSTRUCTIONS", 0), ("L1D_CACHE_MISS_LD", 0), ("BRANCH_MISPRED_NONSPEC", 0)]
+storemiss_events tag=probe_set ["FIXED_CYCLES", "L1D_CACHE_MISS_ST_NONSPEC", "L1D_CACHE_MISS_LD", "LDST_UNIT_OLD_L1D_CACHE_MISS"]
+storemiss_add_errs tag=probe_set [("FIXED_CYCLES", 0), ("L1D_CACHE_MISS_ST_NONSPEC", 0), ("L1D_CACHE_MISS_LD", 0), ("LDST_UNIT_OLD_L1D_CACHE_MISS", 0)]
+storemiss tag=probe_set pass=store_64mib_expect_miss ops=524288 FIXED_CYCLES_per_op=19.5458 L1D_CACHE_MISS_ST_NONSPEC_per_op=0.9861 L1D_CACHE_MISS_LD_per_op=0.8550 LDST_UNIT_OLD_L1D_CACHE_MISS_per_op=11.2225
+storemiss tag=probe_set pass=store_4kib_expect_hit ops=524288 FIXED_CYCLES_per_op=1.0174 L1D_CACHE_MISS_ST_NONSPEC_per_op=0.0002 L1D_CACHE_MISS_LD_per_op=0.0000 LDST_UNIT_OLD_L1D_CACHE_MISS_per_op=0.0011
+storemiss tag=probe_set pass=rmw_64mib_expect_both ops=524288 FIXED_CYCLES_per_op=23.7047 L1D_CACHE_MISS_ST_NONSPEC_per_op=0.9956 L1D_CACHE_MISS_LD_per_op=11.6671 LDST_UNIT_OLD_L1D_CACHE_MISS_per_op=22.5571
+storemiss_events tag=barrier_set ["FIXED_CYCLES", "FIXED_INSTRUCTIONS", "L1D_CACHE_MISS_ST_NONSPEC", "LDST_UNIT_OLD_L1D_CACHE_MISS"]
+storemiss_add_errs tag=barrier_set [("FIXED_CYCLES", 0), ("FIXED_INSTRUCTIONS", 0), ("L1D_CACHE_MISS_ST_NONSPEC", 0), ("LDST_UNIT_OLD_L1D_CACHE_MISS", 0)]
+storemiss tag=barrier_set pass=store_64mib_expect_miss ops=524288 FIXED_CYCLES_per_op=17.2679 FIXED_INSTRUCTIONS_per_op=4.0242 L1D_CACHE_MISS_ST_NONSPEC_per_op=0.8356 LDST_UNIT_OLD_L1D_CACHE_MISS_per_op=11.1015
+storemiss tag=barrier_set pass=store_4kib_expect_hit ops=524288 FIXED_CYCLES_per_op=1.0129 FIXED_INSTRUCTIONS_per_op=6.0242 L1D_CACHE_MISS_ST_NONSPEC_per_op=0.0002 LDST_UNIT_OLD_L1D_CACHE_MISS_per_op=0.0007
+storemiss tag=barrier_set pass=rmw_64mib_expect_both ops=524288 FIXED_CYCLES_per_op=14.2300 FIXED_INSTRUCTIONS_per_op=5.0242 L1D_CACHE_MISS_ST_NONSPEC_per_op=0.9923 LDST_UNIT_OLD_L1D_CACHE_MISS_per_op=13.0963
