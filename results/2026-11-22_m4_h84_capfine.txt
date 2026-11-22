@@ -641,7 +641,12 @@ POWER   : end [Now drawing from 'AC Power']
 
 DERIVED STATISTICS, appended by scripts/h84_verdicts.py from the records
 above, with its own parsing, its own median and its own exact two sided
-sign test.
+sign test. Regenerated 2026-11-22 twice: the first append labelled every
+line h84_cell as h83_cell, because this script was written from the H83 one
+and the record key was not renamed with the rest, and the second added the
+rate and sign comparisons, which the verdicts printed but never emitted, so
+the manuscript could not cite them. The records above are untouched and
+this block is reproducible by running the script. See D32.
 
 file     : 2026-11-22_m4_h84_capfine.txt
 arms=capfine  counters=trafficprobe  measured_side=consumer
@@ -658,13 +663,23 @@ arms=capfine  counters=trafficprobe  measured_side=consumer
   fencedstore      16     71.194   0.3619   0.9103  0.005084    18.937   60/60  
   fencedstore    1024     85.340   0.4703   1.1191  0.005511    22.210   60/60  
 
-h83_cell arm=acqrel cap=2 msg_cycles=153.838 writeback=0.5164 refill=1.1663 writeback_per_cycle=0.003356
-h83_cell arm=acqrel cap=4 msg_cycles=91.997 writeback=0.3214 refill=0.7550 writeback_per_cycle=0.003493
-h83_cell arm=acqrel cap=8 msg_cycles=63.972 writeback=0.2564 refill=0.5254 writeback_per_cycle=0.004007
-h83_cell arm=acqrel cap=16 msg_cycles=173.725 writeback=0.9985 refill=2.0824 writeback_per_cycle=0.005748
-h83_cell arm=acqrel cap=1024 msg_cycles=219.433 writeback=0.9938 refill=1.9861 writeback_per_cycle=0.004529
-h83_cell arm=fencedstore cap=2 msg_cycles=165.898 writeback=0.5002 refill=1.0000 writeback_per_cycle=0.003015
-h83_cell arm=fencedstore cap=4 msg_cycles=86.072 writeback=0.2685 refill=0.5490 writeback_per_cycle=0.003119
-h83_cell arm=fencedstore cap=8 msg_cycles=76.105 writeback=0.3038 refill=0.9992 writeback_per_cycle=0.003993
-h83_cell arm=fencedstore cap=16 msg_cycles=71.194 writeback=0.3619 refill=0.9103 writeback_per_cycle=0.005084
-h83_cell arm=fencedstore cap=1024 msg_cycles=85.340 writeback=0.4703 refill=1.1191 writeback_per_cycle=0.005511
+h84_cell arm=acqrel cap=2 msg_cycles=153.838 writeback=0.5164 refill=1.1663 writeback_per_cycle=0.003356
+h84_cell arm=acqrel cap=4 msg_cycles=91.997 writeback=0.3214 refill=0.7550 writeback_per_cycle=0.003493
+h84_cell arm=acqrel cap=8 msg_cycles=63.972 writeback=0.2564 refill=0.5254 writeback_per_cycle=0.004007
+h84_cell arm=acqrel cap=16 msg_cycles=173.725 writeback=0.9985 refill=2.0824 writeback_per_cycle=0.005748
+h84_cell arm=acqrel cap=1024 msg_cycles=219.433 writeback=0.9938 refill=1.9861 writeback_per_cycle=0.004529
+h84_cell arm=fencedstore cap=2 msg_cycles=165.898 writeback=0.5002 refill=1.0000 writeback_per_cycle=0.003015
+h84_cell arm=fencedstore cap=4 msg_cycles=86.072 writeback=0.2685 refill=0.5490 writeback_per_cycle=0.003119
+h84_cell arm=fencedstore cap=8 msg_cycles=76.105 writeback=0.3038 refill=0.9992 writeback_per_cycle=0.003993
+h84_cell arm=fencedstore cap=16 msg_cycles=71.194 writeback=0.3619 refill=0.9103 writeback_per_cycle=0.005084
+h84_cell arm=fencedstore cap=1024 msg_cycles=85.340 writeback=0.4703 refill=1.1191 writeback_per_cycle=0.005511
+h84_rate cap=2 acqrel_per_cycle=0.003356 fencedstore_per_cycle=0.003015 ratio=0.8983 departure_from_unity=1.1132
+h84_rate cap=4 acqrel_per_cycle=0.003493 fencedstore_per_cycle=0.003119 ratio=0.8931 departure_from_unity=1.1197
+h84_rate cap=8 acqrel_per_cycle=0.004007 fencedstore_per_cycle=0.003993 ratio=0.9963 departure_from_unity=1.0037
+h84_rate cap=16 acqrel_per_cycle=0.005748 fencedstore_per_cycle=0.005084 ratio=0.8846 departure_from_unity=1.1305
+h84_rate cap=1024 acqrel_per_cycle=0.004529 fencedstore_per_cycle=0.005511 ratio=1.2168 departure_from_unity=1.2168
+h84_sign cap=2 acqrel_cycles=153.838 fencedstore_cycles=165.898 faster=acqrel advantage=1.0784
+h84_sign cap=4 acqrel_cycles=91.997 fencedstore_cycles=86.072 faster=fencedstore advantage=1.0688
+h84_sign cap=8 acqrel_cycles=63.972 fencedstore_cycles=76.105 faster=acqrel advantage=1.1897
+h84_sign cap=16 acqrel_cycles=173.725 fencedstore_cycles=71.194 faster=fencedstore advantage=2.4402
+h84_sign cap=1024 acqrel_cycles=219.433 fencedstore_cycles=85.340 faster=fencedstore advantage=2.5713

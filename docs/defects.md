@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty one closed, none partly closed, none open. Thirty one entries in all.**
+**Status at 2026-11-22: thirty two closed, none partly closed, none open. Thirty two entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1420,3 +1420,43 @@ extrapolation into a place where it looks pre-approved. Thresholds stay in the
 scripts. Readings of them belong in the register and the paper, where they can
 be argued with, and from now the scripts print the numbers and name the row to
 read rather than announcing what the numbers mean.
+
+---
+
+## D32. Derived statistics filed under another run's key
+
+**Found** 2026-11-22, while gathering figures for the results section.
+**Severity** ten lines of H84 statistics sat in the H84 file under the key
+`h83_cell`, and two figures the manuscript needed had never been emitted at all.
+
+The H84 verdict script was written from the H83 one. Everything that referred to
+the run was renamed, the file path, the mode name, the capacities, the questions
+and the thresholds, except the record key in the emit path, which nothing reads
+during a verdict run and which therefore no test exercised. The file's records
+were correct and its derived block attributed them to the previous experiment.
+Nothing had been read wrongly because nothing had read them yet, which is the
+only reason this is a defect and not a retraction: a script grouping derived
+lines by prefix would have merged two different sweeps.
+
+A second fault surfaced in the same minutes. Part (d) of H84 compared the
+writeback rate per cycle between the arms and printed the comparison, and the
+emit path never wrote it to the file, so the one figure the results section
+needed for that claim existed only in a terminal. A number the manuscript
+quotes has to exist in a record, and the provenance gate enforces that from the
+manuscript side, so the omission would have shown up as a gate failure rather
+than as a wrong number. It is still a gap in the record.
+
+**CLOSED 2026-11-22** The key is corrected, the rate and sign comparisons are
+emitted, and the derived block is regenerated twice with both regenerations
+noted in the file itself. The 600 records above it are byte identical before and
+after, verified by comparing them, because a derived block is script output over
+records in the same file and is reproducible by running the script, while the
+records are the measurement and are never rewritten.
+
+`scripts/check_record_lines.py` now checks that a results file whose name
+carries an hNN contains derived keys for that hNN and no other, with cross
+references declared rather than tolerated: the H80 and H81 files legitimately
+carry each other's statistics because part (g) of H81 is the agreement of their
+directions, and that pair is listed with its reason. Eleven derived keys are
+checked, and the check was confirmed to fail on an invented h99 key before
+being trusted.

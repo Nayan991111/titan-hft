@@ -663,6 +663,180 @@ code with the one that produced the numbers it checks. Nothing in the paper is
 computed at build time from a fresh measurement, so building the document cannot
 change a reported figure.
 
+\section{Results}
+
+Every figure below is the median over 30 independent launches unless stated
+otherwise, paired within launch, with the exact two-sided sign test over
+launches as the inferential statistic. Each number appears in the results file
+named beside it, and the gate described in Section~\ref{sec:gates} refuses a
+manuscript that quotes a figure absent from those files.
+
+\subsection{Arrival clustering costs what the variability term predicts, and
+not what the Fano factor does}
+
+At a fixed mean rate, replacing a periodic arrival schedule with a clustered one
+raises service latency by a factor that queueing theory predicts only if the
+right dispersion measure is used. Over the clustered arms the Fano factor of
+counts moves from 24.79 to 25.78, a ratio of 1.040, while the squared
+coefficient of variation of interarrival times moves from 1.1005 to 8.1921,
+which through Kingman's heavy-traffic term predicts 7.444. Measured, the cost
+ratio is 6.2317 at the median, 1748.0\,ns against 280.5\,ns, and 13.5030 at the
+quantile where the contrast peaks, 11356.0\,ns against 841.0\,ns, in 30 of 30
+launches at $p = 1.86\times10^{-9}$. The Fano prediction is wrong by a factor
+of thirteen and the variability prediction is wrong by less than a factor of
+two.
+
+This is not a subtlety about which statistic one prefers. For a renewal process
+the Fano factor converges to the squared coefficient of variation, so the two
+agree and the distinction is invisible. A Hawkes process is not renewal, and
+these two measures of the same schedule diverge by a factor of seven. A study
+that reports burstiness as a Fano factor and then appeals to Kingman has
+measured one quantity and reasoned about another.
+
+The effect survives the waiting strategy. The peak contrast is 14.3415 under an
+\texttt{isb}-based spin and 14.4450 under \texttt{wfe}, against 13.5030 under a
+plain spin, so it is a property of the arrival schedule rather than of how the
+consumer idles. Figures are drawn from
+\texttt{results/2026-11-20\_m4\_h74\_beta.txt}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig-beta.pdf}
+\caption{Cost relative to the lowest-variability arm, quantile by quantile, at a
+fixed mean arrival rate. The contrast is not a uniform shift: it peaks at
+13.5030 and falls away in both tails, which is why a single mean or a single
+quantile understates it. Drawn from
+\texttt{results/2026-11-20\_m4\_h74\_beta.txt}.}
+\label{fig:beta}
+\end{figure}
+
+\subsection{The ordering comparison, read in cycles}
+
+Substituting \texttt{dmb ish} and a plain store for a store-release changes the
+cost of a message by a factor of 2.5766 when the cursor line is contended and
+2.7008 when it is resident in L1, each in 30 of 30 launches at
+$p = 1.86\times10^{-9}$, and the two move in opposite directions. The
+comparison changes sign rather than magnitude.
+
+These are cycle counts, not nanoseconds, and the distinction was the one thing
+the earlier nanosecond replication had to assume. Between the two arms that
+form the comparison the frequency ratio is 1.0086 contended and 1.0611
+resident, so the nanosecond figures of 2.5238 and 2.5174 understate the cycle
+figures by 2.1 and 7.3 percent respectively. The registered threshold on
+frequency spread was written over all five arms rather than over the compared
+pair and it failed at 1.1922, driven by the unordered cost floor idling at
+3.691\,GHz against 4.401\,GHz for the acquire-release arm while spending an
+order of magnitude fewer cycles per message. The threshold was mis-specified
+and the failure is recorded as such; the pair it was meant to protect is within
+1.0086. From \texttt{results/2026-11-21\_m4\_h77\_cycles.txt}.
+
+\subsection{The cost is time spent waiting, and it replicates across threads}
+
+Decomposing each arm into cycles spent waiting on the load-store unit after an
+L1D miss and cycles spent elsewhere locates the effect. Contended, on the
+consuming thread, the acquire-release arm costs 217.755 cycles per message of
+which 139.0505 are waiting, and the fenced-store arm costs 80.894 of which
+32.5100 are waiting, a waiting ratio of 0.2338. Of the cycles the faster arm
+saves, 106.5 of 136.9 are cycles not spent waiting. The remainder is visible in
+the non-waiting component, 78.704 against 48.384.
+
+Counting is per thread on this unit, and the arms differ in the instruction the
+producer executes, so the same measurement was repeated with the producer on the
+measuring thread. There the acquire-release arm costs 220.048 cycles with
+101.8133 waiting and the fenced-store arm 87.364 with 22.0050. The ordering of
+the five arms is identical in both modes at both caching states and the sign of
+the pair holds in 30 of 30 launches in each. Swapping which side is measured
+moves magnitudes and moves neither the ordering nor the direction. From
+\texttt{results/2026-11-21\_m4\_h78\_storeprobe.txt} and
+\texttt{results/2026-11-21\_m4\_h79\_prodside.txt}.
+
+\subsection{What the counters rule out, and what they cannot reach}
+
+The obvious explanation for a barrier arm that is faster is that it performs
+less coherence work. Three attempts to test that on this part produced two
+unmeasurable quantities and one that cannot distinguish cause from consequence,
+and we report all three rather than the one that happened to yield a number.
+
+Retired store misses are zero on every arm, on both threads, across 1800
+records. The event counts stores that missed in L1D, and a miss requires the
+line to be absent, while the ring stores into slots cycled through a small
+buffer and into a cursor the thread writes continuously. A diagnostic whose
+expected behaviour was fixed before the counter was read confirms the event
+counts correctly in a workload built to miss, so the zero is a correct
+measurement of a quantity this workload does not produce. Retired memory order
+violations are likewise zero everywhere, and a validation pass with an aliasing
+loop built to trigger them could not move the counter either, so that figure
+supports no conclusion in either direction.
+
+Writebacks of dirty lines from L1D do count, and per message the faster arm
+performs roughly half as many, 0.9911 against 1.9808 on the producer and 0.4703
+against 0.9933 on the consumer. That comparison cannot carry the mechanism.
+Writebacks per message correlate with cycles per message at $r = 0.9966$ across
+the producer cells and $r = 0.9879$ across the consumer cells, which is what
+spinning on a remote cursor produces: a slower arm polls more times and moves
+the line more often. A per-message rate of a quantity driven by duration,
+compared between a fast arm and a slow one, measures the duration difference a
+second time.
+
+Controlling for duration removes the difference. Comparing the arms at matched
+ring capacity, the writeback rate per cycle departs from unity by at most
+1.2168, and at three of the five capacities by less than 1.14. An arm-specific
+coherence component of that size cannot explain a cost difference of 2.5. We
+therefore report that the mechanism is not identified by these measurements,
+which is a weaker claim than the data initially appeared to support and the
+only one it sustains. From
+\texttt{results/2026-11-22\_m4\_h80\_viol\_prodside.txt},
+\texttt{results/2026-11-22\_m4\_h81\_viol\_consumer.txt} and
+\texttt{results/2026-11-22\_m4\_h84\_capfine.txt}.
+
+\subsection{A boundary, and three properties confounded inside it}
+
+The comparison is not a fixed property of the two instruction sequences. Swept
+over ring capacity with the cursor line contended, its sign changes three times
+across five capacities, as Table~\ref{tab:cap} shows. The acquire-release arm is
+faster at capacity 2 in 20 of 20 launches and slower at capacity 1024 in 20 of
+20, each at $p = 1.91\times10^{-6}$.
+
+\begin{table}[t]
+\centering
+\caption{Cost per message in cycles, contended, by ring capacity, with the
+writeback rate per cycle. The sign of the comparison changes three times and
+the acquire-release arm breaks discontinuously between capacities 8 and 16.
+From \texttt{results/2026-11-22\_m4\_h84\_capfine.txt}.}
+\label{tab:cap}
+\begin{tabular}{rrrrr}
+\hline
+capacity & acq-rel & fenced-store & faster & advantage \\
+\hline
+2 & 153.838 & 165.898 & acq-rel & 1.0784 \\
+4 & 91.997 & 86.072 & fenced-store & 1.0688 \\
+8 & 63.972 & 76.105 & acq-rel & 1.1897 \\
+16 & 173.725 & 71.194 & fenced-store & 2.4402 \\
+1024 & 219.433 & 85.340 & fenced-store & 2.5713 \\
+\hline
+\end{tabular}
+\end{table}
+
+Two features of that table deserve more weight than the sign change itself. The
+acquire-release arm falls from 153.838 cycles at capacity 2 to 63.972 at
+capacity 8 and then jumps to 173.725 at capacity 16, a factor of 2.716, with
+refills per message rising from 0.5254 to 2.0824 and writebacks from 0.2564 to
+0.9985, each close to fourfold. The fenced-store arm moves by a factor of 0.935
+across the same step. Whatever happens between capacities 8 and 16 happens to
+one arm.
+
+And capacity is not a separable variable in this design. The slot type is eight
+bytes and the slot region is page aligned, so capacity alone sets the slot
+array's footprint at 16, 32, 64, 128 and 8192 bytes, which first fills a
+128-byte line at exactly the capacity where the break occurs. Capacity alone
+also sets how far the producer may run ahead of the consumer. Three candidate
+causes move together and naming the one that labels the axis would not be an
+inference. We therefore claim that the sign of the comparison depends on ring
+capacity over the range measured, non-monotonically, and that which property of
+the ring governs it is open. A pre-registered two-by-two that varies the slot
+footprint by a factor of sixteen while holding the slot count and the run-ahead
+fixed is the next measurement and is registered but not yet run.
+
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
 

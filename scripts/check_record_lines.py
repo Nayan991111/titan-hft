@@ -96,5 +96,66 @@ def main():
     return 0
 
 
+# A file may carry another run's derived lines when the registration compares
+# the two and a reader of either needs to see what it was compared against.
+# H80 and H81 are such a pair: part (g) of H81 is the agreement of their
+# directions. The cross reference is declared here so that it is a decision
+# rather than an accident, which is the whole difference between this and D32.
+CROSS = {
+    ("2026-11-22_m4_h80_viol_prodside.txt", "h81"):
+        "H81 part (g) compares the two runs, so each file carries both",
+    ("2026-11-22_m4_h81_viol_consumer.txt", "h80"):
+        "H81 part (g) compares the two runs, so each file carries both",
+}
+
+
+def check_derived_keys() -> list:
+    """A derived record key must name the hypothesis whose file it sits in.
+
+    The H84 verdict script was written from the H83 one and the record key was
+    not renamed with everything else, so ten lines of H84 statistics were
+    appended to the H84 file under the key h83_cell. Nothing read them wrongly
+    because nothing had read them yet, and a script grouping by prefix would
+    have merged two runs. That is D32. The rule is mechanical: if a results
+    file name carries an hNN, every hNN_ key inside it must carry the same one.
+    """
+    import glob
+    import os
+    import re
+    bad = []
+    checked = 0
+    for path in sorted(glob.glob(os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "results", "*.txt"))):
+        name = os.path.basename(path)
+        m = re.search(r"_(h\d+)_", name)
+        if not m:
+            continue
+        want = m.group(1)
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            keys = {k for line in fh
+                    for k in re.findall(r"^(h\d+)_[a-z_]+ ", line)}
+        if want not in keys:
+            bad.append(f"{name} carries no {want}_ derived key of its own")
+        for k in sorted(keys):
+            checked += 1
+            if k == want:
+                continue
+            why = CROSS.get((name, k))
+            if why:
+                print(f"  cross reference: {name} also carries {k}_, {why}")
+            else:
+                bad.append(f"{name} carries derived key {k}_ but its name says {want}")
+    print(f"derived record keys  : {checked} checked against their file name")
+    return bad
+
+
+def _main_with_keys() -> int:
+    rc = main()
+    bad = check_derived_keys()
+    for b in bad:
+        print("FAIL: " + b)
+    return 1 if (rc or bad) else 0
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_main_with_keys())

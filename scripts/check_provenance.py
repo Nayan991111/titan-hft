@@ -51,6 +51,10 @@ EXPERIMENTS = ROOT / "docs" / "experiments.md"
 # The script evaluates the expression and requires it to round to the printed
 # value, so an edit to either side is caught.
 DERIVED: dict[str, tuple[str, int]] = {
+    # Section 4 arithmetic over figures that are themselves in the records.
+    "2.716": ("173.725 / 63.972", 3),
+    "106.5": ("139.0505 - 32.5100", 1),
+    "136.9": ("217.755 - 80.894", 1),
     "2.57": ("218.880 / 85.269", 2),
     "2.75": ("22.120 / 8.053", 2),
     # Stated beside the median of the per-launch ratios so the reader is not

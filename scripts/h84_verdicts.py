@@ -159,8 +159,25 @@ def main():
 
     if "--emit" in sys.argv:
         for a, cp, c, wb, rf in cells:
-            print(f"h83_cell arm={a} cap={cp} msg_cycles={c:.3f} writeback={wb:.4f} "
+            print(f"h84_cell arm={a} cap={cp} msg_cycles={c:.3f} writeback={wb:.4f} "
                   f"refill={rf:.4f} writeback_per_cycle={wb / c:.6f}")
+        # Any figure the manuscript quotes has to exist in a record, not only
+        # in a terminal. The band comparison of part (d) was computed and
+        # printed and never emitted, so the paper could not cite it.
+        rr = {(a, cp): wb / c for a, cp, c, wb, _ in cells}
+        for cp in CAPS:
+            x, y = rr.get(("acqrel", cp)), rr.get(("fencedstore", cp))
+            if x and y:
+                print(f"h84_rate cap={cp} acqrel_per_cycle={x:.6f} "
+                      f"fencedstore_per_cycle={y:.6f} ratio={y / x:.4f} "
+                      f"departure_from_unity={max(x, y) / min(x, y):.4f}")
+        win = [(cp, cyc.get(("acqrel", cp)), cyc.get(("fencedstore", cp))) for cp in CAPS]
+        for cp, ca, cf in win:
+            if ca and cf:
+                print(f"h84_sign cap={cp} acqrel_cycles={ca:.3f} "
+                      f"fencedstore_cycles={cf:.3f} "
+                      f"faster={'acqrel' if ca < cf else 'fencedstore'} "
+                      f"advantage={max(ca, cf) / min(ca, cf):.4f}")
         return 0
 
     print("REGISTERED VERDICTS, guards before the claims they gate")
