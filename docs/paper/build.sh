@@ -131,4 +131,18 @@ for ln in sys.stdin.read().split('\n'):
   exit 1
 fi
 echo "  PASS: zero dashes rendered"
+
+
+echo "=== fonts in the rendered pdf: Type 3 is rejected by arXiv and PDF eXpress ==="
+if command -v pdffonts >/dev/null 2>&1; then
+  pdffonts main.pdf | sed 's/^/  /'
+  if pdffonts main.pdf | awk 'NR>2' | grep -q 'Type 3'; then
+    echo "  FAIL: a Type 3 font is embedded, which arXiv and IEEE PDF eXpress reject"
+    exit 1
+  fi
+  echo "  PASS: no Type 3 font in the document"
+else
+  echo "  pdffonts is absent, so the font type cannot be verified here"
+fi
+
 rm -f build1.log build2.log build3.log buildbib.log

@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty eight closed, none partly closed, none open. Thirty eight entries in all.**
+**Status at 2026-11-22: thirty nine closed, none partly closed, none open. Thirty nine entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1721,3 +1721,41 @@ keys, and earlier, a verdict tally that listed six parts and counted five. Both
 times the honest move was to chase the disagreement rather than report the
 number that looked right. A tool that counts the same thing two ways and gets
 two answers is telling you something.
+
+---
+
+## D39. My font report truncated the one column that matters
+
+**Found** 2026-11-22, reading the output of my own typesetting step.
+**Severity** the check that decides whether the PDF is acceptable to arXiv and
+IEEE PDF eXpress printed its answer with the answer cut off.
+
+The build step prints the fonts embedded in the rendered PDF, because a Type 3
+font anywhere in a submission is rejected by both targets. My invocation piped
+`pdffonts` through an `awk` expression that printed the first two
+whitespace-separated fields, and font names contain no spaces while the type
+column reads `Type 1` with one. So every line came out as a name followed by
+the word `Type` and nothing else. The output listed ten fonts and told me the
+type of none of them.
+
+The names are informative on their own: NimbusRomNo9L, NimbusMonL, CMR10,
+CMMI10, CMSY7 and CMSY10 are the standard Type 1 families that pdfTeX embeds,
+and Type 1 is accepted by both targets. So the submission is very probably
+fine. **Very probably is not a check**, and this project's own rule is that a
+step reporting success without verifying the thing it claims is the defect this
+register keeps recording.
+
+**CLOSED 2026-11-22** The font report prints the full `pdffonts` table
+unmodified and then greps it for `Type 3`, failing loudly if any appears, so the
+answer is a verdict rather than a listing to be squinted at. The figures were
+already covered by a separate Type 42 check inside the figure pipeline; this was
+the gap for the document's own fonts.
+
+**Why this one is worth an entry.** It is the fourth time today that a
+reporting fault, not a measurement fault, cost real information: the figure
+gate compared rendering three times, the provenance gate counted failures it
+never printed, two of my scripts disagreed on a bibliography count and only the
+disagreement revealed a duplicate key, and now the font column. Every one of
+them was in the layer that tells me what happened rather than in the layer that
+makes it happen. The measurements have been sound all day. The instruments
+reporting on them have not.
