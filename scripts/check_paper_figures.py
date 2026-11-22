@@ -97,12 +97,35 @@ def main() -> int:
                            capture_output=True, text=True)
         return r.stdout if r.returncode == 0 else ""
 
+    def content_of(p: Path) -> tuple:
+        """What a figure says, not where it says it.
+
+        The currency check used to compare the output of pdftotext -layout
+        directly. That output encodes glyph positions as whitespace, so a
+        different matplotlib or font version shifts a label by a point and the
+        whole string changes. fig-barrier, which carries the most text of any
+        figure here, failed on the measurement machine while passing on the
+        machine that had last regenerated it, and nothing about the data had
+        moved. That is D34, and it is the third time cross machine PDF
+        comparison has produced a false alarm, after D7 and D17.
+
+        The question this check exists to answer is whether a figure still
+        matches the records it draws, which is a question about its numbers and
+        its labels. Both are compared as multisets, so spacing, column order
+        and line breaks cannot raise an alarm while a changed value still
+        does.
+        """
+        raw = text_of(p)
+        nums = sorted(re.findall(r"-?\d+(?:\.\d+)?", raw))
+        words = sorted(w.lower() for w in re.findall(r"[A-Za-z]{2,}", raw))
+        return nums, words
+
     try:
         import matplotlib  # noqa: F401
     except ImportError:
         print("  SKIP: matplotlib is absent, so currency cannot be checked here")
     else:
-        before = {n: text_of(FIGS / n) for n, _ in figs if (FIGS / n).exists()}
+        before = {n: content_of(FIGS / n) for n, _ in figs if (FIGS / n).exists()}
         backup = Path(tempfile.mkdtemp())
         for f in FIGS.iterdir():
             if f.is_file():
@@ -116,8 +139,18 @@ def main() -> int:
                            + r.stderr.strip()[-400:])
             else:
                 for n in sorted(before):
-                    after = text_of(FIGS / n)
+                    after = content_of(FIGS / n)
                     if after != before[n]:
+                        bn, bw = before[n]
+                        an, aw = after
+                        lost_n = sorted(set(bn) - set(an))[:6]
+                        new_n = sorted(set(an) - set(bn))[:6]
+                        lost_w = sorted(set(bw) - set(aw))[:6]
+                        new_w = sorted(set(aw) - set(bw))[:6]
+                        bad.append(f"{n}: committed figure has numbers {lost_n} that a "
+                                   f"fresh regeneration does not, and the regeneration has "
+                                   f"{new_n} that it does not; labels lost {lost_w}, "
+                                   f"gained {new_w}")
                         bad.append(f"{n} is stale: regenerating from committed data "
                                    f"changes its content, so the committed figure no "
                                    f"longer matches the records it draws")

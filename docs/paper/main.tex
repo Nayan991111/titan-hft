@@ -773,6 +773,71 @@ moves magnitudes and moves neither the ordering nor the direction. From
 \texttt{results/2026-11-21\_m4\_h78\_storeprobe.txt} and
 \texttt{results/2026-11-21\_m4\_h79\_prodside.txt}.
 
+\subsection{How long the run lasted decides which construct a reader would
+choose}
+
+The results above are all measured at ten million messages per epoch. That
+choice is not neutral, and the size of the effect it carries is the largest
+single number in this paper.
+
+Sweeping run length with everything else fixed, the cost of the
+acquire-release ring with the cursor line contended is 21.930 nanoseconds per
+message at 200,000 messages, 133.860 at one million, 216.195 at five million
+and 221.990 at ten million. The same ring with the line resident moves the
+other way, 13.180, 19.370, 8.185 and 8.170. The ratio between the two caching
+states therefore moves from 1.66 to 6.91 to 26.41 to 27.17 across the sweep, a
+spread of 16.33 times between its smallest and largest value.
+
+The consequence is not a widened error bar. It changes the answer. Ranking
+three orderings at 200,000 messages gives acquire-release at 21.930, fenced at
+86.280 and sequentially consistent at 178.795, so acquire-release is the
+cheapest by a factor of four. Ranking the same three at ten million gives
+221.990, 99.185 and 221.250, so acquire-release is the dearest and fenced is
+the cheapest by more than a factor of two. A reader who benchmarked at 200,000
+messages and a reader who benchmarked at ten million would recommend opposite
+constructs, from the same binary on the same machine.
+
+This hazard is not new and we do not claim it. Emurian et
+al.~\cite{emurian2014pitfalls} identify the mechanism, which is that the core
+clock responds to how long a core has been busy rather than to how much work it
+was given, and bound the resulting distortion at about 8 percent on a
+server-class part with up to 5.8 percent error on a nominal two times speedup.
+On a fanless M4 the same mechanism produces 16.33 times, two orders of
+magnitude larger, and it reverses conclusions rather than inflating margins. A
+fanless part has no mechanism for sustaining a clock under load other than
+lowering it.
+
+The power state of that sweep was not recorded, because the harness began
+capturing it two days afterwards, and on a fanless machine the power state
+bounds the sustained clock. We therefore report the sweep as establishing that
+the hazard is large on this class of machine, and not as a calibrated figure
+for it. Every run after that date records its power state in its own header and
+a gate checks every claim about it against the file. From
+\texttt{results/2026-11-16\_m4\_runlength.txt}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig-runlength.pdf}
+\caption{Cost per message against run length, at both caching states. The
+contended arm rises from 21.930 to 221.990 nanoseconds per message while the
+resident arm falls from 13.180 to 8.170, so the ratio between them moves from
+1.66 to 27.17. Drawn from
+\texttt{results/2026-11-16\_m4\_runlength.txt}.}
+\label{fig:runlength}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig-ordering.pdf}
+\caption{The ranking of three orderings inverts with run length. At 200,000
+messages the costs are 21.930, 86.280 and 178.795 nanoseconds per message for
+acquire-release, fenced and sequentially consistent; at ten million they are
+221.990, 99.185 and 221.250. A benchmark that stops early recommends the
+opposite construct to one that does not. Drawn from
+\texttt{results/2026-11-16\_m4\_runlength.txt}.}
+\label{fig:ordering}
+\end{figure}
+
 \subsection{What the counters rule out, and what they cannot reach}
 
 The obvious explanation for a barrier arm that is faster is that it performs

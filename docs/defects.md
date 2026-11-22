@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty three closed, none partly closed, none open. Thirty three entries in all.**
+**Status at 2026-11-22: thirty four closed, none partly closed, none open. Thirty four entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1498,3 +1498,46 @@ shed was already in the contributions subsection, where it belongs.
 characters and prints the margin on every run, and the check was confirmed to
 fail on a padded abstract before being trusted. A limit that lives in a web
 form is invisible until the day it blocks you, so it lives in the gate instead.
+
+---
+
+## D34. A currency check that compared spacing
+
+**Found** 2026-11-22, by the figure gate failing on the measurement machine and
+passing here.
+**Severity** a gate blocked a correct commit and would have been loosened or
+switched off by anyone in a hurry, which is the worst thing a gate can do.
+
+`check_paper_figures` verifies that an embedded figure still matches the records
+it draws, by backing up the figures, regenerating them from committed data,
+comparing, and restoring. The comparison ran on the output of
+`pdftotext -layout`, which encodes glyph positions as runs of whitespace. A
+different matplotlib or font version shifts a label by a point and the entire
+string differs.
+
+`fig-barrier.pdf` carries more text than any other figure in the paper, five
+arm labels and ten values across two panels. It had never been currency checked
+before because it was not embedded, and the first run after embedding it failed
+on the measurement machine while passing on the machine that had last
+regenerated it. Nothing about the data had moved.
+
+This is the third false alarm from comparing PDFs across machines. D7 recorded
+that cross-machine byte identity is not achievable and should not be demanded.
+D17 recorded reintroducing that demand four days after closing it. D34 is the
+same mistake at one remove: not bytes, but a text extraction that carries
+layout, which is bytes wearing a different coat.
+
+**CLOSED 2026-11-22** The check compares what a figure says rather than where
+it says it. The numeric tokens and the alphabetic tokens of the extracted text
+are compared as multisets, so spacing, column order and line breaks cannot
+raise an alarm while a changed value still does. On failure it now prints which
+numbers and labels the committed figure has that a regeneration does not, and
+the reverse, so the next person sees what moved instead of a verdict. Swapping
+one figure's content for another's was confirmed to fail, with the diagnostic
+naming the numbers that differ, before the new form was trusted.
+
+**The general rule this project keeps relearning.** A check across two machines
+must compare the thing it cares about and nothing else. Every time a comparison
+has been allowed to carry incidental detail, bytes in D7 and D17 and layout
+here, it has fired on correct work. The question to ask of any new check is what
+it would take for it to fail while the work is right.
