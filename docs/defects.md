@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty five closed, none partly closed, none open. Thirty five entries in all.**
+**Status at 2026-11-22: thirty six closed, none partly closed, none open. Thirty six entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1577,3 +1577,52 @@ and the diagnostic added in D34 is what made D35 take minutes instead of an
 evening. The rule, now stated once rather than rediscovered: a check that spans
 two machines compares the quantity under claim and nothing that travels with
 it, and it prints what differs rather than only that something did.
+
+---
+
+## D36. Three patches where one decision was needed
+
+**Found** 2026-11-22, by the figure gate failing a third time on the
+measurement machine.
+**Severity** three of the operator's runs were spent on a cosmetic comparison,
+and the fault each time was mine.
+
+The check asks whether a committed figure still matches the records it draws.
+Three attempts compared, in order: the raw output of `pdftotext -layout`, which
+encodes glyph positions as whitespace; word tokens, which `pdftotext` splits
+wherever spacing suggests a gap, so one machine produced `un` plus `ord` plus
+`ered` and the other `unord` plus `ered`; and the letters concatenated, which
+removed the splitting and kept the ordering, so a label shifted by a point is
+emitted before rather than after its neighbour and the string changes while
+every character is identical.
+
+Each fix removed the specific artifact that had just fired and left the next
+one in place. None of them asked the question that settles it.
+
+The question is what a figure's words can tell you about its currency, and the
+answer is nothing. The data appears in a figure as numbers. The words appear
+because the plotting script writes them, and the committed figure and a fresh
+regeneration come from the same script, so a word can differ only for a
+rendering reason and never for a data reason. Comparing words adds no power to
+detect staleness and adds a cross-machine failure mode.
+
+**CLOSED 2026-11-22** The check compares the numbers and nothing else, with the
+reasoning written in the function so the next person does not add the words
+back. The textual side of a caption remains guarded by the separate rule that
+every number a caption quotes must appear in the results file the caption
+names. Swapping one figure's content for another's was confirmed to fail,
+naming eight differing numbers in each direction, before the form was trusted.
+
+**And the artifacts move to the machine that submits.** Figures are regenerated
+on the measurement machine and committed from there, before the gate runs, so
+the only rendering that has to agree with itself is the one that will be
+submitted. Had that been the arrangement from the start, none of D34, D35 or
+D36 would have cost a run.
+
+**What the pattern says about me.** Four register entries on PDF comparison and
+three of them in one hour. The first fix was reasonable, the second was a
+reflex, and the third should have been a stop and a question. The rule I am
+adding to my own practice, stated here because the register is where this
+project keeps its corrections: after one fix to a check fails, do not write the
+second fix. Work out what the check can and cannot see, and decide what it
+should compare.

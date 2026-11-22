@@ -97,35 +97,36 @@ def main() -> int:
                            capture_output=True, text=True)
         return r.stdout if r.returncode == 0 else ""
 
-    def content_of(p: Path) -> tuple:
-        """What a figure says, not where it says it.
+    def content_of(p: Path) -> list:
+        """The numbers a figure draws, and deliberately nothing else.
 
-        The currency check used to compare the output of pdftotext -layout
-        directly. That output encodes glyph positions as whitespace, so a
-        different matplotlib or font version shifts a label by a point and the
-        whole string changes. fig-barrier, which carries the most text of any
-        figure here, failed on the measurement machine while passing on the
-        machine that had last regenerated it, and nothing about the data had
-        moved. That is D34, and it is the third time cross machine PDF
-        comparison has produced a false alarm, after D7 and D17.
+        This took three attempts and the first two were patches rather than
+        decisions, which is why D34, D35 and D36 all exist for one question.
 
-        The question this check exists to answer is whether a figure still
-        matches the records it draws, which is a question about its numbers and
-        its labels. Both are compared as multisets, so spacing, column order
-        and line breaks cannot raise an alarm while a changed value still
-        does.
+        The check asks whether a committed figure still matches the records it
+        draws. The data appears in a figure as numbers: axis ticks and
+        annotated values. The words appear because the plotting script writes
+        them, and both the committed figure and a fresh regeneration come from
+        the same script, so a word can only differ for a rendering reason and
+        never for a data reason. Comparing words therefore adds no power to
+        detect staleness and adds a cross-machine failure mode, which is what
+        it did twice.
+
+        What the earlier attempts compared, in order: the raw output of
+        pdftotext -layout, which encodes glyph positions as whitespace; then
+        word tokens, which pdftotext splits wherever spacing suggests a gap, so
+        one machine gave un + ord + ered and the other unord + ered; then the
+        letters concatenated, which removed the splitting and kept the layout
+        ordering, so a label shifted by a point is emitted before rather than
+        after its neighbour and the string changes while every character is
+        the same.
+
+        The textual side of a caption is still checked, by the separate rule
+        that every number a caption quotes must appear in the results file the
+        caption names. Nothing is unguarded here.
         """
         raw = text_of(p)
-        nums = sorted(re.findall(r"-?\d+(?:\.\d+)?", raw))
-        # Word tokens are not stable either. pdftotext breaks a label wherever
-        # the glyph spacing suggests a gap, so the same "unordered" came out as
-        # un + ord + ered on one machine and unord + ered on the other, and
-        # comparing word multisets reported labels lost and gained while the
-        # numbers were identical. Concatenating every letter removes the
-        # fragmentation entirely: the same label yields the same string however
-        # it was split. D35.
-        letters = "".join(re.findall(r"[a-z]+", raw.lower()))
-        return nums, letters
+        return sorted(re.findall(r"-?\d+(?:\.\d+)?", raw))
 
     try:
         import matplotlib  # noqa: F401
@@ -148,15 +149,12 @@ def main() -> int:
                 for n in sorted(before):
                     after = content_of(FIGS / n)
                     if after != before[n]:
-                        bn, bw = before[n]
-                        an, aw = after
-                        lost_n = sorted(set(bn) - set(an))[:6]
-                        new_n = sorted(set(an) - set(bn))[:6]
-                        same_text = bw == aw
-                        bad.append(f"{n}: numbers in the committed figure and absent from "
-                                   f"a regeneration {lost_n}, numbers in the regeneration "
-                                   f"and absent from the committed figure {new_n}, "
-                                   f"letter content identical: {same_text}")
+                        lost_n = sorted(set(before[n]) - set(after))[:8]
+                        new_n = sorted(set(after) - set(before[n]))[:8]
+                        bad.append(f"{n}: numbers in the committed figure and absent "
+                                   f"from a regeneration {lost_n}; numbers in the "
+                                   f"regeneration and absent from the committed figure "
+                                   f"{new_n}")
                         bad.append(f"{n} is stale: regenerating from committed data "
                                    f"changes its content, so the committed figure no "
                                    f"longer matches the records it draws")
