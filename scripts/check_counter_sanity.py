@@ -26,9 +26,29 @@ from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(ROOT, "results")
 
-FIELD = re.compile(
-    r"\b(msg_cycles|msg_instructions|msg_l1d_miss|msg_l1d_store_miss|"
-    r"msg_br_mispred|msg_ldst_wait_cycles|core_ghz)=([0-9.]+)")
+# Any counter derived field, named by shape rather than by a list.
+#
+# The list was explicit and went stale the moment a counter mode was added.
+# msg_mem_order_viol read exactly 0.0000 in 1800 records across two runs and
+# this gate, written for precisely that failure, never looked at it, because
+# the field had not existed when the list was typed. A check whose coverage
+# has to be extended by hand every time the thing it checks grows is a check
+# that silently stops covering it. See D27.
+FIELD = re.compile(r"\b(msg_[a-z0-9_]+|core_ghz)=([0-9.]+)")
+
+# (file, field): a counter awaiting validation, with the OPEN defect that
+# tracks it. A pending entry is reported loudly on every run and is removed
+# when the validation lands, in either direction: a counter shown to work
+# makes the zero a real measurement, and a counter shown to be inert makes
+# every claim resting on it unevaluable.
+PENDING = {
+    ("2026-11-22_m4_h80_viol_prodside.txt", "msg_mem_order_viol"):
+        "D27, OPEN: zero on every arm, and no evidence yet that this event can "
+        "read non-zero on this part",
+    ("2026-11-22_m4_h81_viol_consumer.txt", "msg_mem_order_viol"):
+        "D27, OPEN: zero on every arm, and no evidence yet that this event can "
+        "read non-zero on this part",
+}
 
 # (file, field): the defect that explains why this one is allowed to be dead.
 EXCEPTIONS = {
@@ -48,7 +68,7 @@ MIN_RECORDS = 10
 
 def main() -> int:
     files = sorted(glob.glob(os.path.join(RES, "*.txt")))
-    dead, allowed, checked, thin, covered = [], [], 0, [], []
+    dead, allowed, pending, checked, thin, covered = [], [], [], 0, [], []
     for path in files:
         name = os.path.basename(path)
         vals = defaultdict(set)
@@ -75,7 +95,9 @@ def main() -> int:
             if len(s) > 1:
                 continue
             if (name, k) in EXCEPTIONS:
-                allowed.append((name, k))
+                allowed.append((name, k, EXCEPTIONS[(name, k)]))
+            elif (name, k) in PENDING:
+                pending.append((name, k, PENDING[(name, k)]))
             else:
                 dead.append((name, k, s.pop()))
 
@@ -86,14 +108,20 @@ def main() -> int:
     for name, rows in thin:
         print(f"  thin: {name}, {rows} record(s)")
     print(f"counter fields checked: {checked}")
-    for name, k in allowed:
-        print(f"  allowed: {name} {k} is constant, {EXCEPTIONS[(name, k)]}")
+    for name, k, why in allowed:
+        print(f"  allowed: {name} {k} is constant, {why}")
+    for name, k, why in pending:
+        print(f"  PENDING: {name} {k} is constant and unvalidated, {why}")
     if dead:
         print()
         for name, k, v in dead:
             print(f"FAIL: {name} field {k} holds one value, {v}, across the whole "
                   f"file; a counter over varying work does not do that")
         return 1
+    if pending:
+        print(f"PASS with {len(pending)} unvalidated counter field(s) pending an open "
+              f"defect; no claim may rest on them until the validation lands")
+        return 0
     print("PASS: every counter field varies, or is a listed exception with its defect")
     return 0
 

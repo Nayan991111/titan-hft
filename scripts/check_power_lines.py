@@ -51,7 +51,7 @@ def check_register_claims(bad: list) -> None:
     exp = ROOT / "docs" / "experiments.md"
     if not exp.exists():
         return
-    checked = 0
+    checked, skipped = 0, []
     for line in exp.read_text(encoding="utf-8").split("\n"):
         if not line.startswith("|"):
             continue
@@ -65,10 +65,11 @@ def check_register_claims(bad: list) -> None:
         row = line.split("|")[1].strip()[:8]
         for claim in claims:
             token = POWER_WORDS[claim][0]
-            seen, matched = [], False
+            seen, matched, absent = [], False, []
             for fn in files:
                 f = RES / fn
                 if not f.exists():
+                    absent.append(fn)
                     continue
                 head = "".join(f.open(encoding="utf-8", errors="replace").readlines()[:40])
                 for v in re.findall(r"^POWER\s*:\s*(.+)$", head, re.M):
@@ -77,12 +78,22 @@ def check_register_claims(bad: list) -> None:
                         matched = True
             if matched:
                 checked += 1
+            elif absent and not seen:
+                # A file missing from this checkout is not a false claim. This
+                # happens when a run was committed from the machine that
+                # produced it and the claim is read somewhere that has not
+                # fetched it. It is reported, loudly, and not counted as
+                # verified, because an unread file verifies nothing.
+                skipped.append((row, POWER_WORDS[claim][1], absent))
             else:
                 bad.append(("docs/experiments.md",
                             f"row {row} claims {POWER_WORDS[claim][1]} and no run it "
                             f"cites records that; the cited runs say "
                             f"{'; '.join(seen) if seen else 'nothing'}"))
     print(f"register power claims : {checked} verified against a cited run")
+    for row, word, absent in skipped:
+        print(f"  NOT VERIFIED HERE: row {row} claims {word}; "
+              f"{', '.join(absent)} is not in this checkout")
 
 
 def main() -> int:

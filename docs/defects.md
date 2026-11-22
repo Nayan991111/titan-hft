@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: twenty six closed, none partly closed, none open. Twenty six entries in all.**
+**Status at 2026-11-22: twenty seven closed, none partly closed, one open. Twenty eight entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1161,3 +1161,97 @@ claimed state and not that the run the sentence is about does. That limit is
 written into the check itself rather than left for someone to discover. Three
 register power claims now verify against a cited run, and the H79 row asserts
 no power state until its file is read.
+
+---
+
+## D27. A refutation resting on a counter never seen to move
+
+**Found** 2026-11-22, immediately after H80 and H81.
+**Severity** one registered part is refuted on the strength of a zero, and
+nothing has shown the event producing that zero can read anything else.
+
+`ST_MEM_ORDER_VIOL_LD_NONSPEC` read exactly 0.0000 on every arm of 1800
+records across both threads, so part (c) of each run is refuted and part (d)
+is unevaluable. A plain reading says this ring triggers no memory order
+violations, which is plausible: the producer stores a slot and then a cursor,
+and the loads that follow read a remote cursor, so a load rarely aliases an
+older store in the same thread.
+
+Plausible is not measured. This is the D19 mistake with a different event, and
+D19 cost two runs.
+
+**The gate written for exactly this did not look.** `check_counter_sanity`
+exists to fail when a counter derived field holds one value across a whole
+file. Its list of fields was explicit and had been typed before
+`msg_mem_order_viol` existed, so the field was invisible to it: the regular
+expression saw `msg_cycles`, `msg_ldst_wait_cycles` and `core_ghz` in those
+records and nothing else. A check whose coverage must be extended by hand each
+time the thing it checks grows is a check that silently stops covering it. The
+field pattern now matches any `msg_` field by shape, and the two files are
+listed as pending against this entry, reported on every run, so no claim can
+quietly rest on them.
+
+**OPEN.** `titan-probe` gains a validation pass with its expected outcome
+fixed in the source before the counter is read: an aliasing loop whose store
+address depends on a pointer chase, so it resolves late and the following load
+issues first, with the load's address colliding with the store's on an
+unpredictable half of iterations so the disambiguation predictor cannot learn
+to hold it back; and a control loop with the collision removed. If the
+aliasing pass counts and the control does not, the event discriminates and the
+ring's zero is a measurement, and part (c) stands refuted. If both read zero,
+the event is inert here and parts (c) and (d) become unevaluable, like H78 (a)
+before them. This entry closes when that pass has run, in either direction.
+
+---
+
+## D28. A per message rate whose numerator is driven by duration
+
+**Found** 2026-11-22, by checking H80 and H81 against each other rather than
+against their thresholds.
+**Severity** the registered consequence of the central threshold does not
+follow, and it would have entered the paper as a mechanism.
+
+Part (b) compared writebacks per message between the two arms, on the
+reasoning that the throttling account requires the faster arm to do strictly
+less coherence work. It was refuted at 0.5004 on the producer and 0.4734 on
+the consumer, unanimously across thirty launches, and the registered
+consequence said the account survives.
+
+It does not follow. Writebacks per message correlate with cycles per message
+at r=0.9966 across the ten producer cells and r=0.9879 across the ten consumer
+cells, and at 0.9954 and 0.9951 inside the contended cells alone. The ring
+waits by spinning on a remote cursor, so a slower arm polls more times and
+moves the line more often. Per message coherence traffic is very largely a
+function of how long the message took, and a ratio of it between a fast arm
+and a slow one measures the duration difference a second time.
+
+The other direction is worth stating because it points the opposite way. Per
+cycle the faster arm does more coherence work, 1.2821 on the producer and
+1.2162 on the consumer contended, and less when resident, 0.7184 and 0.6165.
+That is the shape of traffic set by real work and diluted by stall cycles, not
+of traffic causing the stalls.
+
+So the throttling account is neither supported nor refuted by these runs, and
+the paper will say that rather than either of the stronger things.
+
+This is the fifth threshold in this project that was precise, checkable, fixed
+in advance and not a test of its claim, after a pair read as five arms, a
+composition read as an absolute, the wrong thread, and a guard wider than the
+comparison it guarded. The new failure mode is distinct and worth naming: the
+quantity was normalised by the very thing under comparison, so the comparison
+appeared in the answer twice.
+
+**CLOSED 2026-11-22** H82 is registered to discriminate them, holding the arm
+fixed and varying only the wait strategy, which moves duration without
+touching the instruction under test. If both arms lie on one duration traffic
+line, the arm adds nothing beyond its duration and the account is dead. If the
+arms sit on separate lines, there is arm specific traffic and the account has
+something to stand on. `titan-barrier waitsweep` provides the eight cells, and
+the correctness of all eight was checked before the thresholds were written.
+
+**A tooling fault alongside it.** The verdict script printed "2 supported"
+while listing three, because one verdict was built as `worst <= 1.10 and det`,
+which returns the list rather than a boolean, and the tally tested identity
+against `True`. Six parts were listed and five counted. The expression is a
+boolean now and the tally asserts that it accounts for every part, so a
+summary can no longer disagree with the lines above it.

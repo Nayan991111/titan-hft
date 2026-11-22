@@ -39,7 +39,7 @@ use titan_spsc::barrier::{FencedLoad, FencedStore, Unordered};
 use titan_spsc::order::{AcqRel, Fenced, Order};
 use titan_spsc::pad::{IndexCell, Pad128};
 use titan_spsc::ring::{channel, same_line_128};
-use titan_spsc::wait::{SpinHint, Wait};
+use titan_spsc::wait::{Spin, SpinHint, Wait, Wfe, Yield};
 use titan_spsc::{Rx, Tx};
 
 const CAPACITY: usize = 1024;
@@ -203,6 +203,13 @@ struct ProbeSpec {
     decimals: [usize; 3],
 }
 
+/// Vary the wait strategy at a fixed arm instead of the arm at a fixed wait.
+fn wait_sweep() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "waitsweep"))
+}
+
 fn probe_spec() -> &'static ProbeSpec {
     const DEFAULT: ProbeSpec = ProbeSpec {
         name: "default",
@@ -287,7 +294,28 @@ fn main() {
     // ordering. Every other arm is a correct SPSC ring and a failed sum there
     // fails the process. The pairing is held in one place so the two lists
     // cannot drift apart.
-    let cases: Vec<(Case, bool)> = vec![
+    // Holding the arm fixed and varying only how it waits separates coherence
+    // traffic caused by the ordering instruction from traffic caused by the
+    // time spent polling. Writebacks per message correlate with cycles per
+    // message at r above 0.98 across the H80 and H81 cells, which is what a
+    // spin wait produces mechanically: a slower arm polls a remote cursor
+    // more times and moves the line more often. A per message rate therefore
+    // cannot tell a cause from a consequence, which is D28. Two arms across
+    // four wait strategies, contended only, puts both on the same duration
+    // axis without changing the instruction under test.
+    let cases: Vec<(Case, bool)> = if wait_sweep() {
+        vec![
+            (case::<AcqRel, Pad128, Spin, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, Yield, false>, true),
+            (case::<AcqRel, Pad128, Wfe, false>, true),
+            (case::<FencedStore, Pad128, Spin, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, Yield, false>, true),
+            (case::<FencedStore, Pad128, Wfe, false>, true),
+        ]
+    } else {
+        vec![
         (case::<AcqRel, Pad128, SpinHint, false>, true),
         (case::<FencedLoad, Pad128, SpinHint, false>, true),
         (case::<FencedStore, Pad128, SpinHint, false>, true),
@@ -298,13 +326,15 @@ fn main() {
         (case::<FencedStore, Pad128, SpinHint, true>, true),
         (case::<Fenced, Pad128, SpinHint, true>, true),
         (case::<Unordered, Pad128, SpinHint, true>, false),
-    ];
+        ]
+    };
     println!(
-        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={} measured_side={} counters={}",
+        "bd_config messages={n} epochs={epochs} cases={} capacity={CAPACITY} pmu={} measured_side={} counters={} arms={}",
         cases.len(),
         pmu.is_some(),
         if producer_side() { "producer" } else { "consumer" },
-        probe_spec().name
+        probe_spec().name,
+        if wait_sweep() { "waitsweep" } else { "orders" }
     );
     // Arms rotate by a stride coprime with the arm count so that position in
     // the epoch is not fixed per arm; 3 and 10 are coprime.

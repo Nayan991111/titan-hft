@@ -132,7 +132,11 @@ def verdicts(per, launch, ok):
         s = max(med(ga), med(gf)) / min(med(ga), med(gf))
         worst = max(worst, s)
         det.append(f"{lab} {s:.4f}")
-    v["e"] = (worst <= 1.10 and det,
+    # `worst <= 1.10 and det` returns the list, not a bool, so the verdict
+    # printed as SUPPORTED while the tally, which tests `is True`, skipped it:
+    # six parts were listed and five counted. A summary that disagrees with the
+    # lines above it is worse than no summary.
+    v["e"] = (bool(det) and worst <= 1.10,
               f"frequency between the compared pair, {', '.join(det)}, threshold 1.10")
 
     bad = [f"{o} {ok[o][0]}/{ok[o][1]}" for o in CORRECT if ok[o][0] != ok[o][1]]
@@ -184,7 +188,10 @@ def main():
             s = sum(1 for k in v if v[k][0] is True)
             r = sum(1 for k in v if v[k][0] is False)
             u = sum(1 for k in v if v[k][0] is None)
-            print(f"    {s} supported, {r} refuted, {u} unevaluable, of 6 parts")
+            assert s + r + u == len(v), (
+                f"the tally counts {s + r + u} of {len(v)} parts, so a verdict is "
+                f"neither True, False nor None: {[k for k in v if v[k][0] not in (True, False, None)]}")
+            print(f"    {s} supported, {r} refuted, {u} unevaluable, of {len(v)} parts")
             print()
 
     if "--emit" in sys.argv:

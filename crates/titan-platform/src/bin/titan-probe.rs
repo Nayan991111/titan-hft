@@ -114,6 +114,112 @@ fn main() {
     }
     storemiss_test();
     storemiss_isolation();
+    violation_check();
+}
+
+/// Can `ST_MEM_ORDER_VIOL_LD_NONSPEC` read non-zero on this part.
+///
+/// H80 and H81 recorded exactly 0.0000 memory order violations on every arm of
+/// 1800 records, on both threads, and the registered part that rested on it is
+/// refuted on that basis. A refutation built on a counter that has never been
+/// seen to move is the D19 mistake with a different event, so the zero is not
+/// a result until the counter is shown to discriminate.
+///
+/// A violation happens when a load executes speculatively ahead of an older
+/// store it aliases, and is detected when the store resolves, costing a flush
+/// and replay. Two passes are run and their expected order is fixed here,
+/// before the counter is read.
+///
+/// The aliasing pass makes the store's address depend on a pointer chase, so
+/// it resolves late and the following load issues first, and picks the load's
+/// address to collide with the store's on an unpredictable half of iterations,
+/// so the memory disambiguation predictor cannot learn to hold the load back.
+/// The control pass is the same loop with the collision removed: the load
+/// always reads a different slot. Violations should be far more frequent in
+/// the first than in the second.
+///
+/// If the aliasing pass counts and the control does not, the counter works and
+/// discriminates, and the ring's zero is a measurement. If both read zero, the
+/// event is inert here and every claim resting on it is unevaluable rather
+/// than refuted.
+fn violation_check() {
+    const N: usize = 4_000_000;
+    const SLOTS: usize = 8;
+
+    println!("-- memory order violation counter, can it move at all");
+    let k = match Kperf::open() {
+        Ok(k) => k,
+        Err(e) => {
+            println!("violcheck_open_error=\"{e}\"");
+            return;
+        }
+    };
+    let s = match k.session_with_mode(
+        &[events::CYCLES, events::MEM_ORDER_VIOL, events::L1D_WRITEBACK,
+          events::LDST_WAIT_MISS],
+        CountMode::All,
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("violcheck_session_error=\"{e}\"");
+            return;
+        }
+    };
+    println!("violcheck_events {:?}", s.names());
+
+    // A permutation long enough that each step is a dependent cache miss, so
+    // the store address below resolves late.
+    let n = 1 << 16;
+    let mut chain: Vec<usize> = (0..n).collect();
+    let mut x = 0x2545F4914F6CDD1Du64;
+    for i in (1..n).rev() {
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        let j = (x % (i as u64 + 1)) as usize;
+        chain.swap(i, j);
+    }
+    let mut buf = vec![0u64; SLOTS];
+
+    let mut run = |label: &str, alias: bool| {
+        let mut kk = 0usize;
+        let mut acc = 0u64;
+        let c0 = s.read();
+        for i in 0..N {
+            kk = chain[kk];
+            let slot = kk & (SLOTS - 1);
+            unsafe { std::ptr::write_volatile(buf.as_mut_ptr().add(slot), i as u64) };
+            let pick = if alias && ((i ^ kk) & 1) == 0 {
+                slot
+            } else {
+                (slot + 1) & (SLOTS - 1)
+            };
+            acc = acc.wrapping_add(unsafe { std::ptr::read_volatile(buf.as_ptr().add(pick)) });
+        }
+        let d = s.delta(&c0, &s.read());
+        std::hint::black_box(acc);
+        let per = N as f64;
+        println!("violcheck pass={label} ops={N} mem_order_viol_per_op={:.6} \
+writeback_per_op={:.4} wait_cycles_per_op={:.4} cycles_per_op={:.2}",
+                 d[1] as f64 / per,
+                 d[2] as f64 / per,
+                 d[3] as f64 / per,
+                 d[0] as f64 / per);
+        d[1]
+    };
+
+    let aliasing = run("aliasing_expect_violations", true);
+    let control = run("control_expect_few", false);
+    println!("violcheck_verdict aliasing_total={aliasing} control_total={control} \
+counter_discriminates={}",
+             if aliasing == 0 && control == 0 {
+                 "no, both zero, the event is inert here"
+             } else if aliasing > control.saturating_mul(2) {
+                 "yes, the aliasing pass counts far more"
+             } else {
+                 "unclear, the two passes are too close to separate"
+             });
+    std::hint::black_box(&buf);
 }
 
 /// Which of two causes explains the H78 zero.
