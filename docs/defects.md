@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty six closed, none partly closed, none open. Thirty six entries in all.**
+**Status at 2026-11-22: thirty eight closed, none partly closed, none open. Thirty eight entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1626,3 +1626,98 @@ adding to my own practice, stated here because the register is where this
 project keeps its corrections: after one fix to a check fails, do not write the
 second fix. Work out what the check can and cannot see, and decide what it
 should compare.
+
+---
+
+## D37. A cross-check between two counters that measure different things
+
+**Found** 2026-11-22, by H86 part (d) failing by a factor of 61 in the wrong
+direction.
+**Severity** the threshold was written to protect two measurements against each
+other and would have impeached a correct one.
+
+Part (d) required the backend stall ratio between the arms to be at or below
+0.50, on the reasoning that H78 had already measured a waiting ratio of 0.2338
+between the same arms and the two should agree. It came back at 30.6473:
+acquire-release spends 0.3507 cycles per message with nothing issuing because of
+the backend, and fenced-store spends 10.7480.
+
+The registered consequence said that a disagreement meant both measurements
+were suspect and both must be rerun. **That consequence is void and was not
+acted on**, which is recorded here rather than passed over in silence, because
+quietly dropping a registered consequence is worse than the threshold that
+needed it.
+
+It is void because its premise is false. `ARM_STALL_BACKEND` counts cycles in
+which nothing issued because of the backend. `LDST_UNIT_OLD_L1D_CACHE_MISS`
+counts cycles in which an old load or store is waiting for data after an L1D
+miss, and a cycle can be both waiting and issuing. The acquire-release arm waits
+139.0505 cycles on misses while continuing to issue spin loop work, so it stalls
+almost never. The fenced-store arm's barrier drains the pipeline, so when it
+waits it stalls outright. The two counters are not proportional, were never
+going to be, and neither measurement is impeached by their disagreement.
+
+This is the sixth threshold in this project that was precise, checkable, fixed
+before the run, and aimed at the wrong quantity, after a pair read as five arms,
+a composition read as an absolute, the wrong thread, a guard wider than its
+claim, and a rate normalised by the thing under comparison. The new variety is
+worth naming because it is the most seductive: a consistency check between two
+counters whose definitions were not read side by side. The correction extends
+D25's rule. Before a threshold compares two counters, read both descriptions
+from the machine's own dump in the same sitting and state in one sentence why
+the quantities must move together. If that sentence cannot be written, the
+threshold is not a cross-check.
+
+**CLOSED 2026-11-22** Part (d) is recorded as refuted with its consequence
+explicitly void and the reason given. Part (c) is also refuted, at 1.8319
+against a band of 1.25, and for a related reason that is not a defect but a
+property of the workload: each spin iteration retires uops, so uop count scales
+with waiting and a work parity threshold over a spin-waiting ring cannot hold.
+H87 is registered to find the 201.186 cycles per message, 92.07 percent of the
+acquire-release arm's contended cost, that H86 left in neither the issuing nor
+the backend-stalled state.
+
+---
+
+## D38. A duplicate citation key, a gate that printed less than it knew, and a
+claim of mine that was simply wrong
+
+**Found** 2026-11-22, while expanding the bibliography.
+**Severity** three faults in one pass, two in the tooling and one in what I
+told the operator.
+
+**The claim.** I said Mytkowicz et al. was the canonical citation for
+measurement bias and was absent from the bibliography. It was present, at line
+15, and had been for some time. It was uncited, which is a different and smaller
+problem. I added a second entry under the same key.
+
+**The duplicate.** Two `@inproceedings{mytkowicz2009wrong,` entries. bibtex
+resolves that by keeping one and discarding the other without saying which, so
+a rendered citation can carry the details of an entry nobody is reading. The
+only symptom was that a count of entries and a count of distinct keys
+disagreed by one, which surfaced because two different scripts of mine counted
+them differently and I chased the discrepancy instead of picking the larger
+number. The original entry was fuller and is kept; the DOI, which only the
+duplicate carried, is merged into it.
+
+**The gate that knew and did not say.** `check_provenance` collects failures in
+one list and printed that list before two further checks appended to it, so the
+percentage and cited-number failures were counted in the exit status and never
+shown. The output said three numbers were unaccounted for and named none of
+them. That is worse than a missing check: it reports a problem and withholds
+the evidence, so the next person has to re-derive what the script already knew.
+The printing now happens after every check that appends.
+
+**CLOSED 2026-11-22** The duplicate is removed with its DOI merged.
+`check_claims_semantics` now fails on a duplicate key, on a citation absent
+from refs.bib, and on an entry nothing cites, since an uncited entry does not
+appear in the rendered bibliography under IEEEtran and is invisible dead
+weight. All three were confirmed to fail before being trusted. The bibliography
+is 15 entries, every one cited, every citation present.
+
+**The pattern worth keeping.** Twice today a discrepancy between two of my own
+counts was the only evidence of a real fault: here, entries against distinct
+keys, and earlier, a verdict tally that listed six parts and counted five. Both
+times the honest move was to chase the disagreement rather than report the
+number that looked right. A tool that counts the same thing two ways and gets
+two answers is telling you something.

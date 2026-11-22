@@ -518,6 +518,18 @@ pub mod events {
 
     /// All retired uops, as a check that the arms do comparable work.
     pub const RETIRED_UOPS: &[&str] = &["RETIRE_UOP"];
+
+    /// Cycles with no operation sent for execution, for any reason.
+    ///
+    /// H86 found the acquire-release arm issuing on 7.77 percent of its cycles
+    /// contended and backend stalled on 0.16 percent, leaving 201.2 cycles per
+    /// message, 92 percent of the arm's cost, in neither state. These three
+    /// counters together are the only way to find out where those cycles are,
+    /// and the frontend one has never been read in this project.
+    pub const STALL_ANY: &[&str] = &["ARM_STALL"];
+
+    /// Cycles with no operation issued because of the frontend.
+    pub const STALL_FRONTEND: &[&str] = &["ARM_STALL_FRONTEND"];
 }
 
 #[cfg(test)]

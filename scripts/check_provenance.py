@@ -51,6 +51,11 @@ EXPERIMENTS = ROOT / "docs" / "experiments.md"
 # The script evaluates the expression and requires it to round to the printed
 # value, so an edit to either side is caught.
 DERIVED: dict[str, tuple[str, int]] = {
+    # Section 4 and the run-length subsection, arithmetic over H86 figures that
+    # are themselves in results/2026-11-22_m4_h86_issue.txt.
+    "7.77": ("100 * 16.9888 / 218.525", 2),
+    "0.16": ("100 * 0.3507 / 218.525", 2),
+    "92.07": ("100 * (218.525 - 16.9888 - 0.3507) / 218.525", 2),
     # Section 4 arithmetic over figures that are themselves in the records.
     "2.716": ("173.725 / 63.972", 3),
     "106.5": ("139.0505 - 32.5100", 1),
@@ -67,6 +72,7 @@ DERIVED: dict[str, tuple[str, int]] = {
 
 # Values quoted from a cited work. The key must resolve in refs.bib.
 EXTERNAL: dict[str, str] = {
+    "133": "mytkowicz2009wrong",
     "8.94": "wrenger2024m1",
 }
 
@@ -98,6 +104,10 @@ EXTERNAL: dict[str, str] = {
 CITED: dict[str, str] = {}
 
 PERCENT: dict[str, tuple[str, str]] = {
+    # The issue-rate split, each computed from the medians in the H86 run.
+    "7.77": ("measured", "2026-11-22_m4_h86_issue.txt"),
+    "0.16": ("measured", "2026-11-22_m4_h86_issue.txt"),
+    "92.07": ("measured", "2026-11-22_m4_h86_issue.txt"),
     "95.3": ("measured", "2026-11-17_m4_barrier.txt"),
     "2.4": ("measured", "2026-11-20_m4_burst5_rebuild.txt"),
     "0.7": ("measured", "2026-11-20_m4_burst5_rebuild.txt"),
@@ -268,11 +278,6 @@ def main() -> int:
         print("  and are not declared as derived, cited or typesetting:")
         for value, lines in unsourced:
             print(f"    {value}  main.tex line(s) {', '.join(map(str, lines))}")
-    if broken:
-        print()
-        print("  BROKEN DECLARATIONS:")
-        for b in broken:
-            print(f"    {b}")
 
     # Every percentage in the manuscript must declare a source that exists.
     pct = set(re.findall(r"([0-9][0-9.]*) percent", re.sub(r"\s+", " ", TEX.read_text(encoding="utf-8"))))
@@ -290,6 +295,12 @@ def main() -> int:
     print(f"  percentages: {len(pct)} in the manuscript, each with a declared source")
 
     check_cited(TEX.read_text(encoding="utf-8"), ROOT / "results", broken)
+
+    if broken:
+        print()
+        print("  BROKEN DECLARATIONS:")
+        for b in broken:
+            print(f"    {b}")
 
     bad = len(unsourced) + len(broken)
     print()

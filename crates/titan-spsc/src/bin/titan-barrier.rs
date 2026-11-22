@@ -283,7 +283,22 @@ fn probe_spec() -> &'static ProbeSpec {
         fields: ["msg_issue_active", "msg_stall_backend", "msg_retired_uops"],
         decimals: [4, 4, 2],
     };
-    if std::env::args().any(|a| a == "issueprobe") {
+    // Where the 201 cycles per message go. H86 accounted for 7.77 percent of
+    // the acquire-release arm's contended cost as issuing and 0.16 percent as
+    // a backend stall, and left the rest unlocated. ARM_STALL is every cycle
+    // with no operation sent for execution, and the frontend counter splits
+    // it, so these three plus cycles either partition the time or show that
+    // they cannot be made to.
+    const STALLS: ProbeSpec = ProbeSpec {
+        name: "stallprobe",
+        events: [events::CYCLES, events::STALL_ANY, events::STALL_FRONTEND,
+                 events::STALL_BACKEND],
+        fields: ["msg_stall_any", "msg_stall_frontend", "msg_stall_backend"],
+        decimals: [4, 4, 4],
+    };
+    if std::env::args().any(|a| a == "stallprobe") {
+        &STALLS
+    } else if std::env::args().any(|a| a == "issueprobe") {
         &ISSUE
     } else if std::env::args().any(|a| a == "trafficprobe") {
         &TRAFFIC

@@ -141,6 +141,38 @@ def main():
                 bad.append(f"'{frag}' appears without naming the Fano factor nearby; "
                            "the result is a comparison between two predictors, not one number")
 
+    # A bibliography entry nothing cites does not appear in the rendered
+    # document under IEEEtran, so it is invisible dead weight that a reader of
+    # the source will wonder about, and a citation key the manuscript uses and
+    # the file lacks renders as a question mark. Both directions are checked.
+    bib_path = ROOT / "docs" / "paper" / "refs.bib"
+    if bib_path.exists():
+        bib = bib_path.read_text(encoding="utf-8")
+        all_keys = re.findall(r"@\w+\{(\w+),", bib)
+        keys = set(all_keys)
+        # A duplicate key is resolved silently by bibtex, which keeps one entry
+        # and discards the other, so a citation can render details from an entry
+        # nobody is looking at. refs.bib carried two Mytkowicz entries for a
+        # while and the count of entries disagreed with the count of keys by
+        # one, which is the only way it showed. See D38.
+        if len(all_keys) != len(keys):
+            from collections import Counter
+            dups = sorted(k for k, n in Counter(all_keys).items() if n > 1)
+            bad.append(f"refs.bib defines {dups} more than once; bibtex keeps one "
+                       f"entry and discards the other without saying which")
+        cited = {k.strip() for grp in re.findall(r"\\cite\{([^}]+)\}", tex)
+                 for k in grp.split(",")}
+        dangling = sorted(cited - keys)
+        uncited = sorted(keys - cited)
+        if dangling:
+            bad.append(f"the manuscript cites {dangling}, absent from refs.bib")
+        if uncited:
+            bad.append(f"refs.bib carries {uncited}, which nothing cites, so they "
+                       f"will not appear in the rendered bibliography")
+        if not dangling and not uncited:
+            print(f"bibliography        : {len(keys)} entries, every one cited, "
+                  f"every citation present")
+
     # arXiv's submission form caps the abstract field at 1920 characters and
     # silently truncates or rejects beyond it. The abstract reached 909 words
     # and about 5800 characters by accretion, every addition individually

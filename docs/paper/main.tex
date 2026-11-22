@@ -66,7 +66,7 @@ coefficient of variation of interarrival times, through the variability term of
 Kingman's heavy-traffic approximation, predicts 7.444 and the measured ratio
 reaches 13.5030.
 All results come from a
-pre-registered protocol, 90 hypothesis rows and five exploratory calibrations,
+pre-registered protocol, 91 hypothesis rows and five exploratory calibrations,
 with thresholds fixed before each run and an exact sign test over launches. The
 defect register is published with the paper.
 \end{abstract}
@@ -79,7 +79,7 @@ measurement, measurement bias, hardware performance counters
 \section{Introduction}
 
 A feed handler that reconstructs a limit order book from an exchange multicast
-feed spends its time in a loop of a few instructions: read the producer's
+feed~\cite{maciejewski2026cme} spends its time in a loop of a few instructions: read the producer's
 cursor, read a slot, update book state, publish the consumer's cursor. The
 cursors are shared between two cores, so each read and each publish carries a
 memory-ordering obligation, and on a weakly ordered architecture that
@@ -303,7 +303,7 @@ state whether a study was pre-registered, and that journals adapt review to
 accept registered reports, which they call perhaps the most promising of all
 the interventions they consider.
 
-This study is conducted that way. Ninety hypothesis rows and five exploratory
+This study is conducted that way. Ninety-one hypothesis rows and five exploratory
 calibrations carry thresholds fixed before the corresponding measurement
 existed, each registration was pushed to a public remote before the data it
 governs was collected, and every verdict is recorded against the row that
@@ -492,7 +492,7 @@ by one. The mass sits at 41 and 42 units, which is the 24\,MHz hardware tick
 that the Mach timebase of 125/3 implies, and 0.7558 of consecutive pairs do not
 advance at all. A study quoting tens of nanoseconds from this counter is
 quoting quantisation. Drawn from
-\texttt{results/2026-11-21\_m4\_probe.txt}.}
+\texttt{results/\allowbreak 2026-11-21\_\allowbreak m4\_\allowbreak probe.txt}.}
 \label{fig:grain}
 \end{figure}
 
@@ -508,7 +508,12 @@ this work uses resolve against it: \texttt{FIXED\_CYCLES},
 ish} and \texttt{isb sy} so that work inside the measured region cannot retire
 outside it.
 
-Counting is per thread, and the counters belong to whichever thread reads them.
+Counter values are not to be taken on trust. Weaver and
+McKee~\cite{weaver2008trusted} showed that even retired-instruction counters,
+which should be deterministic, vary run to run and across implementations of a
+single architecture, and three of the counters this study attempted to use turned
+out to measure nothing in this workload. Counting is also per thread, and the
+counters belong to whichever thread reads them.
 In the runs reported here that thread ran the consumer loop, so every counter
 figure in this paper describes the consuming side of the ring. We state this
 because it is a real limit on what the counters can settle and because we did
@@ -600,6 +605,7 @@ performance monitoring unit, a counter run checks that neither is active before
 it begins rather than failing obscurely partway through.
 
 \subsection{Pre-registration, and the gates that enforce it}
+\label{sec:gates}
 
 Each hypothesis is a row carrying its thresholds, written and committed before
 the measurement it governs exists, and pushed to a public remote before the data
@@ -646,7 +652,7 @@ manuscript that quotes a figure absent from those files.
 \subsection{Arrival clustering costs what the variability term predicts, and
 not what the Fano factor does}
 
-At a fixed mean rate, replacing a periodic arrival schedule with a clustered one
+Figure~\ref{fig:beta} plots the contrast quantile by quantile. At a fixed mean rate, replacing a periodic arrival schedule with a clustered one
 raises service latency by a factor that queueing theory predicts only if the
 right dispersion measure is used. Over the clustered arms the Fano factor of
 counts moves from 24.79 to 25.78, a ratio of 1.040, while the squared
@@ -665,11 +671,11 @@ these two measures of the same schedule diverge by a factor of seven. A study
 that reports burstiness as a Fano factor and then appeals to Kingman has
 measured one quantity and reasoned about another.
 
-The effect survives the waiting strategy. The peak contrast is 14.3415 under an
+Figure~\ref{fig:ccdf} shows the same arms as survival curves. The effect survives the waiting strategy. The peak contrast is 14.3415 under an
 \texttt{isb}-based spin and 14.4450 under \texttt{wfe}, against 13.5030 under a
 plain spin, so it is a property of the arrival schedule rather than of how the
 consumer idles. Figures are drawn from
-\texttt{results/2026-11-20\_m4\_h74\_beta.txt}.
+\texttt{results/\allowbreak 2026-11-20\_\allowbreak m4\_\allowbreak h74\_\allowbreak beta.txt}.
 
 \begin{figure}[t]
 \centering
@@ -678,7 +684,7 @@ consumer idles. Figures are drawn from
 fixed mean arrival rate. The contrast is not a uniform shift: it peaks at
 13.5030 and falls away in both tails, which is why a single mean or a single
 quantile understates it. Drawn from
-\texttt{results/2026-11-20\_m4\_h74\_beta.txt}.}
+\texttt{results/\allowbreak 2026-11-20\_\allowbreak m4\_\allowbreak h74\_\allowbreak beta.txt}.}
 \label{fig:beta}
 \end{figure}
 
@@ -691,7 +697,7 @@ quantiles gated so that no plotted point rests on fewer than ten observations.
 The arms are indistinguishable through the body of the distribution and
 separate only in the tail, which is why a comparison of means or of a single
 percentile understates the effect. Drawn from
-\texttt{results/2026-11-18\_m4\_burst.txt}.}
+\texttt{results/\allowbreak 2026-11-18\_\allowbreak m4\_\allowbreak burst.txt}.}
 \label{fig:ccdf}
 \end{figure}
 
@@ -704,7 +710,7 @@ cost of a message by a factor of 2.5766 when the cursor line is contended and
 $p = 1.86\times10^{-9}$, and the two move in opposite directions. The
 comparison changes sign rather than magnitude.
 
-These are cycle counts, not nanoseconds, and the distinction was the one thing
+Figure~\ref{fig:barrier} shows the five arms at both caching states. These are cycle counts, not nanoseconds, and the distinction was the one thing
 the earlier nanosecond replication had to assume. Between the two arms that
 form the comparison the frequency ratio is 1.0086 contended and 1.0611
 resident, so the nanosecond figures of 2.5238 and 2.5174 understate the cycle
@@ -714,7 +720,7 @@ pair and it failed at 1.1922, driven by the unordered cost floor idling at
 3.691\,GHz against 4.401\,GHz for the acquire-release arm while spending an
 order of magnitude fewer cycles per message. The threshold was mis-specified
 and the failure is recorded as such; the pair it was meant to protect is within
-1.0086. From \texttt{results/2026-11-21\_m4\_h77\_cycles.txt}.
+1.0086. From \texttt{results/\allowbreak 2026-11-21\_\allowbreak m4\_\allowbreak h77\_\allowbreak cycles.txt}.
 
 \begin{figure}[t]
 \centering
@@ -725,7 +731,7 @@ Contended the order is unordered 10.185, fencedstore 85.269, fenced 94.336,
 fencedload 183.800, acqrel 218.880; resident it is unordered 6.646, fencedload
 8.021, acqrel 8.053, fenced 20.567, fencedstore 22.120. The two arms that form
 the comparison exchange places between the panels. Drawn from
-\texttt{results/2026-11-17\_m4\_barrier.txt}; the cycle-level replication of the
+\texttt{results/\allowbreak 2026-11-17\_\allowbreak m4\_\allowbreak barrier.txt}; the cycle-level replication of the
 same comparison is in Section~\ref{sec:cycles}.}
 \label{fig:barrier}
 \end{figure}
@@ -736,8 +742,8 @@ same comparison is in Section~\ref{sec:cycles}.}
 of the ring. Waiting is cycles in which an older load or store is waiting for
 data after an L1D miss. The arm that is cheaper overall is cheaper mostly by
 waiting less, on both threads. From
-\texttt{results/2026-11-21\_m4\_h78\_storeprobe.txt} and
-\texttt{results/2026-11-21\_m4\_h79\_prodside.txt}.}
+\texttt{results/\allowbreak 2026-11-21\_\allowbreak m4\_\allowbreak h78\_\allowbreak storeprobe.txt} and
+\texttt{results/\allowbreak 2026-11-21\_\allowbreak m4\_\allowbreak h79\_\allowbreak prodside.txt}.}
 \label{tab:wait}
 \begin{tabular}{lrrrr}
 \hline
@@ -755,7 +761,7 @@ unordered & 10.186 & 5.2458 & 9.087 & 3.0079 \\
 
 \subsection{The cost is time spent waiting, and it replicates across threads}
 
-Decomposing each arm into cycles spent waiting on the load-store unit after an
+Table~\ref{tab:wait} gives the decomposition on both threads. Decomposing each arm into cycles spent waiting on the load-store unit after an
 L1D miss and cycles spent elsewhere locates the effect. Contended, on the
 consuming thread, the acquire-release arm costs 217.755 cycles per message of
 which 139.0505 are waiting, and the fenced-store arm costs 80.894 of which
@@ -770,8 +776,8 @@ measuring thread. There the acquire-release arm costs 220.048 cycles with
 the five arms is identical in both modes at both caching states and the sign of
 the pair holds in 30 of 30 launches in each. Swapping which side is measured
 moves magnitudes and moves neither the ordering nor the direction. From
-\texttt{results/2026-11-21\_m4\_h78\_storeprobe.txt} and
-\texttt{results/2026-11-21\_m4\_h79\_prodside.txt}.
+\texttt{results/\allowbreak 2026-11-21\_\allowbreak m4\_\allowbreak h78\_\allowbreak storeprobe.txt} and
+\texttt{results/\allowbreak 2026-11-21\_\allowbreak m4\_\allowbreak h79\_\allowbreak prodside.txt}.
 
 \subsection{How long the run lasted decides which construct a reader would
 choose}
@@ -780,7 +786,7 @@ The results above are all measured at ten million messages per epoch. That
 choice is not neutral, and the size of the effect it carries is the largest
 single number in this paper.
 
-Sweeping run length with everything else fixed, the cost of the
+Figures~\ref{fig:runlength} and~\ref{fig:ordering} show the sweep. Sweeping run length with everything else fixed, the cost of the
 acquire-release ring with the cursor line contended is 21.930 nanoseconds per
 message at 200,000 messages, 133.860 at one million, 216.195 at five million
 and 221.990 at ten million. The same ring with the line resident moves the
@@ -797,7 +803,11 @@ the cheapest by more than a factor of two. A reader who benchmarked at 200,000
 messages and a reader who benchmarked at ten million would recommend opposite
 constructs, from the same binary on the same machine.
 
-This hazard is not new and we do not claim it. Emurian et
+This hazard is not new and we do not claim it. Mytkowicz et
+al.~\cite{mytkowicz2009wrong} established that an innocuous choice in an
+experimental setup can reverse a conclusion, and found that none of 133 papers
+they surveyed from ASPLOS, PACT, PLDI and CGO accounted for it. Run length is
+such a choice, and on this part it is worth a factor of 16.33. Emurian et
 al.~\cite{emurian2014pitfalls} identify the mechanism, which is that the core
 clock responds to how long a core has been busy rather than to how much work it
 was given, and bound the resulting distortion at about 8 percent on a
@@ -813,7 +823,7 @@ bounds the sustained clock. We therefore report the sweep as establishing that
 the hazard is large on this class of machine, and not as a calibrated figure
 for it. Every run after that date records its power state in its own header and
 a gate checks every claim about it against the file. From
-\texttt{results/2026-11-16\_m4\_runlength.txt}.
+\texttt{results/\allowbreak 2026-11-16\_\allowbreak m4\_\allowbreak runlength.txt}.
 
 \begin{figure}[t]
 \centering
@@ -822,7 +832,7 @@ a gate checks every claim about it against the file. From
 contended arm rises from 21.930 to 221.990 nanoseconds per message while the
 resident arm falls from 13.180 to 8.170, so the ratio between them moves from
 1.66 to 27.17. Drawn from
-\texttt{results/2026-11-16\_m4\_runlength.txt}.}
+\texttt{results/\allowbreak 2026-11-16\_\allowbreak m4\_\allowbreak runlength.txt}.}
 \label{fig:runlength}
 \end{figure}
 
@@ -834,7 +844,7 @@ messages the costs are 21.930, 86.280 and 178.795 nanoseconds per message for
 acquire-release, fenced and sequentially consistent; at ten million they are
 221.990, 99.185 and 221.250. A benchmark that stops early recommends the
 opposite construct to one that does not. Drawn from
-\texttt{results/2026-11-16\_m4\_runlength.txt}.}
+\texttt{results/\allowbreak 2026-11-16\_\allowbreak m4\_\allowbreak runlength.txt}.}
 \label{fig:ordering}
 \end{figure}
 
@@ -872,10 +882,16 @@ ring capacity, the writeback rate per cycle departs from unity by at most
 coherence component of that size cannot explain a cost difference of 2.5. We
 therefore report that the mechanism is not identified by these measurements,
 which is a weaker claim than the data initially appeared to support and the
-only one it sustains. From
-\texttt{results/2026-11-22\_m4\_h80\_viol\_prodside.txt},
-\texttt{results/2026-11-22\_m4\_h81\_viol\_consumer.txt} and
-\texttt{results/2026-11-22\_m4\_h84\_capfine.txt}.
+only one it sustains. Ousterhout's rule is to measure one level
+deeper~\cite{ousterhout2018deeper}, and one level deeper is where this stops: of
+the acquire-release arm's contended cost, 7.77 percent of cycles are cycles in
+which the scheduler issued at least one uop and 0.16 percent are cycles in which
+nothing issued because of the backend, leaving 92.07 percent in neither state. A
+pre-registered decomposition of those cycles is the next measurement and is not
+yet run. From
+\texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h80\_\allowbreak viol\_\allowbreak prodside.txt},
+\texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h81\_\allowbreak viol\_\allowbreak consumer.txt} and
+\texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.
 
 \subsection{A boundary, and three properties confounded inside it}
 
@@ -890,7 +906,7 @@ faster at capacity 2 in 20 of 20 launches and slower at capacity 1024 in 20 of
 \caption{Cost per message in cycles, contended, by ring capacity, with the
 writeback rate per cycle. The sign of the comparison changes three times and
 the acquire-release arm breaks discontinuously between capacities 8 and 16.
-From \texttt{results/2026-11-22\_m4\_h84\_capfine.txt}.}
+From \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.}
 \label{tab:cap}
 \begin{tabular}{rrrrr}
 \hline
@@ -1038,7 +1054,7 @@ memory-ordering implementation is correct.
 
 The inferential statistic throughout is the exact two-sided sign test over
 independent launches, which assumes only that launches are exchangeable and
-makes no distributional assumption about latency. Ninety hypothesis rows
+makes no distributional assumption about latency. Ninety-one hypothesis rows
 are registered, of which a substantial minority record refutations, and we
 apply no family-wise correction. The headline results are at
 $p = 1.86\times10^{-9}$ and $p = 1.91\times10^{-6}$ and survive any reasonable

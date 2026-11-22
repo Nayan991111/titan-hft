@@ -52,6 +52,10 @@ def captions(tex: str) -> list[tuple[str, str]]:
 
 def main() -> int:
     tex = TEX.read_text(encoding="utf-8")
+    # Long results paths in captions carry \allowbreak after each separator so
+    # they can wrap in a two-column measure. Those markers are typesetting, not
+    # content, and every pattern below reads the path, so they come out first.
+    tex = tex.replace("\\allowbreak ", "").replace("\\allowbreak", "")
     figs = captions(tex)
     print(f"figures embedded in the manuscript: {len(figs)}")
     if not figs:
