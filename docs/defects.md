@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-23: forty one closed, none partly closed, none open. Forty one entries in all.**
+**Status at 2026-11-23: forty two closed, none partly closed, none open. Forty two entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1810,7 +1810,23 @@ consumer waits, which it had been assuming for three weeks without evidence.
 
 **CLOSED 2026-11-23** H89 is registered to settle H86. The manuscript gains the
 wait-strategy robustness result and states which counter figures are
-conditional. The methodological point is the one worth carrying: a parameter
+conditional.
+
+**What H89 returned, written in the same day and left here rather than folded
+into the text above.** The sentence above says H89 registers that a ratio below
+0.90 revives the throttling account and forces a retraction. It did not reach
+that bound and it did not reach the bound that would have kept the exclusion
+either. Under a plain spin the fenced-store arm's issue-active fraction is
+1.0800 times the acquire-release arm's, 0.0200 below the keep bound and inside
+the interval the registration had named as inconclusive. So H86's exclusion is
+downgraded from excluded to unsupported, not retracted, and the manuscript now
+reports the throttling account as open. The isb cell replicates H86's 2.7363 at
+2.6935, which matters: the number was right and the inference drawn from it was
+not. The provision that made this reportable is that the registration carried
+three outcomes rather than two, and that provision was not foresight. It was
+written because this register already held five instances of a threshold aimed
+at the wrong quantity, and a two-outcome threshold is one more way to be forced
+into an answer the data does not carry. The methodological point is the one worth carrying: a parameter
 held constant across every run is invisible, and its effect is attributed to
 whatever was varied. The protocol in this project varies arms, caching state,
 thread, capacity and wait strategy; the wait strategy was added last and
@@ -1849,3 +1865,64 @@ its inputs was itself unsourced in this checkout, which is exactly right and
 caught a convenience number the paper did not need. The figure was removed
 rather than declared. A gate that is pedantic about inputs is worth more than
 one that trusts an arithmetic I typed.
+
+## D42. A registered test was placed on one cell, and the claim it decided was
+scoped over every cell
+
+**Found** 2026-11-23, reading H89's result against its own registration.
+**Severity** moderate in consequence and high in what it adds. The verdict is
+unchanged by it, because the registered reading is the one we took. It is the
+seventh instance in this register of a pre-registered threshold that was
+precise, checkable, honoured exactly as written, and not a test of the claim it
+was written for, and it is the first one found inside a registration written
+after the first five were known.
+
+H89 asks whether H86's exclusion of the pipeline-throttling account survives the
+removal of the `isb` from the consumer's wait loop. The claim is about the two
+ordering constructs. It is not about any one way of idling, and the run sweeps
+four of them. The registration nonetheless placed its deciding test on a single
+cell, `wait=spin`, on the reasoning that a plain spin contains no
+context-synchronizing instruction and is therefore the cleanest comparison.
+That reasoning is sound and the cell was the right one to choose. The error is
+that choosing one cell was never stated as a choice, and no rule was fixed for
+what a disagreement among the four cells would mean.
+
+The four cells disagree. The issue-active fraction of the fenced-store arm over
+the acquire-release arm is 1.0800 under `spin`, 1.1042 under `yield` and 1.7344
+under `wfe`, with `isb` at 2.6935. Three of the four clear the 1.10 bound that
+would have kept H86 standing. The registered cell misses it by 0.0200.
+
+**What we did.** We took the registered reading. H86's exclusion is downgraded
+to unsupported, the manuscript does not claim that throttling is excluded, and
+the three cells that clear the bound are recorded as a consequence and not
+claimed. Switching to `yield` after seeing the data would have been the exact
+practice this protocol exists to prevent, and the fact that the switch would
+have been defensible on physical grounds is what makes it dangerous rather than
+what makes it acceptable.
+
+**What it costs honestly.** A reader may conclude from the full table that the
+fenced-store arm does issue on more cycles under every wait strategy that
+contains no synchronizing instruction, and that reader would not be unreasonable.
+We cannot offer that conclusion, because the test that would have licensed it
+was not the test we wrote. The cost of this defect is a result we may have and
+cannot claim, and that is the correct cost for the mistake.
+
+**One more thing this corrected.** The H88 row recorded that its post hoc
+backend-stall reading was "registered as H89 rather than claimed". H89 places a
+threshold on the throttling question only; its guard requires the backend
+counter to be non-zero and tests nothing about the backend ratio. The row
+overstated what existed, and the manuscript inherited the overstatement in a
+sentence saying the backend mechanism was pre-registered and not yet run. Both
+are corrected, and neither claimed anything, so nothing is retracted.
+
+**CLOSED 2026-11-23** The fix is a rule added to the protocol and to the
+manuscript's recommendation. Where a claim is scoped over several cells, state
+which cells the test is evaluated on and fix in advance what a disagreement
+among them means. And where a prior conclusion is under test, register three
+outcomes rather than two: the bound above which it stands, the bound below which
+it is retracted, and the interval between them, in which it is downgraded. H89
+carried the three and could therefore report the answer the data supports. A
+two-outcome version of the same registration would have forced us either to
+retract a sound measurement or to keep a conclusion it does not support.
+
+---

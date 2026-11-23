@@ -68,6 +68,10 @@ DERIVED: dict[str, tuple[str, int]] = {
     # The Mach timebase on this part, 125/3, which is the counter grain the
     # probe measures the hardware obeying. results/2026-11-21_m4_probe.txt.
     "41.667": ("125 / 3", 3),
+    # How far H89's deciding cell sat below the bound that would have kept
+    # H86 standing. Both inputs are in the H89 run, the bound because the
+    # verdict script emits the registered bounds beside the measurement.
+    "0.0200": ("1.10 - 1.0800", 4),
 }
 
 # Values quoted from a cited work. The key must resolve in refs.bib.
@@ -112,6 +116,14 @@ CITED: dict[str, str] = {
     "0.4532": "2026-11-23_m4_h88_waitstalls.txt",
     "0.3511": "2026-11-23_m4_h88_waitstalls.txt",
     "1.0809": "2026-11-23_m4_h88_waitstalls.txt",
+    # The throttling re-measurement. Emitted by scripts/h89_verdicts.py --emit
+    # at the precision quoted here. The two fractions are the quantity the
+    # earlier exclusion divided, and the two ratios are the same comparison
+    # under the two wait strategies that bracket it.
+    "0.550940": "2026-11-23_m4_h89_waitissue.txt",
+    "0.077303": "2026-11-23_m4_h89_waitissue.txt",
+    "1.0800": "2026-11-23_m4_h89_waitissue.txt",
+    "2.6935": "2026-11-23_m4_h89_waitissue.txt",
 }
 
 PERCENT: dict[str, tuple[str, str]] = {

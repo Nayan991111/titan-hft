@@ -934,11 +934,24 @@ That is a mechanism in the memory system rather than the frontend, and it is the
 answer a reader would expect of a memory-ordering experiment. We do not claim it
 here, because it was found after the thresholds that would have tested it were
 written, and fitting a threshold to data already seen is the practice this
-protocol exists to prevent. It is pre-registered and not yet run. What we do
-claim is the correction it forces: one measurement in this study, the exclusion
-of pipeline throttling as the mechanism, rests on a quantity the wait strategy
-suppresses, and is downgraded from excluded to pending in the defect register
-until it is re-measured.
+protocol exists to prevent. No registered test of it exists yet.
+
+What we do claim is the correction it forces, and we ran that correction rather
+than leaving it outstanding. One result in this study, the exclusion of pipeline
+throttling as the mechanism, rested on a ratio of issue-active fractions taken
+under the \texttt{isb} wait. Re-measured across all four wait strategies, with
+the thresholds and all three outcomes fixed beforehand, the acquire-release arm
+issues on 0.550940 of its cycles under a plain spin against 0.077303 under
+\texttt{isb}: the wait loop suppressed the quantity the earlier comparison
+divided. Under \texttt{isb} the fenced-store arm's issue-active fraction is
+2.6935 times the acquire-release arm's, which replicates the figure the
+exclusion rested on, so the earlier measurement was sound. Under a plain spin
+the same ratio is 1.0800, inside the band registered in advance as the
+inconclusive outcome. The two arms issue on fractions of their cycles that this
+experiment cannot distinguish, and the conclusion drawn from the earlier ratio
+does not survive. This paper therefore does not claim that pipeline throttling
+is excluded. The account is neither excluded nor supported, and we report it as
+open.
 
 \subsection{A boundary, and three properties confounded inside it}
 
@@ -1011,24 +1024,42 @@ the measurements support.
 
 \subsection{What the measurement apparatus taught us}
 
-Five pre-registered thresholds in this study were precise, checkable, fixed
+Seven pre-registered thresholds in this study were precise, checkable, fixed
 before the data existed, and not tests of the claims they were written for. One
 was written over five arms when the claim concerned a pair. One was written over
 an absolute quantity when the claim concerned a composition. One was written
 against the thread that does not execute the instruction under test. One was a
 measurability guard scoped more widely than the comparison it guarded, so it
-reported measurable for a cell that was not. And one normalised a quantity by
-the very thing under comparison, so the comparison appeared in the answer twice.
+reported measurable for a cell that was not. One normalised a quantity by the
+very thing under comparison, so the comparison appeared in the answer twice. One
+cross-checked two counters whose definitions do not make them proportional, so
+neither outcome could have meant anything, and its registered consequence is
+recorded as void rather than acted on. And one placed its test on the single
+cell we judged cleanest while the claim it decided was scoped over every cell,
+which is the instance we found last and the one that cost the most, because
+three of the four cells cleared the bound and the registered cell missed it by
+0.0200.
 
 They share a shape. Pre-registration protects against moving a threshold after
-seeing data, and all five thresholds were honoured exactly as written. It does
+seeing data, and all seven thresholds were honoured exactly as written. It does
 not protect against aiming a threshold at the wrong quantity, and nothing in the
 pre-registration literature we are aware of addresses that failure mode. The
 practice we arrived at is mechanical and we recommend it: before a threshold is
 committed, state in one sentence what observation would make the claim false,
 and confirm the threshold is a test of that sentence rather than of a quantity
-that merely moves with it. Name the cells the claim is evaluated on, and evaluate
-each guard on exactly the cells it guards.
+that merely moves with it. Name the cells the claim is evaluated on, evaluate
+each guard on exactly the cells it guards, and where a claim is scoped over
+several cells, fix in advance what a disagreement among them means.
+
+One further provision earned its place late. A threshold with two outcomes
+forces a verdict the data may not support. The last registration in this study
+named three, a bound above which a prior conclusion stands, a bound below which
+it is retracted, and the interval between them as inconclusive with the
+conclusion downgraded rather than reversed. The measurement landed in the
+interval. Had the registration carried two outcomes we would have been obliged
+either to retract a sound measurement or to keep a conclusion it does not
+support, and the honest third answer was available only because it had been
+written down first.
 
 \subsection{The dispersion measure is not interchangeable}
 
@@ -1066,11 +1097,19 @@ pipeline throttling rests on an issue-rate comparison that the same instruction
 suppresses. Neither was visible while the parameter was fixed, because its
 effect was attributed to whatever was varied against it.
 
+Both have now been re-measured against thresholds written before the data
+existed. The cost ratios survived: they move by a factor of 1.0809 between the
+two extreme wait strategies, inside a pre-registered band of 1.25. The stall
+attribution did not survive, and the throttling exclusion that rested on an
+issue-rate comparison came back inconclusive rather than either confirmed or
+reversed, which is the outcome a two-sided threshold cannot express and the
+reason this one was registered with three.
+
 We state the general form because we expect it is common. A parameter held
 constant across every run of a study cannot be seen inside that study, and its
-influence is credited to the variables that moved. The cost ratios here survived
-the test and the stall attribution did not, and we could not have known which
-before running it.
+influence is credited to the variables that moved. We could not have known which
+of our results depended on it before adding the axis, and one of the three is
+still unresolved after adding it.
 
 \subsection{What the counters describe}
 
