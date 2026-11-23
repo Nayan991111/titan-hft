@@ -66,7 +66,7 @@ coefficient of variation of interarrival times, through the variability term of
 Kingman's heavy-traffic approximation, predicts 7.444 and the measured ratio
 reaches 13.5030.
 All results come from a
-pre-registered protocol, 92 hypothesis rows and five exploratory calibrations,
+pre-registered protocol, 93 hypothesis rows and five exploratory calibrations,
 with thresholds fixed before each run and an exact sign test over launches. The
 defect register is published with the paper.
 \end{abstract}
@@ -303,7 +303,7 @@ state whether a study was pre-registered, and that journals adapt review to
 accept registered reports, which they call perhaps the most promising of all
 the interventions they consider.
 
-This study is conducted that way. Ninety-two hypothesis rows and five exploratory
+This study is conducted that way. Ninety-three hypothesis rows and five exploratory
 calibrations carry thresholds fixed before the corresponding measurement
 existed, each registration was pushed to a public remote before the data it
 governs was collected, and every verdict is recorded against the row that
@@ -883,15 +883,62 @@ coherence component of that size cannot explain a cost difference of 2.5. We
 therefore report that the mechanism is not identified by these measurements,
 which is a weaker claim than the data initially appeared to support and the
 only one it sustains. Ousterhout's rule is to measure one level
-deeper~\cite{ousterhout2018deeper}, and one level deeper is where this stops: of
-the acquire-release arm's contended cost, 7.77 percent of cycles are cycles in
-which the scheduler issued at least one uop and 0.16 percent are cycles in which
-nothing issued because of the backend, leaving 92.07 percent in neither state. A
-pre-registered decomposition of those cycles is the next measurement and is not
-yet run. From
+deeper~\cite{ousterhout2018deeper}, and doing so twice here first found a puzzle
+and then found that the puzzle belonged to the instrument. Of the
+acquire-release arm's contended cost, 7.77 percent of cycles are cycles in which
+the scheduler issued at least one uop and 0.16 percent are cycles in which
+nothing issued because of the backend, which leaves 92.07 percent in neither
+state. One level deeper again, those cycles are frontend stalls. One level
+deeper than that, they are an artifact of how the consumer waits: the frontend
+share of the acquire-release arm's cycles is 0.9661 when the wait loop contains
+an \texttt{isb} and 0.0542 when it does not, a factor of nearly eighteen, and
+\texttt{isb} is context-synchronizing and forces an instruction refetch. The
+stall profile of this ring under that wait strategy is mostly a measurement of
+the wait strategy. With the \texttt{isb} removed both arms are backend bound and
+the cost difference is accounted for by backend stall cycles, which is where a
+memory-ordering effect should live, and Section~\ref{sec:wait} reports what does
+and does not survive the change. From
 \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h80\_\allowbreak viol\_\allowbreak prodside.txt},
 \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h81\_\allowbreak viol\_\allowbreak consumer.txt} and
 \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.
+
+\subsection{The comparison does not depend on how the consumer waits}
+\label{sec:wait}
+
+Every figure above is measured with one wait strategy, an \texttt{isb}-based
+spin, and a parameter held constant across every run of a study is invisible
+inside it. Varying it last, as we did, is the reason this subsection exists at
+all.
+
+Holding the two arms fixed and varying only the wait strategy, the cost ratio of
+the barrier arm to the release-store arm is 0.4161 under a plain spin, 0.3849
+under the \texttt{isb} spin, 0.3945 under a yielding wait and 0.4532 under
+\texttt{wfe}. The spin against \texttt{isb} comparison is
+1.0809, inside a pre-registered band of 1.25, and the four values span less
+than a fifth of their own size.
+The central result of this paper is a property of the ordering constructs and
+not of the idling strategy, which no earlier run in this study had established.
+
+The stall decomposition does not survive the same test, and we report it as
+conditional rather than quietly keeping it. The frontend share of the
+acquire-release arm's cycles is 0.9661 under the \texttt{isb} wait and 0.0542
+under a plain spin. A context-synchronizing instruction in the wait loop forces
+an instruction refetch on every iteration, the two arms differ in how many
+iterations they spin, and so they differ in how much frontend stall they
+accumulate. Under every wait strategy that does not contain one, both arms are
+backend bound, and the ratio of backend stall cycles between them is 0.3511
+under a plain spin against a cost ratio of 0.4161, so the cost difference is
+accounted for by backend stall and slightly over-accounted.
+
+That is a mechanism in the memory system rather than the frontend, and it is the
+answer a reader would expect of a memory-ordering experiment. We do not claim it
+here, because it was found after the thresholds that would have tested it were
+written, and fitting a threshold to data already seen is the practice this
+protocol exists to prevent. It is pre-registered and not yet run. What we do
+claim is the correction it forces: one measurement in this study, the exclusion
+of pipeline throttling as the mechanism, rests on a quantity the wait strategy
+suppresses, and is downgraded from excluded to pending in the defect register
+until it is re-measured.
 
 \subsection{A boundary, and three properties confounded inside it}
 
@@ -1008,6 +1055,23 @@ behaves as expected off AArch64. A single-part study can establish that an
 effect exists on that part and can bound its size there; it cannot establish
 prevalence.
 
+\subsection{One parameter was constant in every run}
+
+The protocol varies the ordering arm, the caching state, the measured thread,
+the ring capacity and, last of all, the wait strategy. Adding that last axis
+showed that it had been carrying two results: the stall decomposition of
+Section~\ref{sec:wait} is substantially a measurement of the
+context-synchronizing instruction in the wait loop, and the exclusion of
+pipeline throttling rests on an issue-rate comparison that the same instruction
+suppresses. Neither was visible while the parameter was fixed, because its
+effect was attributed to whatever was varied against it.
+
+We state the general form because we expect it is common. A parameter held
+constant across every run of a study cannot be seen inside that study, and its
+influence is credited to the variables that moved. The cost ratios here survived
+the test and the stall attribution did not, and we could not have known which
+before running it.
+
 \subsection{What the counters describe}
 
 Counting is per thread on this unit, and a counter belongs to whichever thread
@@ -1054,7 +1118,7 @@ memory-ordering implementation is correct.
 
 The inferential statistic throughout is the exact two-sided sign test over
 independent launches, which assumes only that launches are exchangeable and
-makes no distributional assumption about latency. Ninety-two hypothesis rows
+makes no distributional assumption about latency. Ninety-three hypothesis rows
 are registered, of which a substantial minority record refutations, and we
 apply no family-wise correction. The headline results are at
 $p = 1.86\times10^{-9}$ and $p = 1.91\times10^{-6}$ and survive any reasonable

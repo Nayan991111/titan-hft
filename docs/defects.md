@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-22: thirty nine closed, none partly closed, none open. Thirty nine entries in all.**
+**Status at 2026-11-23: forty one closed, none partly closed, none open. Forty one entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1759,3 +1759,93 @@ disagreement revealed a duplicate key, and now the font column. Every one of
 them was in the layer that tells me what happened rather than in the layer that
 makes it happen. The measurements have been sound all day. The instruments
 reporting on them have not.
+
+---
+
+## D40. Every counter run in this project used one wait strategy, and it
+dominated what two of them measured
+
+**Found** 2026-11-23, by H88.
+**Severity** the highest in this register. One recorded conclusion is
+downgraded, two figures become conditional, and one central claim is
+strengthened. The cause was a constant nobody questioned.
+
+Every run in this project that carries stall, waiting or issue counters also
+carries `wait=isb`. The consumer's wait loop executes an `isb`, which is
+context synchronizing and forces an instruction refetch. A loop built on it
+generates frontend stalls by construction, and the two arms differ in how many
+iterations they spin, so they differ in how many `isb` they execute.
+
+H88 measured the size of that. The acquire-release arm's frontend share of
+cycles is 0.9661 under `isb` and 0.0542 under `spin`, a factor of 17.8. The
+96.58 percent frontend stall H87 reported is the wait loop.
+
+**What this costs, claim by claim.**
+
+H86's exclusion of the throttling account is **downgraded to pending**. It
+rested on the fenced-store arm issuing on 2.7363 times more cycles than the
+acquire-release arm. Under `isb` the acquire-release arm is 96.61 percent
+frontend stalled, so its issue-active fraction is suppressed by the wait loop
+rather than by the ordering construct, and a ratio of two such fractions says
+little about either arm. H89 re-measures it across all four wait strategies and
+registers in advance that a ratio below 0.90 means the account is live again and
+the paper must retract the exclusion.
+
+H78 and H79's waiting figures, 0.2338 on the consumer and 0.2161 on the
+producer, keep their direction and lose their generality. H88's backend stall
+ratio under `spin` is 0.3511, under `yield` 0.3425 and under `wfe` 0.3842, all
+the same sign and the same order of magnitude, so the finding that the cheaper
+arm waits materially less is not an artefact. The specific magnitudes are
+conditional on the wait strategy and the paper states them that way.
+
+H87's decomposition stands as recorded, which is to say its registered parts
+were already unevaluable and its post hoc reading is now explained.
+
+**And one claim comes out stronger.** H77's cost ratios, 2.5766 contended and
+2.7008 resident, were measured under one wait strategy and nothing had tested
+whether they survive another. H88 part (c) tested exactly that: the cost ratio
+of the two arms is 0.4161 under spin, 0.3849 under isb, 0.3945 under yield and
+0.4532 under wfe. The central finding of this paper is independent of how the
+consumer waits, which it had been assuming for three weeks without evidence.
+
+**CLOSED 2026-11-23** H89 is registered to settle H86. The manuscript gains the
+wait-strategy robustness result and states which counter figures are
+conditional. The methodological point is the one worth carrying: a parameter
+held constant across every run is invisible, and its effect is attributed to
+whatever was varied. The protocol in this project varies arms, caching state,
+thread, capacity and wait strategy; the wait strategy was added last and
+immediately showed that it had been silently carrying two results. Before a
+counter figure is published, vary the parameters that were constant when it was
+taken.
+
+---
+
+## D41. The same print-order fault, in the same file, two days apart
+
+**Found** 2026-11-23, writing the wait-strategy result into the manuscript.
+**Severity** low in consequence and high in what it says about the fix applied
+to D38.
+
+D38 recorded that `check_provenance` printed its list of broken declarations
+before two later checks appended to it, so failures were counted and never
+shown. The fix moved that one print. The file has a second list, of numbers
+found in the manuscript and in no results file, and that one was still printed
+before the step that filters it, so a number whose own run is simply absent
+from the checkout appeared in the unsourced list and in the not-verified-here
+list at once, with the count disagreeing with both.
+
+The fix for D38 was applied to the list that had just failed rather than to the
+pattern, which is the same thing D36 recorded about the figure gate. I did it
+again, in the same file, two days later.
+
+**CLOSED 2026-11-23** Both lists print after every step that can change them.
+The rule, stated for the third time and now in the only place that matters,
+which is next to the code: a report is written after the computation it
+reports, and a check that collects into a list prints that list once, at the
+end.
+
+**And a note in the gate's favour.** It refused a derived figure because one of
+its inputs was itself unsourced in this checkout, which is exactly right and
+caught a convenience number the paper did not need. The figure was removed
+rather than declared. A gate that is pedantic about inputs is worth more than
+one that trusts an arithmetic I typed.

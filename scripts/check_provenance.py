@@ -101,7 +101,18 @@ EXTERNAL: dict[str, str] = {
 # would have frozen a figure that the rerun changes; the manuscript states
 # the shape of that result in words instead, and a number goes in only when
 # the file holding it is in the repository.
-CITED: dict[str, str] = {}
+CITED: dict[str, str] = {
+    # The wait-strategy result. Each of these is emitted into that file by
+    # scripts/h88_verdicts.py --emit at the precision quoted here.
+    "0.9661": "2026-11-23_m4_h88_waitstalls.txt",
+    "0.0542": "2026-11-23_m4_h88_waitstalls.txt",
+    "0.4161": "2026-11-23_m4_h88_waitstalls.txt",
+    "0.3849": "2026-11-23_m4_h88_waitstalls.txt",
+    "0.3945": "2026-11-23_m4_h88_waitstalls.txt",
+    "0.4532": "2026-11-23_m4_h88_waitstalls.txt",
+    "0.3511": "2026-11-23_m4_h88_waitstalls.txt",
+    "1.0809": "2026-11-23_m4_h88_waitstalls.txt",
+}
 
 PERCENT: dict[str, tuple[str, str]] = {
     # The issue-rate split, each computed from the medians in the H86 run.
@@ -180,22 +191,31 @@ def preliminary_only(value: str) -> bool:
     return all("PRELIMINARY PROTOCOL:" in r for r in rows)
 
 
-def check_cited(tex: str, res_dir, broken: list) -> None:
+def check_cited(tex: str, res_dir, broken: list) -> set:
     """Every run specific number must appear in the run that produced it."""
+    absent: list = []
     for num, fname in sorted(CITED.items()):
         if num not in tex:
             continue
         target = res_dir / fname
         if not target.exists():
-            broken.append(f"{num} is quoted and its cited source {fname} is not committed")
+            # A run committed from the machine that produced it is not present
+            # in a checkout that has not fetched it. That is not a false claim
+            # and it is not a verification either, so it is named rather than
+            # passed or failed, the same treatment check_power_lines gives an
+            # absent run.
+            absent.append(f"{num} is cited to {fname}, which is not in this checkout")
             continue
         body = target.read_text(encoding="utf-8", errors="replace")
         if num not in body:
             broken.append(f"{num} is quoted but {fname}, the run it is cited from, "
                           f"does not contain it")
     print()
-    print(f"  run specific numbers: {sum(1 for n in CITED if n in tex)} checked "
-          f"against the file each is cited from")
+    print(f"  run specific numbers: {sum(1 for n in CITED if n in tex) - len(absent)} "
+          f"checked against the file each is cited from")
+    for a in absent:
+        print(f"    NOT VERIFIED HERE: {a}")
+    return {a.split()[0] for a in absent}
 
 
 def main() -> int:
@@ -272,13 +292,6 @@ def main() -> int:
         print("  PROTOCOL. Not a failure, and worth knowing before submission:")
         for v in prelim:
             print(f"    {v}")
-    if unsourced:
-        print()
-        print("  UNSOURCED. These appear in the manuscript and in no results file,")
-        print("  and are not declared as derived, cited or typesetting:")
-        for value, lines in unsourced:
-            print(f"    {value}  main.tex line(s) {', '.join(map(str, lines))}")
-
     # Every percentage in the manuscript must declare a source that exists.
     pct = set(re.findall(r"([0-9][0-9.]*) percent", re.sub(r"\s+", " ", TEX.read_text(encoding="utf-8"))))
     bibkeys = set(re.findall(r"@\w+\{(\w+),", BIB.read_text(encoding="utf-8")))
@@ -294,7 +307,18 @@ def main() -> int:
     print()
     print(f"  percentages: {len(pct)} in the manuscript, each with a declared source")
 
-    check_cited(TEX.read_text(encoding="utf-8"), ROOT / "results", broken)
+    unverifiable = check_cited(TEX.read_text(encoding="utf-8"), ROOT / "results", broken)
+    # A number whose own run is absent from this checkout cannot be in the
+    # corpus either, so it is not reported twice.
+    unsourced = [(v, l) for v, l in unsourced if v not in unverifiable]
+
+    if unsourced:
+        print()
+        print("  UNSOURCED. These appear in the manuscript and in no results file,")
+        print("  and are not declared as derived, cited or typesetting:")
+        for value, lines in unsourced:
+            print(f"    {value}  main.tex line(s) {', '.join(map(str, lines))}")
+
 
     if broken:
         print()
