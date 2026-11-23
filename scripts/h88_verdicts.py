@@ -143,6 +143,16 @@ def main():
                       f"{cells[('fencedstore', w)][0] / cells[('acqrel', w)][0]:.4f} "
                       f"backend_fencedstore_over_acqrel="
                       f"{cells[('fencedstore', w)][3] / cells[('acqrel', w)][3]:.4f}")
+        # Part (c) is decided by a ratio of two of the ratios above, and the
+        # manuscript quotes it. A quoted figure has to exist in a file rather
+        # than be recoverable from one by division, so it is emitted here. The
+        # line carries its own prefix so a file holding the twelve lines above
+        # can be topped up without rewriting them.
+        if ("fencedstore", "spin") in cells and ("fencedstore", "isb") in cells:
+            rs = cells[("fencedstore", "spin")][0] / cells[("acqrel", "spin")][0]
+            ri = cells[("fencedstore", "isb")][0] / cells[("acqrel", "isb")][0]
+            print(f"h88_stability cost_ratio_spin={rs:.4f} cost_ratio_isb={ri:.4f} "
+                  f"spin_over_isb={max(rs, ri) / min(rs, ri):.4f} band=1.25")
         return 0
 
     print("REGISTERED VERDICTS, guard before the claims it gates")
