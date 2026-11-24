@@ -2,16 +2,36 @@ cff-version: 1.2.0
 message: "If you use this software or its measurements, please cite it as below."
 type: software
 title: "Titan: cycle-level measurement of market-data handling and inter-core hand-off on Apple M4"
+abstract: >-
+  Measurement apparatus, pre-registered protocol and full result set for a
+  cycle-level study of memory-ordering cost in a single-producer
+  single-consumer ring on a fanless Apple M4. Includes the measurement
+  harness, a user-space interface to the Apple performance monitoring unit,
+  every raw run, a register of 93 pre-registered hypothesis rows with their
+  verdicts, a register of 44 logged defects in the authors' own method, and
+  eleven automated checks that refuse a manuscript whose numbers, thresholds
+  or figures do not match the files they are drawn from. The checks are
+  documented separately so they can be adopted without this project.
 authors:
   - family-names: Pandit
     given-names: Nayan
+    orcid: "https://orcid.org/0009-0001-2837-2987"
+    affiliation: "Indian Institute of Technology Patna"
 repository-code: "https://github.com/Nayan991111/titan-hft"
 license: MIT
+version: 1.0.0
+date-released: 2026-11-24
 keywords:
   - performance measurement
   - Apple silicon
   - Arm memory ordering
+  - memory barriers
   - SPSC queue
+  - lock-free concurrency
+  - hardware performance counters
+  - pre-registration
+  - reproducibility
+  - measurement bias
   - order book
   - NASDAQ ITCH
-  - hardware performance counters
+  - market microstructure
