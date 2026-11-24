@@ -74,23 +74,36 @@ def main() -> int:
             bad.append(f"{name} contains a Type 3 font, which arXiv and IEEE reject")
         print(f"  {name:<22} present, no Type 3")
 
-        # Each number the caption quotes must be in the results file it names.
-        src = re.search(r"results/([A-Za-z0-9_\\.-]+\.txt)", cap.replace("\\_", "_"))
-        if not src:
+        # Each number the caption quotes must be in a results file it names.
+        #
+        # EVERY file the caption names, not the first one. A figure may be
+        # drawn from more than one run, and the wait-strategy figure is: its
+        # cost and stall panels come from the stall probe and its issue panel
+        # from the issue probe. The earlier form took the first match and
+        # failed that figure for quoting numbers that were in its second file,
+        # which would have pushed the figure towards being split or towards
+        # dropping half its caption. Both named files must exist, so naming an
+        # extra file is not a way to widen the search.
+        srcs = re.findall(r"results/([A-Za-z0-9_\\.-]+\.txt)",
+                          cap.replace("\\_", "_"))
+        if not srcs:
             bad.append(f"{name}: the caption names no results file, so nothing can check it")
             continue
-        rf = ROOT / "results" / src.group(1)
-        if not rf.exists():
-            bad.append(f"{name}: the caption names {src.group(1)}, which does not exist")
+        seen = list(dict.fromkeys(srcs))
+        absent = [s for s in seen if not (ROOT / "results" / s).exists()]
+        if absent:
+            bad.append(f"{name}: the caption names {absent}, which do not exist")
             continue
-        body = rf.read_text(encoding="utf-8", errors="replace")
+        body = "\n".join((ROOT / "results" / s).read_text(
+            encoding="utf-8", errors="replace") for s in seen)
         plain = re.sub(r"\\[a-zA-Z]+|[{}$\\]", " ", cap)
         quoted = {n for n in re.findall(r"\b\d+\.\d{2,}\b", plain)}
         missing = sorted(n for n in quoted if n not in body)
+        named = seen[0] if len(seen) == 1 else f"the {len(seen)} runs it names"
         if missing:
-            bad.append(f"{name}: caption quotes {missing} which are not in {src.group(1)}")
+            bad.append(f"{name}: caption quotes {missing} which are in none of {seen}")
         else:
-            print(f"  {'':<22} caption numbers all present in {src.group(1)}")
+            print(f"  {'':<22} caption numbers all present in {named}")
 
     # Currency, by content rather than by bytes. See the module docstring and
     # docs/defects.md D7 and D17: bytes differ across machines, text does not.

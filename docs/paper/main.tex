@@ -983,8 +983,32 @@ and does not survive the change. From
 \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h81\_\allowbreak viol\_\allowbreak consumer.txt} and
 \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig-wait.pdf}
+\caption{Three quantities over the same four consumer wait loops, with the two
+ring implementations and everything else held fixed. (a) is the paper's
+comparison and it does not move. (b) is the stall attribution that was offered
+as its explanation, and it moves from 0.0542 under a plain spin to 0.9661 under
+\texttt{isb}, which is the only one of the four whose body contains a
+context-synchronizing instruction. (c) is the issue-rate comparison that an
+earlier result used to exclude pipeline throttling, with the dashed line at
+1.10, the bound registered in advance as the one that would keep that exclusion
+standing. It reads 2.6935 under \texttt{isb} and 1.0800 under a plain spin, so
+the exclusion was a property of the wait loop and is withdrawn. A result, the
+explanation given for it, and the alternative ruled out by it do not have to
+survive the same test. Drawn from
+\texttt{results/\allowbreak 2026-11-23\_\allowbreak m4\_\allowbreak h88\_\allowbreak waitstalls.txt}
+and
+\texttt{results/\allowbreak 2026-11-23\_\allowbreak m4\_\allowbreak h89\_\allowbreak waitissue.txt}.}
+\label{fig:wait}
+\end{figure}
+
 \subsection{The comparison does not depend on how the consumer waits}
 \label{sec:wait}
+
+Figure~\ref{fig:wait} is the whole of this subsection in one picture, and the
+rest of it is the detail behind the three panels.
 
 Every figure above is measured with one wait strategy, an \texttt{isb}-based
 spin, and a parameter held constant across every run of a study is invisible

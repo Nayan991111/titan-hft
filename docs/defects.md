@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-24: forty three closed, none partly closed, none open. Forty three entries in all.**
+**Status at 2026-11-24: forty four closed, none partly closed, none open. Forty four entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1960,3 +1960,31 @@ build.sh: a double hyphen between two alphanumerics cannot occur in a title,
 which keeps its single hyphens, and cannot occur inside the six-hyphen
 repeated-author ligature, which has no alphanumeric between its hyphens. The
 guard is unchanged and still refuses the build on any survivor.
+## D44. The figure gate read the first run a caption named and ignored the rest
+
+**Found** 2026-11-24, by the gate refusing the new wait-strategy figure.
+**Severity** low in consequence, recorded because it is the third instance in
+two days of the same shape and the count is the point.
+
+The gate requires that every number a figure caption quotes appears in the
+results file the caption names. It found that file with a single regular
+expression match, which is the first one. Every figure in the manuscript until
+now was drawn from one run, so the difference between the first file and all of
+them had never shown.
+
+The wait-strategy figure is drawn from two: its cost and stall panels come from
+the stall probe and its issue panel from the issue probe. The gate checked all
+six caption numbers against the first file and refused the figure for the two
+that live in the second.
+
+The refusal was correct in form and wrong in substance, and the dangerous part
+is what it invites. The quick ways out are to split one argument across two
+figures, or to drop the two numbers from the caption. Both would have made the
+paper worse to satisfy a check, which is the failure mode a gate suite has to
+be watched for.
+
+**CLOSED 2026-11-24** The gate now collects every results file a caption names,
+requires all of them to exist so that naming a file one does not use cannot
+widen the search, and checks each quoted number against their union. Confirmed
+to fail on a fabricated caption number before being trusted: a figure quoting
+9.9999 is refused and the message names both files it searched.

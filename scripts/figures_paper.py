@@ -654,6 +654,102 @@ def fig_beta(curves: dict[str, list[tuple[float, float]]]) -> None:
         print(f"   {arm:<18} peak ratio {r:>7.4f} at survival {s:.3e}")
 
 
+# ----------------------------------------------------------------------------
+# The wait-strategy figure. Three quantities over the same four wait loops: the
+# result, the explanation of the result, and the alternative the paper had
+# claimed to exclude. Drawn together because the argument is the contrast
+# between them and not any one of the three.
+#
+# Every value is read out of the derived block that the verdict script appended
+# to the run, so the figure cannot disagree with the verdict. Nothing is parsed
+# out of the raw records here and nothing is recomputed.
+H88 = RESULTS / "2026-11-23_m4_h88_waitstalls.txt"
+H89 = RESULTS / "2026-11-23_m4_h89_waitissue.txt"
+
+# spin, yield and wfe first, then isb. The order is not cosmetic: isb is the
+# only one of the four whose body contains a context-synchronizing
+# instruction, which is the property the figure is about, so it sits apart.
+WAITS = ["spin", "yield", "wfe", "isb"]
+WAIT_LABEL = {"spin": "spin", "yield": "yield", "wfe": "wfe", "isb": "isb"}
+
+
+def parse_derived(path: Path, prefix: str) -> dict[tuple[str, ...], dict[str, float]]:
+    """Read the h88_/h89_ derived lines. Keys are the non-numeric fields."""
+    out: dict[tuple[str, ...], dict[str, float]] = {}
+    for line in path.open(encoding="utf-8", errors="replace"):
+        if not line.startswith(prefix):
+            continue
+        fields = dict(
+            t.split("=", 1) for t in line.split()[1:] if "=" in t
+        )
+        key = tuple(v for k, v in fields.items() if k in ("arm", "wait"))
+        vals = {}
+        for k, v in fields.items():
+            if k in ("arm", "wait"):
+                continue
+            try:
+                vals[k] = float(v)
+            except ValueError:
+                continue
+        out[key] = vals
+    return out
+
+
+def fig_wait(h88_cells, h88_ratios, h89_ratios) -> None:
+    for w in WAITS:
+        assert (w,) in h88_ratios, f"h88_ratio missing wait={w}"
+        assert (w,) in h89_ratios, f"h89_ratio missing wait={w}"
+        assert ("acqrel", w) in h88_cells, f"h88_cell missing acqrel {w}"
+    assert len(h88_ratios) == 4, f"expected 4 h88 ratios, got {len(h88_ratios)}"
+    assert len(h89_ratios) == 4, f"expected 4 h89 ratios, got {len(h89_ratios)}"
+
+    cost = [h88_ratios[(w,)]["cycles_fencedstore_over_acqrel"] for w in WAITS]
+    front = [h88_cells[("acqrel", w)]["frontend_share"] for w in WAITS]
+    issue = [h89_ratios[(w,)]["issue_fraction_fencedstore_over_acqrel"]
+             for w in WAITS]
+
+    x = range(len(WAITS))
+    fig, ax = plt.subplots(3, 1, figsize=(COL, 3.9), sharex=True)
+    # One-word axis labels. The quantities are defined in the caption, because
+    # a two-line y-label on a panel this short collides with its neighbour.
+    bars = [
+        (cost, "cost ratio", "(a) FencedStore / AcqRel cycles per message",
+         COLOR["fencedstore"], None),
+        (front, "stall share", "(b) frontend stall share of AcqRel cycles",
+         COLOR["acqrel"], None),
+        (issue, "issue ratio", "(c) FencedStore / AcqRel issue-active fraction",
+         COLOR["fenced"], 1.10),
+    ]
+    for a, (vals, ylab, title, colour, bound) in zip(ax, bars):
+        a.bar(x, vals, width=0.58, color=colour, edgecolor="white",
+              linewidth=0.8, zorder=3)
+        a.set_ylabel(ylab)
+        a.set_ylim(0, max(vals) * 1.46)
+        a.set_xlim(-0.62, len(WAITS) - 0.38)
+        a.text(0.0, 1.015, title, transform=a.transAxes, ha="left", va="bottom",
+               fontsize=7.2)
+        for xi, v in zip(x, vals):
+            a.text(xi, v + max(vals) * 0.045, f"{v:.4f}", ha="center",
+                   va="bottom", fontsize=6.6, zorder=4)
+        if bound is not None:
+            a.axhline(bound, color="#444444", linewidth=0.8,
+                      linestyle=(0, (4, 2)), zorder=2)
+            # The bound is named in the caption and not on the axes. Two of the
+            # four bars in (c) sit within a few hundredths of it, so any label
+            # placed at that height lands on top of their value labels. That is
+            # the whole point of the panel and not a reason to move the bars.
+    ax[-1].set_xticks(list(x))
+    ax[-1].set_xticklabels([WAIT_LABEL[w] for w in WAITS])
+    ax[-1].set_xlabel("consumer wait loop")
+    fig.align_ylabels(ax)
+    fig.savefig(FIGS / "fig-wait.pdf", bbox_inches="tight", backend="pdf",
+                metadata=PDF_METADATA)
+    plt.close(fig)
+    print("fig-wait.pdf")
+    for w, c, f, i in zip(WAITS, cost, front, issue):
+        print(f"  {w:<6} cost {c:.4f}  frontend share {f:.4f}  issue ratio {i:.4f}")
+
+
 def main() -> None:
     for f in (BARRIER, RUNLENGTH, PROBE, BETA):
         if not f.exists():
@@ -670,6 +766,12 @@ def main() -> None:
     fig_ccdf(parse_ccdf(BURST))
     fig_grain(parse_grain())
     fig_beta(parse_beta())
+    if H88.exists() and H89.exists():
+        fig_wait(parse_derived(H88, "h88_cell"),
+                 parse_derived(H88, "h88_ratio"),
+                 parse_derived(H89, "h89_ratio"))
+    else:
+        sys.exit(f"missing {H88 if not H88.exists() else H89}")
     print("\n=== font verification ===")
     verify_fonts()
 
