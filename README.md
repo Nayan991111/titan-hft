@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Eighty pre-registered hypotheses, fifteen of them refuted and published. One Apple M4 performance core." width="100%">
+  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Ninety three pre-registered hypothesis rows, forty eight of them refuted and published. One Apple M4 performance core." width="100%">
 </p>
 
 <p align="center">
@@ -8,7 +8,45 @@
   <img src="https://img.shields.io/badge/language-Rust-b7410e" alt="Language: Rust">
   <a href="docs/experiments.md"><img src="https://img.shields.io/badge/hypotheses-pre--registered-2a78d6" alt="Hypotheses pre-registered"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0ca30c" alt="License: MIT"></a>
+  <a href="https://doi.org/10.5281/zenodo.24490481"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.24490481.svg" alt="DOI: 10.5281/zenodo.24490481"></a>
 </p>
+
+## The paper
+
+**When a Full Barrier Beats a Store-Release, and When It Does Not: A
+Pre-Registered Measurement Study on a Fanless Apple M4, and Seven
+Pre-Registered Thresholds That Did Not Test Their Claims**
+
+Two contributions. The first is measured: in a single-producer
+single-consumer ring on a fanless Apple M4, replacing a store-release with a
+`dmb ish` barrier and a plain store is 2.5766 times cheaper per message when
+the cursor line is contended and 2.7008 times more expensive once it is
+resident in L1. That a store-release can cost more than a stronger barrier has
+been reported before without a condition attached. Three conditions that decide
+it are measured here.
+
+The second is what the protocol itself revealed. Seven of the thresholds
+pre-registered for this study were precise, checkable, honoured exactly as
+written, and not tests of the claims they were written for. **Pre-registration
+fixes a threshold; it does not aim one.** The seven instances, the register of
+44 defects they came from, and eleven automated checks that refuse a manuscript
+whose numbers or figures disagree with the files they come from are all here.
+The checks are documented in [docs/gates.md](docs/gates.md) so another project
+can adopt them without taking anything else from this one.
+
+## Cite this
+
+```bibtex
+@software{pandit2026titan,
+  author  = {Pandit, Nayan},
+  title   = {Titan: cycle-level measurement of market-data handling
+             and inter-core hand-off on Apple M4},
+  year    = {2026},
+  version = {1.0.0},
+  doi     = {10.5281/zenodo.24490481},
+  url     = {https://github.com/Nayan991111/titan-hft}
+}
+```
 
 ## Headline result: when messages arrive matters more than how they bunch
 

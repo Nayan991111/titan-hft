@@ -17,6 +17,7 @@ authors:
     given-names: Nayan
     orcid: "https://orcid.org/0009-0001-2837-2987"
     affiliation: "Indian Institute of Technology Patna"
+doi: "10.5281/zenodo.24490481"
 repository-code: "https://github.com/Nayan991111/titan-hft"
 license: MIT
 version: 1.0.0

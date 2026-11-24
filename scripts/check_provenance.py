@@ -152,6 +152,20 @@ PERCENT: dict[str, tuple[str, str]] = {
 # a reason, so the list cannot quietly become a place to hide a figure.
 TYPESETTING: dict[str, str] = {}
 
+# Identifiers. A DOI prefix, an ORCID or an arXiv number reads to a regular
+# expression as a decimal and is not a quantity at all, so it can be neither
+# measured nor derived. It gets its own category rather than being pushed into
+# the typesetting list, because the two are not the same kind of thing and a
+# check about what a number means should not blur them. The entry must name
+# what the identifier resolves to, so a figure cannot be hidden here either,
+# and the resolved target is checked below against the string that follows it
+# in the manuscript.
+IDENTIFIER: dict[str, str] = {
+    # The Zenodo archive of this project. The full identifier is
+    # 10.5281/zenodo.24490481 and 10.5281 is Zenodo's DOI prefix.
+    "10.5281": "10.5281/zenodo.24490481",
+}
+
 
 def manuscript_numbers() -> list[tuple[int, str]]:
     """Every decimal number in the body, with its line. Comments excluded."""
@@ -278,6 +292,16 @@ def main() -> int:
             external.append((value, key))
             continue
         if value in TYPESETTING:
+            continue
+        if value in IDENTIFIER:
+            # Exempt only where the manuscript really does carry the whole
+            # identifier this entry claims. A bare prefix, or a different
+            # Zenodo record, is a number again and has to account for itself.
+            full = IDENTIFIER[value]
+            if full not in TEX.read_text(encoding="utf-8"):
+                broken.append(
+                    f"{value}: declared as part of the identifier {full}, "
+                    f"which does not appear in main.tex")
             continue
         files = find_measured(value, corpus)
         if files:
