@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-23: forty two closed, none partly closed, none open. Forty two entries in all.**
+**Status at 2026-11-24: forty three closed, none partly closed, none open. Forty three entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1926,3 +1926,37 @@ two-outcome version of the same registration would have forced us either to
 retract a sound measurement or to keep a conclusion it does not support.
 
 ---
+## D43. The page-range dash rule was written for the page ranges that happened
+to be in the bibliography at the time
+
+**Found** 2026-11-24, by the build refusing to produce a PDF.
+**Severity** low in consequence and worth recording for the pattern. Nothing
+shipped, because the guard that sits after the rewrite caught it and stopped
+the build.
+
+The build rewrites the double-hyphen ligature that IEEEtran.bst generates for a
+page range, because that ligature renders as an en dash and this manuscript
+contains none. The rewrite matched a double hyphen with a digit on each side,
+which is every page range a bibliography of fifteen conference and journal
+entries happens to contain.
+
+Adding a PNAS correspondence item broke it. That journal numbers electronic
+pages with a letter prefix, and IEEEtran.bst inserts a thin space as a
+thousands separator inside the number, so the range arrives in main.bbl as
+`E10\,516--E10\,517`. The character after the ligature is a letter, the rule
+did not match, the ligature survived, and the guard refused the build with the
+surviving line quoted.
+
+**What this is an instance of.** The rule was correct for every input it had
+ever been given and was not a statement about page ranges in general. That is
+the same shape as the threshold defects in this register: a check that is
+precise, honoured, and narrower than the claim it stands for. The difference is
+that this one was caught by a guard rather than by reading a verdict a week
+later, which is the argument for writing the guard.
+
+**CLOSED 2026-11-24** The character class is widened to alphanumeric on both
+sides, with the reasoning for stopping exactly there recorded beside it in
+build.sh: a double hyphen between two alphanumerics cannot occur in a title,
+which keeps its single hyphens, and cannot occur inside the six-hyphen
+repeated-author ligature, which has no alphanumeric between its hyphens. The
+guard is unchanged and still refuses the build on any survivor.

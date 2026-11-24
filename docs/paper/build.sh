@@ -72,7 +72,18 @@ BEFORE_PAGES="$(grep -c -- '--' main.bbl || true)"
 # substitution below ran on macOS only because its suffix happened to be
 # attached; the one after it did not run at all until this was fixed. See
 # docs/defects.md D15.
-sed 's/\([0-9]\)--\([0-9]\)/\1-\2/g' main.bbl > main.bbl.new && mv main.bbl.new main.bbl
+#
+# The character class is alphanumeric on both sides and not just numeric. A
+# journal with electronic page numbers writes them with a letter prefix, and
+# IEEEtran.bst inserts a thin space as a thousands separator inside the number,
+# so a PNAS correspondence page range reaches main.bbl as E10\,516--E10\,517.
+# The digit-to-digit rule did not match that, the ligature survived, and the
+# guard below refused the build. See docs/defects.md D43. A double hyphen
+# between two alphanumerics cannot occur in a title, which keeps single
+# hyphens, and cannot occur inside the six-hyphen repeated-author ligature,
+# which has no alphanumeric between its hyphens, so widening the class this far
+# and no further leaves both alone.
+sed 's/\([A-Za-z0-9]\)--\([A-Za-z0-9]\)/\1-\2/g' main.bbl > main.bbl.new && mv main.bbl.new main.bbl
 # Repeated author: IEEEtran.bst writes a six-hyphen ligature, which renders as
 # a pair of em dashes, in place of an author list identical to the one above.
 # The names are restored instead. This is a bibliography of four entries, so

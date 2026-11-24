@@ -86,6 +86,20 @@ memory-ordering obligation, and on a weakly ordered architecture that
 obligation is discharged by a specific instruction chosen by the programmer
 through a source-level annotation.
 
+Whether the cost of that obligation is worth measuring at cycle granularity
+depends on what a few hundred nanoseconds buys. In the market the feed comes
+from, it buys the race. Budish et al.~\cite{budish2015hft} argue that the speed
+race is built into continuous-time market design rather than incidental to it,
+and Aquilina et al.~\cite{aquilina2022quantifying} measure the races directly
+from exchange message data, which unlike order book data records the attempts
+that failed and therefore shows the losers: they find about one race per minute
+per symbol in FTSE 100 stocks, with the modal race decided in 5 to 10
+microseconds. A fixed cost of a few hundred nanoseconds in the hand-off between
+two cores is a visible fraction of that interval, spent before any strategy
+logic runs. The same arithmetic holds in a setting with no exchange in it, since
+Dean and Barroso~\cite{dean2013tail} show that a small per-stage latency
+component becomes the dominant one once enough stages are composed.
+
 The prevailing guidance for such a loop is that the weak orderings are cheap
 and should be preferred to sequential consistency, and that an explicit full
 barrier is the expensive option of last resort. That guidance is sound as a
@@ -222,6 +236,42 @@ be told apart.
 
 \section{Related Work}
 
+\subsection{What the memory models specify, and what they cost}
+
+The ARMv8 concurrency model has a formal semantics. Alglave et
+al.~\cite{alglave2014herding} give an axiomatic framework in which ARM, Power
+and x86 are instances of one generic model, with a herd simulator and litmus
+tests that decide whether a given execution is allowed. Pulte et
+al.~\cite{pulte2018simplifying} document the revision of ARMv8 to a
+multicopy-atomic model, prove an axiomatic and an operational presentation
+equivalent, and supply an exploration tool for both. Batty et
+al.~\cite{batty2011mathematizing} do the corresponding work for the language
+level that the Rust and C++ ordering annotations in this paper inherit, and
+Alglave et al.~\cite{alglave2018frightening} carry the same machinery into the
+Linux kernel's memory model.
+
+Together they answer whether an execution is permitted. None of them answers
+what an ordering choice costs on a particular part, and the two questions come
+apart in a way that matters here: the acquire-release and fenced-store arms
+measured in this paper are both permitted, both correct, and differ in cost by a
+factor that changes sign with cursor residency. A formal model cannot predict
+that, because cost is not in its vocabulary. This paper measures the quantity
+the models leave out, on hardware, with the semantics held fixed by the models
+rather than argued about.
+
+\subsection{Cache-conscious single-producer queues}
+
+The ring measured here descends from a line of work on making single-producer
+single-consumer hand-off cache friendly rather than merely correct. Giacomoni
+et al.~\cite{giacomoni2008fastforward} showed that the dominant cost in such a
+queue on commodity multicore is the cache traffic its index variables generate,
+and that a layout chosen against the coherence protocol rather than against the
+algorithm reduces it. That paper is the reason the cursors in this
+implementation sit on separate lines, and it is why the capacity sweep in
+Section~\ref{sec:cycles} separates slot count from the footprint the slots
+occupy. What it did not have to contend with is a machine whose cores differ
+from each other and whose clock depends on how long the core has been busy.
+
 \subsection{Measurement bias}
 
 Mytkowicz et al.~\cite{mytkowicz2009wrong} established that measurement bias in
@@ -238,6 +288,37 @@ counts are measured at different clocks and the comparison between them moves
 with run length. Neither that source nor heterogeneous core residency existed
 on a general-purpose CPU in 2009. What is new is the specific source, its
 measured size, and direct clock evidence for the mechanism.
+
+\subsection{Rigour in performance evaluation}
+
+The statistical side of this paper's protocol is standard practice that the
+systems community has had for nearly two decades. Georges et
+al.~\cite{georges2007statistically} surveyed how performance was being reported
+and showed that the common habits, reporting a best run or an unqualified mean,
+are not statistically rigorous, and they set out the confidence-interval
+machinery that replaces them. Curtsinger and
+Berger~\cite{curtsinger2013stabilizer} went further and attacked the cause
+rather than the reporting, randomising code, stack and heap layout repeatedly at
+runtime so that layout effects become noise that statistics can handle, and
+found that the measured benefit of one compiler optimisation level over another
+was indistinguishable from that noise. Zaparanuks et
+al.~\cite{zaparanuks2009accuracy} measured the accuracy of three performance
+counter infrastructures on three processors and found differences large enough
+to change conclusions, with per-thread attribution among the places where the
+infrastructure can mislead. Weaver and McKee~\cite{weaver2008trusted} reached a
+compatible conclusion from the counter side.
+
+This paper adopts their conclusions as constraints rather than restating them.
+Launches rather than epochs are the unit of observation because of Georges et
+al.; the independent-launch protocol exists because a single process cannot
+sample the layout space, which is the problem Curtsinger and Berger solved
+differently; and every counter claim here names the thread it was read on
+because of Zaparanuks et al., a discipline this paper violated once and recorded
+as a defect. On artifact availability we follow Collberg and
+Proebsting~\cite{collberg2016repeatability}, who tried to build the code behind
+601 systems papers and could not for a large fraction of them: every number in
+this paper is in a file in the repository, and the checks that enforce that are
+in the repository too.
 
 \subsection{Total store order on Apple silicon}
 
@@ -1040,10 +1121,31 @@ which is the instance we found last and the one that cost the most, because
 three of the four cells cleared the bound and the registered cell missed it by
 0.0200.
 
-They share a shape. Pre-registration protects against moving a threshold after
-seeing data, and all seven thresholds were honoured exactly as written. It does
-not protect against aiming a threshold at the wrong quantity, and nothing in the
-pre-registration literature we are aware of addresses that failure mode. The
+They share a shape, and locating it against the existing literature on
+pre-registration takes some care, because that literature has already drawn a
+distinction nearby. Nosek et al.~\cite{nosek2018preregistration} set out the
+case for pre-registration as the separation of hypothesis generation from
+hypothesis testing. Ledgerwood~\cite{ledgerwood2018distinguish} replied that two
+different things are being conflated under one name: pre-registering a
+directional theoretical prediction, which makes a theory falsifiable, and
+pre-registering an analysis plan, which controls the type I error rate. Nosek et
+al.~\cite{nosek2018reply} accepted the complementarity and argued that a
+prediction without an analysis plan is inert.
+
+Every threshold in the list above satisfies both halves of that exchange. Each
+was a directional prediction, and each came with an analysis plan specific
+enough to execute without further choices: the cells, the statistic, the
+comparison and the bound were all written down and pushed before the data
+existed. The failure is in neither half. It is in the join between them, in
+whether the analysis plan is a test of the prediction it was written under, and
+that join is not what the exchange is about. Ledgerwood separates two things
+that can be pre-registered; she does not ask whether the second is a test of the
+first, because in the experimental designs under discussion it generally is. On
+a machine with heterogeneous cores, per-thread counters whose definitions are
+only partly documented, and a clock that depends on history, it generally is
+not. Pre-registration protects against moving a threshold after seeing data, and
+all seven thresholds were honoured exactly as written. It does not protect
+against aiming a threshold at the wrong quantity. The
 practice we arrived at is mechanical and we recommend it: before a threshold is
 committed, state in one sentence what observation would make the claim false,
 and confirm the threshold is a test of that sentence rather than of a quantity
