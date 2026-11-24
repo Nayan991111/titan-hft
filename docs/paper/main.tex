@@ -34,8 +34,8 @@
 \begin{document}
 
 \title{When a Full Barrier Beats a Store-Release, and When It Does Not:\\
-A Pre-Registered Measurement Study of Ordering, Waiting and Arrival\\
-Clustering in an SPSC Ring on a Fanless Apple M4}
+A Pre-Registered Measurement Study on a Fanless Apple M4,\\
+and Seven Pre-Registered Thresholds That Did Not Test Their Claims}
 
 \author{\IEEEauthorblockN{Nayan Pandit}
 \IEEEauthorblockA{Indian Institute of Technology Patna, India\\
@@ -46,34 +46,38 @@ nayanpandit993281@gmail.com}}
 
 \begin{abstract}
 In a single-producer single-consumer ring the memory-ordering operation is a
-large fraction of the loop rather than a rounding error on it. On a fanless
+large fraction of the loop, not a rounding error on it. On a fanless
 Apple M4 that fraction is 95.3 percent, measured against an unordered cost
 floor that is not a correct ring.
 Replacing a store-release with a \texttt{dmb ish} barrier and a plain store
 costs 2.5766 times fewer cycles per message when the cursor line is contended
 and 2.7008 times more once it is resident in L1, each in 30 of 30 independent
 launches. That a store-release can cost more than a stronger barrier has been
-reported before without stating when; we measure three conditions that decide
-it. Crossing the halves of the acquire-release pair localises the effect
-entirely to the store side. Ring capacity reverses it again, non-monotonically,
-with three sign changes between capacities 2 and 1024. Most of the difference is
-time spent waiting after an L1D miss, a waiting ratio of 0.2338, and we do not
-identify its cause: controlling for duration leaves an arm-specific coherence
-component of at most 1.2168, too small to explain a factor of 2.5. Separately,
+reported before without a condition; we measure three that decide it. Crossing the halves of the acquire-release pair localises the effect
+entirely to the store side, and ring capacity reverses it again,
+non-monotonically. Most of the difference is time spent waiting after an L1D
+miss, a waiting ratio of 0.2338, whose cause we do not identify: controlling
+for duration leaves a coherence component too small to explain it. Separately,
 arrival clustering moves the tail further than any ordering construct here, and
 the Fano factor of counts predicts a ratio of 1.040 where the squared
-coefficient of variation of interarrival times, through the variability term of
-Kingman's heavy-traffic approximation, predicts 7.444 and the measured ratio
-reaches 13.5030.
-All results come from a
-pre-registered protocol, 93 hypothesis rows and five exploratory calibrations,
-with thresholds fixed before each run and an exact sign test over launches. The
-defect register is published with the paper.
+coefficient of variation of interarrival times predicts 7.444 and the measured
+ratio reaches 13.5030.
+
+All of it comes from a pre-registered protocol, 93 hypothesis rows and five
+exploratory calibrations, with thresholds fixed before each run and an exact
+sign test over launches. That protocol also failed, and how it failed is the
+second contribution. Seven of those thresholds were precise, checkable,
+honoured exactly as written, and not tests of the claims they were written for.
+Pre-registration fixes a threshold; it does not aim one. We name the failure
+mode, give the seven instances, and publish the defect register and eleven
+automated checks that refuse a manuscript whose numbers or figures disagree
+with the files they come from.
 \end{abstract}
 
 \begin{IEEEkeywords}
 memory consistency, Apple silicon, AArch64, lock-free queues, performance
-measurement, measurement bias, hardware performance counters
+measurement, measurement bias, hardware performance counters,
+pre-registration, reproducibility, artifact evaluation
 \end{IEEEkeywords}
 
 \section{Introduction}
