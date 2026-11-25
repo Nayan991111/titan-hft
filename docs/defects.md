@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-25: forty five closed, none partly closed, none open. Forty five entries in all.**
+**Status at 2026-11-25: forty six closed, none partly closed, none open. Forty six entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2029,3 +2029,60 @@ manuscript unchanged apart from the hypothesis count that H90's registration
 required. The rule, written down because stating it twice has not been enough:
 before claiming a reference, a section or a result is absent, grep for it. The
 claim costs one second to check and two occurrences to learn.
+## D46. A spread is a magnitude, and the claim it was written for was about a
+direction
+
+**Found** 2026-11-25, reading H90's result against its own registration, on
+the same day the registration was written.
+**Severity** moderate. No claim rests on it, because the part is reported and
+not used, but it is the eighth instance in this register of a threshold that
+is precise, checkable, honoured exactly as written, and not a test of the
+claim it was written for. The first five were found over weeks. This one was
+found within hours of writing it, which is the only encouraging thing about
+it.
+
+H90 part (d) was registered as a control: the ratio of the largest to the
+smallest median across the three ordering arms, under a resident line, must be
+smaller than the same ratio under a contended line. The stated reasoning was
+that an ordering spread which survives line residency is not about coherence
+traffic.
+
+It passed. Contended the spread is 2.2890 and resident it is 2.2887, so the
+registered inequality holds by 0.0003, which is one part in seven thousand six
+hundred of the quantity being compared.
+
+**Two faults, and the second is the one that matters.**
+
+The first is that a strict inequality with no margin cannot distinguish
+smaller from equal. Any threshold of the form "A must be less than B" with no
+stated separation will be decided by noise whenever A and B are close, and
+reporting a pass on 0.0003 would be reporting noise as a result.
+
+The second is that the spread is a magnitude over an unordered set of three
+numbers, and the claim concerned whether the same effect persists. Those are
+different questions. Contended, the fenced-store arm is the cheapest of the
+three. Resident, it is the most expensive. The rank order of the arms reverses
+completely between the two conditions, and a largest-over-smallest ratio
+cannot see that, because it discards which arm is which. What the numbers
+actually say is that the spread is the same size and points the other way,
+which is the sign flip this paper has been characterising since H77 and is not
+the same phenomenon as a spread that shrank.
+
+So the registered consequence cannot be drawn in either direction. The test
+does not license "the effect is about coherence traffic" and it does not
+license the negation.
+
+**What it should have been.** A test over the signed deviation of each arm
+from the acquire-release arm, or an explicit test that the rank order of the
+three arms is preserved between conditions, with a stated margin in both
+cases. Either would have answered the question the control was written for.
+The general rule, which is now the third entry of its kind in this register:
+when a claim is about whether something persists, the statistic has to carry
+the identity of what is being compared, not only how far apart the extremes
+are.
+
+**CLOSED 2026-11-25** Part (d) is reported with its margin stated and marked
+as not licensing its registered consequence. The H90 row and the verdict
+script both carry the pointer to this entry so the number cannot be read out
+of the file without the caveat attached. No claim in the manuscript rests on
+it. The taxonomy in the discussion goes from seven instances to eight.
