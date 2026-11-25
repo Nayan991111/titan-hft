@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="820" height="696" viewBox="0 0 820 696" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="714" viewBox="0 0 820 714" role="img" aria-labelledby="title desc">
 <title id="title">Pre-registered hypotheses</title>
 <desc id="desc">H1 supported; H1b refuted; H2 supported; H3 refuted; H3b refuted; H4 refuted; H5 supported; H6 refuted; H7 refuted; H8 refuted; H9 refuted; H10 supported; H11 supported; H12 supported; H13 supported; H14 mixed; H15 supported; H16 supported; H17 mixed; H18 supported; H19 supported; H20 supported; H21 refuted; H22 supported; H23 supported; H24 supported; H25 refuted; H21b supported; H26 mixed; H27 refuted; H28 supported; H29 supported; H30 mixed; H31 supported; H32 refuted; H33 refuted; H34 supported; H35 refuted; H36 supported; H30b mixed; H30c supported; H37 mixed; H38 mixed; H39 supported; H40 supported; H41 supported; H42 supported; H43 mixed; H44 supported; H45 refuted; H46 mixed; H47 mixed; H48 mixed; H49 mixed; H50 supported; H51 mixed; H52 supported; H53 mixed; H54 supported; H55 supported; H56 supported; H57 mixed; H58 mixed; H59 supported; H60 mixed; H61 mixed; H62 mixed; H63 mixed; H64 mixed; H65 mixed; H66 mixed; H67 mixed; H68 mixed; H69 mixed; H70 mixed; H71 refuted; H72 mixed; H75 supported; H76 supported; H74 mixed; H77 mixed; H78 mixed; H79 mixed; H80 mixed; H81 mixed; H82 mixed; H83 mixed; H84 supported; H85 pending; H86 mixed; H87 mixed; H88 supported; H89 mixed; H90 supported</desc>
 <style>
@@ -31,393 +31,435 @@
     .none { fill: #57564f; } .chip { fill: #1f1f1e; stroke: #46453f; }
   }
 </style>
-<rect class="bg" x="0.5" y="0.5" width="819" height="695" rx="10"/>
-<rect class="frame" x="0.5" y="0.5" width="819" height="695" rx="10"/>
+<rect class="bg" x="0.5" y="0.5" width="819" height="713" rx="10"/>
+<rect class="frame" x="0.5" y="0.5" width="819" height="713" rx="10"/>
 <text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Every prediction is committed before the run that tests it</text>
 <text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">94 hypotheses so far: 38 supported, 16 refuted or not supported, 39 mixed or invalid, 1 pending; failures stay in the log.</text>
-<rect class="good" x="28" y="76" width="12" height="12" rx="2"/>
-<text x="46.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">supported</text>
-<rect class="bad" x="133.0" y="76" width="12" height="12" rx="2"/>
-<text x="151.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">refuted or not supported</text>
-<rect class="warn" x="343.0" y="76" width="12" height="12" rx="2"/>
-<text x="361.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">partly, inconclusive, invalid</text>
-<rect class="none" x="588.0" y="76" width="12" height="12" rx="2"/>
-<text x="606.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">pending</text>
-<rect class="chip" x="28" y="104" width="64" height="54" rx="7"/>
-<rect class="good" x="28" y="104" width="64" height="5" rx="2"/>
-<text x="60.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H1</text>
-<text x="60.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="98" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="98" y="104" width="64" height="5" rx="2"/>
-<text x="130.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H1b</text>
-<text x="130.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="168" y="104" width="64" height="54" rx="7"/>
-<rect class="good" x="168" y="104" width="64" height="5" rx="2"/>
-<text x="200.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H2</text>
-<text x="200.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="238" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="238" y="104" width="64" height="5" rx="2"/>
-<text x="270.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H3</text>
-<text x="270.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="308" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="308" y="104" width="64" height="5" rx="2"/>
-<text x="340.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H3b</text>
-<text x="340.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="378" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="378" y="104" width="64" height="5" rx="2"/>
-<text x="410.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H4</text>
-<text x="410.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="448" y="104" width="64" height="54" rx="7"/>
-<rect class="good" x="448" y="104" width="64" height="5" rx="2"/>
-<text x="480.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H5</text>
-<text x="480.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="518" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="518" y="104" width="64" height="5" rx="2"/>
-<text x="550.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H6</text>
-<text x="550.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="588" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="588" y="104" width="64" height="5" rx="2"/>
-<text x="620.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H7</text>
-<text x="620.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="658" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="658" y="104" width="64" height="5" rx="2"/>
-<text x="690.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H8</text>
-<text x="690.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="728" y="104" width="64" height="54" rx="7"/>
-<rect class="bad" x="728" y="104" width="64" height="5" rx="2"/>
-<text x="760.0" y="131.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H9</text>
-<text x="760.0" y="148.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="28" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="28" y="166" width="64" height="5" rx="2"/>
-<text x="60.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H10</text>
-<text x="60.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="98" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="98" y="166" width="64" height="5" rx="2"/>
-<text x="130.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H11</text>
-<text x="130.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="168" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="168" y="166" width="64" height="5" rx="2"/>
-<text x="200.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H12</text>
-<text x="200.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="238" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="238" y="166" width="64" height="5" rx="2"/>
-<text x="270.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H13</text>
-<text x="270.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="308" y="166" width="64" height="54" rx="7"/>
-<rect class="warn" x="308" y="166" width="64" height="5" rx="2"/>
-<text x="340.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H14</text>
-<text x="340.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="378" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="378" y="166" width="64" height="5" rx="2"/>
-<text x="410.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H15</text>
-<text x="410.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="448" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="448" y="166" width="64" height="5" rx="2"/>
-<text x="480.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H16</text>
-<text x="480.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="518" y="166" width="64" height="54" rx="7"/>
-<rect class="warn" x="518" y="166" width="64" height="5" rx="2"/>
-<text x="550.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H17</text>
-<text x="550.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="588" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="588" y="166" width="64" height="5" rx="2"/>
-<text x="620.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H18</text>
-<text x="620.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="658" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="658" y="166" width="64" height="5" rx="2"/>
-<text x="690.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H19</text>
-<text x="690.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="728" y="166" width="64" height="54" rx="7"/>
-<rect class="good" x="728" y="166" width="64" height="5" rx="2"/>
-<text x="760.0" y="193.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H20</text>
-<text x="760.0" y="210.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="28" y="228" width="64" height="54" rx="7"/>
-<rect class="bad" x="28" y="228" width="64" height="5" rx="2"/>
-<text x="60.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H21</text>
-<text x="60.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="98" y="228" width="64" height="54" rx="7"/>
-<rect class="good" x="98" y="228" width="64" height="5" rx="2"/>
-<text x="130.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H22</text>
-<text x="130.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="168" y="228" width="64" height="54" rx="7"/>
-<rect class="good" x="168" y="228" width="64" height="5" rx="2"/>
-<text x="200.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H23</text>
-<text x="200.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="238" y="228" width="64" height="54" rx="7"/>
-<rect class="good" x="238" y="228" width="64" height="5" rx="2"/>
-<text x="270.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H24</text>
-<text x="270.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="308" y="228" width="64" height="54" rx="7"/>
-<rect class="bad" x="308" y="228" width="64" height="5" rx="2"/>
-<text x="340.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H25</text>
-<text x="340.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="378" y="228" width="64" height="54" rx="7"/>
-<rect class="good" x="378" y="228" width="64" height="5" rx="2"/>
-<text x="410.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H21b</text>
-<text x="410.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="448" y="228" width="64" height="54" rx="7"/>
-<rect class="warn" x="448" y="228" width="64" height="5" rx="2"/>
-<text x="480.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H26</text>
-<text x="480.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="518" y="228" width="64" height="54" rx="7"/>
-<rect class="bad" x="518" y="228" width="64" height="5" rx="2"/>
-<text x="550.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H27</text>
-<text x="550.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="588" y="228" width="64" height="54" rx="7"/>
-<rect class="good" x="588" y="228" width="64" height="5" rx="2"/>
-<text x="620.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H28</text>
-<text x="620.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="658" y="228" width="64" height="54" rx="7"/>
-<rect class="good" x="658" y="228" width="64" height="5" rx="2"/>
-<text x="690.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H29</text>
-<text x="690.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="728" y="228" width="64" height="54" rx="7"/>
-<rect class="warn" x="728" y="228" width="64" height="5" rx="2"/>
-<text x="760.0" y="255.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30</text>
-<text x="760.0" y="272.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="28" y="290" width="64" height="54" rx="7"/>
-<rect class="good" x="28" y="290" width="64" height="5" rx="2"/>
-<text x="60.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H31</text>
-<text x="60.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="98" y="290" width="64" height="54" rx="7"/>
-<rect class="bad" x="98" y="290" width="64" height="5" rx="2"/>
-<text x="130.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H32</text>
-<text x="130.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="168" y="290" width="64" height="54" rx="7"/>
-<rect class="bad" x="168" y="290" width="64" height="5" rx="2"/>
-<text x="200.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H33</text>
-<text x="200.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="238" y="290" width="64" height="54" rx="7"/>
-<rect class="good" x="238" y="290" width="64" height="5" rx="2"/>
-<text x="270.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H34</text>
-<text x="270.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="308" y="290" width="64" height="54" rx="7"/>
-<rect class="bad" x="308" y="290" width="64" height="5" rx="2"/>
-<text x="340.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H35</text>
-<text x="340.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="378" y="290" width="64" height="54" rx="7"/>
-<rect class="good" x="378" y="290" width="64" height="5" rx="2"/>
-<text x="410.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H36</text>
-<text x="410.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="448" y="290" width="64" height="54" rx="7"/>
-<rect class="warn" x="448" y="290" width="64" height="5" rx="2"/>
-<text x="480.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30b</text>
-<text x="480.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="518" y="290" width="64" height="54" rx="7"/>
-<rect class="good" x="518" y="290" width="64" height="5" rx="2"/>
-<text x="550.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30c</text>
-<text x="550.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="588" y="290" width="64" height="54" rx="7"/>
-<rect class="warn" x="588" y="290" width="64" height="5" rx="2"/>
-<text x="620.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H37</text>
-<text x="620.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="658" y="290" width="64" height="54" rx="7"/>
-<rect class="warn" x="658" y="290" width="64" height="5" rx="2"/>
-<text x="690.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H38</text>
-<text x="690.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="728" y="290" width="64" height="54" rx="7"/>
-<rect class="good" x="728" y="290" width="64" height="5" rx="2"/>
-<text x="760.0" y="317.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H39</text>
-<text x="760.0" y="334.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="28" y="352" width="64" height="54" rx="7"/>
-<rect class="good" x="28" y="352" width="64" height="5" rx="2"/>
-<text x="60.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H40</text>
-<text x="60.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="98" y="352" width="64" height="54" rx="7"/>
-<rect class="good" x="98" y="352" width="64" height="5" rx="2"/>
-<text x="130.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H41</text>
-<text x="130.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="168" y="352" width="64" height="54" rx="7"/>
-<rect class="good" x="168" y="352" width="64" height="5" rx="2"/>
-<text x="200.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H42</text>
-<text x="200.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="238" y="352" width="64" height="54" rx="7"/>
-<rect class="warn" x="238" y="352" width="64" height="5" rx="2"/>
-<text x="270.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H43</text>
-<text x="270.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="308" y="352" width="64" height="54" rx="7"/>
-<rect class="good" x="308" y="352" width="64" height="5" rx="2"/>
-<text x="340.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H44</text>
-<text x="340.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="378" y="352" width="64" height="54" rx="7"/>
-<rect class="bad" x="378" y="352" width="64" height="5" rx="2"/>
-<text x="410.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H45</text>
-<text x="410.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="448" y="352" width="64" height="54" rx="7"/>
-<rect class="warn" x="448" y="352" width="64" height="5" rx="2"/>
-<text x="480.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H46</text>
-<text x="480.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="518" y="352" width="64" height="54" rx="7"/>
-<rect class="warn" x="518" y="352" width="64" height="5" rx="2"/>
-<text x="550.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H47</text>
-<text x="550.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="588" y="352" width="64" height="54" rx="7"/>
-<rect class="warn" x="588" y="352" width="64" height="5" rx="2"/>
-<text x="620.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H48</text>
-<text x="620.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="658" y="352" width="64" height="54" rx="7"/>
-<rect class="warn" x="658" y="352" width="64" height="5" rx="2"/>
-<text x="690.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H49</text>
-<text x="690.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="728" y="352" width="64" height="54" rx="7"/>
-<rect class="good" x="728" y="352" width="64" height="5" rx="2"/>
-<text x="760.0" y="379.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H50</text>
-<text x="760.0" y="396.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="28" y="414" width="64" height="54" rx="7"/>
-<rect class="warn" x="28" y="414" width="64" height="5" rx="2"/>
-<text x="60.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H51</text>
-<text x="60.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="98" y="414" width="64" height="54" rx="7"/>
-<rect class="good" x="98" y="414" width="64" height="5" rx="2"/>
-<text x="130.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H52</text>
-<text x="130.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="168" y="414" width="64" height="54" rx="7"/>
-<rect class="warn" x="168" y="414" width="64" height="5" rx="2"/>
-<text x="200.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H53</text>
-<text x="200.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="238" y="414" width="64" height="54" rx="7"/>
-<rect class="good" x="238" y="414" width="64" height="5" rx="2"/>
-<text x="270.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H54</text>
-<text x="270.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="308" y="414" width="64" height="54" rx="7"/>
-<rect class="good" x="308" y="414" width="64" height="5" rx="2"/>
-<text x="340.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H55</text>
-<text x="340.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="378" y="414" width="64" height="54" rx="7"/>
-<rect class="good" x="378" y="414" width="64" height="5" rx="2"/>
-<text x="410.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H56</text>
-<text x="410.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="448" y="414" width="64" height="54" rx="7"/>
-<rect class="warn" x="448" y="414" width="64" height="5" rx="2"/>
-<text x="480.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H57</text>
-<text x="480.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="518" y="414" width="64" height="54" rx="7"/>
-<rect class="warn" x="518" y="414" width="64" height="5" rx="2"/>
-<text x="550.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H58</text>
-<text x="550.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="588" y="414" width="64" height="54" rx="7"/>
-<rect class="good" x="588" y="414" width="64" height="5" rx="2"/>
-<text x="620.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H59</text>
-<text x="620.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="658" y="414" width="64" height="54" rx="7"/>
-<rect class="warn" x="658" y="414" width="64" height="5" rx="2"/>
-<text x="690.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H60</text>
-<text x="690.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="728" y="414" width="64" height="54" rx="7"/>
-<rect class="warn" x="728" y="414" width="64" height="5" rx="2"/>
-<text x="760.0" y="441.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H61</text>
-<text x="760.0" y="458.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="28" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="28" y="476" width="64" height="5" rx="2"/>
-<text x="60.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H62</text>
-<text x="60.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="98" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="98" y="476" width="64" height="5" rx="2"/>
-<text x="130.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H63</text>
-<text x="130.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="168" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="168" y="476" width="64" height="5" rx="2"/>
-<text x="200.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H64</text>
-<text x="200.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="238" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="238" y="476" width="64" height="5" rx="2"/>
-<text x="270.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H65</text>
-<text x="270.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="308" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="308" y="476" width="64" height="5" rx="2"/>
-<text x="340.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H66</text>
-<text x="340.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="378" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="378" y="476" width="64" height="5" rx="2"/>
-<text x="410.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H67</text>
-<text x="410.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="448" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="448" y="476" width="64" height="5" rx="2"/>
-<text x="480.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H68</text>
-<text x="480.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="518" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="518" y="476" width="64" height="5" rx="2"/>
-<text x="550.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H69</text>
-<text x="550.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="588" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="588" y="476" width="64" height="5" rx="2"/>
-<text x="620.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H70</text>
-<text x="620.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="658" y="476" width="64" height="54" rx="7"/>
-<rect class="bad" x="658" y="476" width="64" height="5" rx="2"/>
-<text x="690.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H71</text>
-<text x="690.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
-<rect class="chip" x="728" y="476" width="64" height="54" rx="7"/>
-<rect class="warn" x="728" y="476" width="64" height="5" rx="2"/>
-<text x="760.0" y="503.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H72</text>
-<text x="760.0" y="520.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="28" y="538" width="64" height="54" rx="7"/>
-<rect class="good" x="28" y="538" width="64" height="5" rx="2"/>
-<text x="60.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H75</text>
-<text x="60.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="98" y="538" width="64" height="54" rx="7"/>
-<rect class="good" x="98" y="538" width="64" height="5" rx="2"/>
-<text x="130.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H76</text>
-<text x="130.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="168" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="168" y="538" width="64" height="5" rx="2"/>
-<text x="200.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H74</text>
-<text x="200.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="238" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="238" y="538" width="64" height="5" rx="2"/>
-<text x="270.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H77</text>
-<text x="270.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="308" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="308" y="538" width="64" height="5" rx="2"/>
-<text x="340.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H78</text>
-<text x="340.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="378" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="378" y="538" width="64" height="5" rx="2"/>
-<text x="410.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H79</text>
-<text x="410.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="448" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="448" y="538" width="64" height="5" rx="2"/>
-<text x="480.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H80</text>
-<text x="480.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="518" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="518" y="538" width="64" height="5" rx="2"/>
-<text x="550.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H81</text>
-<text x="550.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="588" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="588" y="538" width="64" height="5" rx="2"/>
-<text x="620.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H82</text>
-<text x="620.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="658" y="538" width="64" height="54" rx="7"/>
-<rect class="warn" x="658" y="538" width="64" height="5" rx="2"/>
-<text x="690.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H83</text>
-<text x="690.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="728" y="538" width="64" height="54" rx="7"/>
-<rect class="good" x="728" y="538" width="64" height="5" rx="2"/>
-<text x="760.0" y="565.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H84</text>
-<text x="760.0" y="582.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="28" y="600" width="64" height="54" rx="7"/>
-<rect class="none" x="28" y="600" width="64" height="5" rx="2"/>
-<text x="60.0" y="627.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H85</text>
-<text x="60.0" y="644.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">pending</text>
-<rect class="chip" x="98" y="600" width="64" height="54" rx="7"/>
-<rect class="warn" x="98" y="600" width="64" height="5" rx="2"/>
-<text x="130.0" y="627.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H86</text>
-<text x="130.0" y="644.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="168" y="600" width="64" height="54" rx="7"/>
-<rect class="warn" x="168" y="600" width="64" height="5" rx="2"/>
-<text x="200.0" y="627.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H87</text>
-<text x="200.0" y="644.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="238" y="600" width="64" height="54" rx="7"/>
-<rect class="good" x="238" y="600" width="64" height="5" rx="2"/>
-<text x="270.0" y="627.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H88</text>
-<text x="270.0" y="644.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<rect class="chip" x="308" y="600" width="64" height="54" rx="7"/>
-<rect class="warn" x="308" y="600" width="64" height="5" rx="2"/>
-<text x="340.0" y="627.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H89</text>
-<text x="340.0" y="644.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
-<rect class="chip" x="378" y="600" width="64" height="54" rx="7"/>
-<rect class="good" x="378" y="600" width="64" height="5" rx="2"/>
-<text x="410.0" y="627.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H90</text>
-<text x="410.0" y="644.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
-<text x="792.0" y="682.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: docs/experiments.md</text>
+<text x="28.0" y="78.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">220 registered parts in all: 126 held, 69 did not, 25 were partial or could not be evaluated.</text>
+<rect class="good" x="28" y="94" width="12" height="12" rx="2"/>
+<text x="46.0" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">supported</text>
+<rect class="bad" x="133.0" y="94" width="12" height="12" rx="2"/>
+<text x="151.0" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">refuted or not supported</text>
+<rect class="warn" x="343.0" y="94" width="12" height="12" rx="2"/>
+<text x="361.0" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">partly, inconclusive, invalid</text>
+<rect class="none" x="588.0" y="94" width="12" height="12" rx="2"/>
+<text x="606.0" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">pending</text>
+<rect class="chip" x="28" y="122" width="64" height="54" rx="7"/>
+<rect class="good" x="28" y="122" width="64" height="5" rx="2"/>
+<text x="60.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H1</text>
+<text x="60.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="98" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="98" y="122" width="64" height="5" rx="2"/>
+<text x="130.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H1b</text>
+<text x="130.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="168" y="122" width="64" height="54" rx="7"/>
+<rect class="good" x="168" y="122" width="64" height="5" rx="2"/>
+<text x="200.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H2</text>
+<text x="200.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="238" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="238" y="122" width="64" height="5" rx="2"/>
+<text x="270.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H3</text>
+<text x="270.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="308" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="308" y="122" width="64" height="5" rx="2"/>
+<text x="340.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H3b</text>
+<text x="340.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="378" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="378" y="122" width="64" height="5" rx="2"/>
+<text x="410.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H4</text>
+<text x="410.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="448" y="122" width="64" height="54" rx="7"/>
+<rect class="good" x="448" y="122" width="64" height="5" rx="2"/>
+<text x="480.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H5</text>
+<text x="480.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="518" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="518" y="122" width="64" height="5" rx="2"/>
+<text x="550.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H6</text>
+<text x="550.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="588" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="588" y="122" width="64" height="5" rx="2"/>
+<text x="620.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H7</text>
+<text x="620.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="658" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="658" y="122" width="64" height="5" rx="2"/>
+<text x="690.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H8</text>
+<text x="690.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="728" y="122" width="64" height="54" rx="7"/>
+<rect class="bad" x="728" y="122" width="64" height="5" rx="2"/>
+<text x="760.0" y="149.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H9</text>
+<text x="760.0" y="166.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="28" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="28" y="184" width="64" height="5" rx="2"/>
+<text x="60.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H10</text>
+<text x="60.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="98" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="98" y="184" width="64" height="5" rx="2"/>
+<text x="130.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H11</text>
+<text x="130.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="168" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="168" y="184" width="64" height="5" rx="2"/>
+<text x="200.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H12</text>
+<text x="200.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="238" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="238" y="184" width="64" height="5" rx="2"/>
+<text x="270.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H13</text>
+<text x="270.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="308" y="184" width="64" height="54" rx="7"/>
+<rect class="warn" x="308" y="184" width="64" height="5" rx="2"/>
+<text x="340.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H14</text>
+<text x="340.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="378" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="378" y="184" width="64" height="5" rx="2"/>
+<text x="410.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H15</text>
+<text x="410.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="448" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="448" y="184" width="64" height="5" rx="2"/>
+<text x="480.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H16</text>
+<text x="480.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="518" y="184" width="64" height="54" rx="7"/>
+<rect class="warn" x="518" y="184" width="64" height="5" rx="2"/>
+<text x="550.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H17</text>
+<text x="550.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="588" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="588" y="184" width="64" height="5" rx="2"/>
+<text x="620.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H18</text>
+<text x="620.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="658" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="658" y="184" width="64" height="5" rx="2"/>
+<text x="690.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H19</text>
+<text x="690.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="728" y="184" width="64" height="54" rx="7"/>
+<rect class="good" x="728" y="184" width="64" height="5" rx="2"/>
+<text x="760.0" y="211.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H20</text>
+<text x="760.0" y="228.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="28" y="246" width="64" height="54" rx="7"/>
+<rect class="bad" x="28" y="246" width="64" height="5" rx="2"/>
+<text x="60.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H21</text>
+<text x="60.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="98" y="246" width="64" height="54" rx="7"/>
+<rect class="good" x="98" y="246" width="64" height="5" rx="2"/>
+<text x="130.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H22</text>
+<text x="130.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="168" y="246" width="64" height="54" rx="7"/>
+<rect class="good" x="168" y="246" width="64" height="5" rx="2"/>
+<text x="200.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H23</text>
+<text x="200.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="238" y="246" width="64" height="54" rx="7"/>
+<rect class="good" x="238" y="246" width="64" height="5" rx="2"/>
+<text x="270.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H24</text>
+<text x="270.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="308" y="246" width="64" height="54" rx="7"/>
+<rect class="bad" x="308" y="246" width="64" height="5" rx="2"/>
+<text x="340.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H25</text>
+<text x="340.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="378" y="246" width="64" height="54" rx="7"/>
+<rect class="good" x="378" y="246" width="64" height="5" rx="2"/>
+<text x="410.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H21b</text>
+<text x="410.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="448" y="246" width="64" height="54" rx="7"/>
+<rect class="warn" x="448" y="246" width="64" height="5" rx="2"/>
+<text x="480.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H26</text>
+<text x="480.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="518" y="246" width="64" height="54" rx="7"/>
+<rect class="bad" x="518" y="246" width="64" height="5" rx="2"/>
+<text x="550.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H27</text>
+<text x="550.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="588" y="246" width="64" height="54" rx="7"/>
+<rect class="good" x="588" y="246" width="64" height="5" rx="2"/>
+<text x="620.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H28</text>
+<text x="620.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="658" y="246" width="64" height="54" rx="7"/>
+<rect class="good" x="658" y="246" width="64" height="5" rx="2"/>
+<text x="690.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H29</text>
+<text x="690.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="728" y="246" width="64" height="54" rx="7"/>
+<rect class="warn" x="728" y="246" width="64" height="5" rx="2"/>
+<text x="760.0" y="273.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30</text>
+<text x="760.0" y="290.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="28" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="28" y="308" width="64" height="5" rx="2"/>
+<text x="60.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H31</text>
+<text x="60.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="98" y="308" width="64" height="54" rx="7"/>
+<rect class="bad" x="98" y="308" width="64" height="5" rx="2"/>
+<text x="130.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H32</text>
+<text x="130.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="168" y="308" width="64" height="54" rx="7"/>
+<rect class="bad" x="168" y="308" width="64" height="5" rx="2"/>
+<text x="200.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H33</text>
+<text x="200.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="238" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="238" y="308" width="64" height="5" rx="2"/>
+<text x="270.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H34</text>
+<text x="270.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="308" y="308" width="64" height="54" rx="7"/>
+<rect class="bad" x="308" y="308" width="64" height="5" rx="2"/>
+<text x="340.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H35</text>
+<text x="340.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="378" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="378" y="308" width="64" height="5" rx="2"/>
+<text x="410.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H36</text>
+<text x="410.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="448" y="308" width="64" height="54" rx="7"/>
+<rect class="warn" x="448" y="308" width="64" height="5" rx="2"/>
+<text x="480.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30b</text>
+<text x="480.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="518" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="518" y="308" width="64" height="5" rx="2"/>
+<text x="550.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H30c</text>
+<text x="550.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="588" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="588.00" y="308" width="21.33" height="5" rx="2"/>
+<rect class="bad" x="609.33" y="308" width="21.33" height="5" rx="2"/>
+<rect class="warn" x="630.67" y="308" width="21.33" height="5" rx="2"/>
+<text x="620.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H37</text>
+<text x="620.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 3 ok</text>
+<rect class="chip" x="658" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="658.00" y="308" width="32.00" height="5" rx="2"/>
+<rect class="bad" x="690.00" y="308" width="32.00" height="5" rx="2"/>
+<text x="690.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H38</text>
+<text x="690.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 2 ok</text>
+<rect class="chip" x="728" y="308" width="64" height="54" rx="7"/>
+<rect class="good" x="728" y="308" width="64" height="5" rx="2"/>
+<text x="760.0" y="335.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H39</text>
+<text x="760.0" y="352.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="28" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="28" y="370" width="64" height="5" rx="2"/>
+<text x="60.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H40</text>
+<text x="60.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="98" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="98" y="370" width="64" height="5" rx="2"/>
+<text x="130.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H41</text>
+<text x="130.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="168" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="168" y="370" width="64" height="5" rx="2"/>
+<text x="200.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H42</text>
+<text x="200.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="238" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="238.00" y="370" width="32.00" height="5" rx="2"/>
+<rect class="warn" x="270.00" y="370" width="32.00" height="5" rx="2"/>
+<text x="270.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H43</text>
+<text x="270.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 2 ok</text>
+<rect class="chip" x="308" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="308" y="370" width="64" height="5" rx="2"/>
+<text x="340.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H44</text>
+<text x="340.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="378" y="370" width="64" height="54" rx="7"/>
+<rect class="bad" x="378" y="370" width="64" height="5" rx="2"/>
+<text x="410.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H45</text>
+<text x="410.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">refuted</text>
+<rect class="chip" x="448" y="370" width="64" height="54" rx="7"/>
+<rect class="warn" x="448" y="370" width="64" height="5" rx="2"/>
+<text x="480.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H46</text>
+<text x="480.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="518" y="370" width="64" height="54" rx="7"/>
+<rect class="warn" x="518" y="370" width="64" height="5" rx="2"/>
+<text x="550.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H47</text>
+<text x="550.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="588" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="588.00" y="370" width="21.33" height="5" rx="2"/>
+<rect class="bad" x="609.33" y="370" width="21.33" height="5" rx="2"/>
+<rect class="warn" x="630.67" y="370" width="21.33" height="5" rx="2"/>
+<text x="620.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H48</text>
+<text x="620.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 3 ok</text>
+<rect class="chip" x="658" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="658.00" y="370" width="48.00" height="5" rx="2"/>
+<rect class="bad" x="706.00" y="370" width="16.00" height="5" rx="2"/>
+<text x="690.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H49</text>
+<text x="690.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 4 ok</text>
+<rect class="chip" x="728" y="370" width="64" height="54" rx="7"/>
+<rect class="good" x="728" y="370" width="64" height="5" rx="2"/>
+<text x="760.0" y="397.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H50</text>
+<text x="760.0" y="414.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="28" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="28.00" y="432" width="42.67" height="5" rx="2"/>
+<rect class="warn" x="70.67" y="432" width="21.33" height="5" rx="2"/>
+<text x="60.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H51</text>
+<text x="60.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 3 ok</text>
+<rect class="chip" x="98" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="98" y="432" width="64" height="5" rx="2"/>
+<text x="130.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H52</text>
+<text x="130.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="168" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="168.00" y="432" width="48.00" height="5" rx="2"/>
+<rect class="bad" x="216.00" y="432" width="16.00" height="5" rx="2"/>
+<text x="200.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H53</text>
+<text x="200.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 4 ok</text>
+<rect class="chip" x="238" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="238" y="432" width="64" height="5" rx="2"/>
+<text x="270.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H54</text>
+<text x="270.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="308" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="308" y="432" width="64" height="5" rx="2"/>
+<text x="340.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H55</text>
+<text x="340.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="378" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="378" y="432" width="64" height="5" rx="2"/>
+<text x="410.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H56</text>
+<text x="410.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="448" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="448.00" y="432" width="48.00" height="5" rx="2"/>
+<rect class="bad" x="496.00" y="432" width="16.00" height="5" rx="2"/>
+<text x="480.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H57</text>
+<text x="480.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 4 ok</text>
+<rect class="chip" x="518" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="518.00" y="432" width="32.00" height="5" rx="2"/>
+<rect class="bad" x="550.00" y="432" width="32.00" height="5" rx="2"/>
+<text x="550.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H58</text>
+<text x="550.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 4 ok</text>
+<rect class="chip" x="588" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="588" y="432" width="64" height="5" rx="2"/>
+<text x="620.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H59</text>
+<text x="620.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="658" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="658.00" y="432" width="16.00" height="5" rx="2"/>
+<rect class="bad" x="674.00" y="432" width="48.00" height="5" rx="2"/>
+<text x="690.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H60</text>
+<text x="690.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 4 ok</text>
+<rect class="chip" x="728" y="432" width="64" height="54" rx="7"/>
+<rect class="good" x="728.00" y="432" width="16.00" height="5" rx="2"/>
+<rect class="bad" x="744.00" y="432" width="48.00" height="5" rx="2"/>
+<text x="760.0" y="459.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H61</text>
+<text x="760.0" y="476.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 4 ok</text>
+<rect class="chip" x="28" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="28.00" y="494" width="21.33" height="5" rx="2"/>
+<rect class="bad" x="49.33" y="494" width="42.67" height="5" rx="2"/>
+<text x="60.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H62</text>
+<text x="60.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">1 of 3 ok</text>
+<rect class="chip" x="98" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="98.00" y="494" width="38.40" height="5" rx="2"/>
+<rect class="bad" x="136.40" y="494" width="25.60" height="5" rx="2"/>
+<text x="130.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H63</text>
+<text x="130.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 5 ok</text>
+<rect class="chip" x="168" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="168.00" y="494" width="51.20" height="5" rx="2"/>
+<rect class="bad" x="219.20" y="494" width="12.80" height="5" rx="2"/>
+<text x="200.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H64</text>
+<text x="200.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">4 of 5 ok</text>
+<rect class="chip" x="238" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="238.00" y="494" width="32.00" height="5" rx="2"/>
+<rect class="bad" x="270.00" y="494" width="32.00" height="5" rx="2"/>
+<text x="270.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H65</text>
+<text x="270.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 6 ok</text>
+<rect class="chip" x="308" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="308.00" y="494" width="21.33" height="5" rx="2"/>
+<rect class="bad" x="329.33" y="494" width="42.67" height="5" rx="2"/>
+<text x="340.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H66</text>
+<text x="340.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 6 ok</text>
+<rect class="chip" x="378" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="378.00" y="494" width="42.67" height="5" rx="2"/>
+<rect class="bad" x="420.67" y="494" width="21.33" height="5" rx="2"/>
+<text x="410.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H67</text>
+<text x="410.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 3 ok</text>
+<rect class="chip" x="448" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="448.00" y="494" width="42.67" height="5" rx="2"/>
+<rect class="bad" x="490.67" y="494" width="21.33" height="5" rx="2"/>
+<text x="480.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H68</text>
+<text x="480.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 3 ok</text>
+<rect class="chip" x="518" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="518.00" y="494" width="35.56" height="5" rx="2"/>
+<rect class="bad" x="553.56" y="494" width="28.44" height="5" rx="2"/>
+<text x="550.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H69</text>
+<text x="550.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">5 of 9 ok</text>
+<rect class="chip" x="588" y="494" width="64" height="54" rx="7"/>
+<rect class="good" x="588.00" y="494" width="42.67" height="5" rx="2"/>
+<rect class="bad" x="630.67" y="494" width="21.33" height="5" rx="2"/>
+<text x="620.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H70</text>
+<text x="620.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">4 of 6 ok</text>
+<rect class="chip" x="658" y="494" width="64" height="54" rx="7"/>
+<rect class="bad" x="658.00" y="494" width="64.00" height="5" rx="2"/>
+<text x="690.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H71</text>
+<text x="690.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="400" text-anchor="middle">6 of 6 refuted</text>
+<rect class="chip" x="728" y="494" width="64" height="54" rx="7"/>
+<rect class="warn" x="728" y="494" width="64" height="5" rx="2"/>
+<text x="760.0" y="521.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H72</text>
+<text x="760.0" y="538.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">mixed</text>
+<rect class="chip" x="28" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="28" y="556" width="64" height="5" rx="2"/>
+<text x="60.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H75</text>
+<text x="60.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="98" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="98" y="556" width="64" height="5" rx="2"/>
+<text x="130.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H76</text>
+<text x="130.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">supported</text>
+<rect class="chip" x="168" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="168.00" y="556" width="53.33" height="5" rx="2"/>
+<rect class="bad" x="221.33" y="556" width="10.67" height="5" rx="2"/>
+<text x="200.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H74</text>
+<text x="200.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">5 of 6 ok</text>
+<rect class="chip" x="238" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="238.00" y="556" width="51.20" height="5" rx="2"/>
+<rect class="bad" x="289.20" y="556" width="12.80" height="5" rx="2"/>
+<text x="270.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H77</text>
+<text x="270.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">4 of 5 ok</text>
+<rect class="chip" x="308" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="308.00" y="556" width="38.40" height="5" rx="2"/>
+<rect class="bad" x="346.40" y="556" width="12.80" height="5" rx="2"/>
+<rect class="warn" x="359.20" y="556" width="12.80" height="5" rx="2"/>
+<text x="340.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H78</text>
+<text x="340.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 5 ok</text>
+<rect class="chip" x="378" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="378.00" y="556" width="38.40" height="5" rx="2"/>
+<rect class="bad" x="416.40" y="556" width="12.80" height="5" rx="2"/>
+<rect class="warn" x="429.20" y="556" width="12.80" height="5" rx="2"/>
+<text x="410.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H79</text>
+<text x="410.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 5 ok</text>
+<rect class="chip" x="448" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="448.00" y="556" width="32.00" height="5" rx="2"/>
+<rect class="bad" x="480.00" y="556" width="21.33" height="5" rx="2"/>
+<rect class="warn" x="501.33" y="556" width="10.67" height="5" rx="2"/>
+<text x="480.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H80</text>
+<text x="480.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 6 ok</text>
+<rect class="chip" x="518" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="518.00" y="556" width="36.57" height="5" rx="2"/>
+<rect class="bad" x="554.57" y="556" width="18.29" height="5" rx="2"/>
+<rect class="warn" x="572.86" y="556" width="9.14" height="5" rx="2"/>
+<text x="550.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H81</text>
+<text x="550.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">4 of 7 ok</text>
+<rect class="chip" x="588" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="588.00" y="556" width="25.60" height="5" rx="2"/>
+<rect class="bad" x="613.60" y="556" width="12.80" height="5" rx="2"/>
+<rect class="warn" x="626.40" y="556" width="25.60" height="5" rx="2"/>
+<text x="620.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H82</text>
+<text x="620.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 5 ok</text>
+<rect class="chip" x="658" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="658.00" y="556" width="25.60" height="5" rx="2"/>
+<rect class="bad" x="683.60" y="556" width="12.80" height="5" rx="2"/>
+<rect class="warn" x="696.40" y="556" width="25.60" height="5" rx="2"/>
+<text x="690.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H83</text>
+<text x="690.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">2 of 5 ok</text>
+<rect class="chip" x="728" y="556" width="64" height="54" rx="7"/>
+<rect class="good" x="728.00" y="556" width="64.00" height="5" rx="2"/>
+<text x="760.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H84</text>
+<text x="760.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">5 of 5 ok</text>
+<rect class="chip" x="28" y="618" width="64" height="54" rx="7"/>
+<rect class="none" x="28" y="618" width="64" height="5" rx="2"/>
+<text x="60.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H85</text>
+<text x="60.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">pending</text>
+<rect class="chip" x="98" y="618" width="64" height="54" rx="7"/>
+<rect class="good" x="98.00" y="618" width="24.00" height="5" rx="2"/>
+<rect class="bad" x="122.00" y="618" width="24.00" height="5" rx="2"/>
+<rect class="warn" x="146.00" y="618" width="16.00" height="5" rx="2"/>
+<text x="130.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H86</text>
+<text x="130.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 8 ok</text>
+<rect class="chip" x="168" y="618" width="64" height="54" rx="7"/>
+<rect class="good" x="168.00" y="618" width="32.00" height="5" rx="2"/>
+<rect class="bad" x="200.00" y="618" width="10.67" height="5" rx="2"/>
+<rect class="warn" x="210.67" y="618" width="21.33" height="5" rx="2"/>
+<text x="200.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H87</text>
+<text x="200.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 6 ok</text>
+<rect class="chip" x="238" y="618" width="64" height="54" rx="7"/>
+<rect class="good" x="238.00" y="618" width="64.00" height="5" rx="2"/>
+<text x="270.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H88</text>
+<text x="270.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 3 ok</text>
+<rect class="chip" x="308" y="618" width="64" height="54" rx="7"/>
+<rect class="good" x="308.00" y="618" width="48.00" height="5" rx="2"/>
+<rect class="warn" x="356.00" y="618" width="16.00" height="5" rx="2"/>
+<text x="340.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H89</text>
+<text x="340.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 4 ok</text>
+<rect class="chip" x="378" y="618" width="64" height="54" rx="7"/>
+<rect class="good" x="378.00" y="618" width="64.00" height="5" rx="2"/>
+<text x="410.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H90</text>
+<text x="410.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 3 ok</text>
+<text x="792.0" y="700.0" class="t3" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end">Source: docs/experiments.md</text>
 </svg>

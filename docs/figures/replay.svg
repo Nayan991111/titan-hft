@@ -35,10 +35,10 @@
 <rect class="frame" x="0.5" y="0.5" width="819" height="329" rx="10"/>
 <text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Book update on real data: where the 3.3x comes from</text>
 <text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">Per message, decode plus book update, NASDAQ BX day, median of 3 epochs (lower is better).</text>
-<rect class="s1" x="28" y="76" width="12" height="12" rx="2"/>
-<text x="46.0" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">Titan L3 book</text>
-<rect class="s2" x="165.60000000000002" y="76" width="12" height="12" rx="2"/>
-<text x="183.6" y="86.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">BTreeMap reference book</text>
+<rect class="s1" x="28" y="94" width="12" height="12" rx="2"/>
+<text x="46.0" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">Titan L3 book</text>
+<rect class="s2" x="165.60000000000002" y="94" width="12" height="12" rx="2"/>
+<text x="183.6" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">BTreeMap reference book</text>
 <text x="28.0" y="122.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" text-anchor="start">CPU cycles</text>
 <line class="axis" x1="28" y1="262" x2="264" y2="262"/>
 <path class="s1" d="M58,262 V232.8 Q58,228.8 62.0,228.8 H110.0 Q114,228.8 114,232.8 V262 Z"/>

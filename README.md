@@ -132,7 +132,7 @@ nothing, and each hypothesis is committed to
 Apple M4 (MacBook Air, Mac16,13), Rust 1.92, performance cores unless a row
 says otherwise. Cycles and nanoseconds are both reported, and neither is
 sufficient alone, because the core clock is not a property of the machine:
-**1.085 to 4.61 GHz has been measured on a performance core**, and which
+**1.085 to 4.68 GHz has been measured on a performance core**, and which
 figure applies depends on what the workload does and how long it runs. A
 cross-core round trip holds 3.51 to 3.63 GHz, a compute-bound kernel 4.05 to
 4.61, a long streaming run 4.27 to 4.40, and a 200,000-message streaming run
@@ -301,12 +301,26 @@ reader's light or dark theme.
 - [x] The same day over round-lot-sized levels, and the cost over a whole day (H54, measured on the M4)
 - [x] A binary heap of orders against sorted price levels, best price and depth (H55, measured on the M4)
 - [x] The heap's depth query pruned, and how long real orders rest at the best price (H56, measured on the M4)
-- [ ] Time constant of the effect (keep-warm period swept) and its energy cost (`powermetrics`)
-- [ ] Bursty arrivals (Hawkes process) to load the pipeline beyond the real day
-- [ ] Energy and thermal drift per wait strategy on a fanless machine (`powermetrics`, separate runs)
-- [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs
-- [ ] Final protocol: 30 independent launches per configuration on wall power, one reproduction script, archived results
-- [ ] Paper
+- [x] Queue position, cancellation rate and the power law in price impact, with the three measurement defects in the first attempt corrected and the survivorship confound closed by conditioning on one fixed population (H57 to H60)
+- [x] The padding question H3b and H14 left open, re-measured under the independent-launch protocol (H61)
+- [x] H30b repeated under controlled conditions, since its own record said the run was noisy (H62)
+- [x] Energy and thermal drift per wait strategy on a fanless machine: `powermetrics` owning the counters in separate un-instrumented runs, which is the half of the wait question no counter in this work can reach (H63)
+- [x] The cross-core hand-off re-measured under the independent-launch protocol, closing the four research questions that rested on rows with no results file (H64)
+- [x] Options pricing kernel and path-dependent accumulation, per step, as decision costs the pipeline has to carry (H65, H66)
+- [x] Two published claims closed and one re-measured at the run length the real feed implies (H67, H68)
+- [x] Which half of the acquire-release pair carries the inversion, by crossing the two sides (H69), replicated with raw records retained (H76) and again at cycle level (H77). The store side carries all of it
+- [x] Bursty arrivals (Hawkes process) beyond the real day: what clustering alone costs the tail, at the edge of capacity, and at the measured ceiling, with the operating-system build replicated (H70 to H72, H75)
+- [x] Which statistic predicts the tail cost of clustered arrivals: squared coefficient of variation of interarrival times against Fano factor of counts (H74)
+- [x] Whether the release store serialises coherence transactions a plain store pipelines, on both threads, with memory-order violations and writebacks counted (H78 to H81)
+- [x] Whether coherence traffic causes the inversion or follows from it, with duration controlled and the comparison swept over ring capacity (H82 to H84)
+- [x] Whether the barrier wins by suppressing the issue rate, where the unaccounted cycles go, and whether the frontend stall belongs to the ordering construct or to the `isb` in the wait loop (H86 to H89). It belongs to the wait loop, and one earlier exclusion was withdrawn
+- [x] Where the RCsc acquire sits between the RCpc acquire and the explicit barrier (H90). It sits with the weak end: strengthening the acquire costs 1.3%, moving the ordering to the store side costs a factor of 2.29
+- [x] Final protocol: 30 independent launches per configuration on wall power, one reproduction script (`scripts/reproduce_paper_artifacts.sh`), archived results, eleven automated checks that refuse a manuscript disagreeing with its own data
+- [x] Paper written: 15 pages, 31 verified references, archived under [10.5281/zenodo.24490481](https://doi.org/10.5281/zenodo.24490481)
+- [ ] Which property of the ring governs the sign change: the number of slots, the bytes they occupy, or how far the producer runs ahead (H85, registered and not yet run)
+- [ ] Time constant of the keep-warm effect, with the period swept and its energy cost measured (H34 established the effect, not its time constant)
+- [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs (H64 covers preemption under the protocol, not migration)
+- [ ] arXiv announcement, then IEEE ISPASS, then the gate suite to JOSS as software
 
 ## Reproduce
 

@@ -307,6 +307,8 @@ _VERDICT = re.compile(
     r"|partly supported|inconclusive|invalid|confound|not established"
     r"|supported|refuted|confirmed", re.I)
 
+_PART = re.compile(r"\(([a-z])\)")
+
 _BUCKET = {
     "supported": "good", "confirmed": "good",
     "refuted": "bad", "not supported": "bad",
@@ -317,6 +319,52 @@ _BUCKET = {
     "not established": "warn",
     "not evaluated": "warn", "not evaluable": "warn",
 }
+
+
+def status_parts(st):
+    """Count the registered parts of one verdict by category.
+
+    Returns (good, bad, warn) or None when the text cannot be read. A row
+    from H37 onward reports several parts at once and flattening it to one
+    word throws away the balance: four supported parts and one unevaluable
+    reads the same as one supported and four refuted. The figure shows the
+    tally instead.
+    """
+    s = st.lower().strip()
+    if s.startswith("registered, not yet run") or s in ("", "pending"):
+        return (0, 0, 0)
+    if not _VERDICT.search(s):
+        return None
+
+    # Count the registered parts, not the number of times a verdict word
+    # appears. Those are different: a row that reports five supported parts
+    # and then explains in prose what the result refutes would otherwise be
+    # drawn with a red segment it did not earn. That is the same fault as
+    # counting a refutation by word presence, which is recorded under D48.
+    marks = list(_PART.finditer(s))
+    if marks:
+        verdicts = []
+        for i, m in enumerate(marks):
+            end = marks[i + 1].start() if i + 1 < len(marks) else len(s)
+            hit = _VERDICT.search(s, m.end(), end)
+            verdicts.append(_BUCKET[hit.group(0).lower()] if hit else None)
+        # "(a), (b), (c) supported" names three parts and one verdict. A part
+        # with no verdict of its own takes the next one that has it, which is
+        # how that sentence reads in English.
+        carry = None
+        for i in range(len(verdicts) - 1, -1, -1):
+            if verdicts[i] is None:
+                verdicts[i] = carry
+            else:
+                carry = verdicts[i]
+        kept = [v for v in verdicts if v]
+        if kept:
+            return (kept.count("good"), kept.count("bad"), kept.count("warn"))
+
+    # No part markers: one verdict for the whole row.
+    hit = _VERDICT.search(s)
+    c = _BUCKET[hit.group(0).lower()]
+    return (int(c == "good"), int(c == "bad"), int(c == "warn"))
 
 
 def status_class(st):
@@ -413,8 +461,8 @@ def fig_replay():
               "t2", 13)]
     lx = 28
     for _, label, cls in impls:
-        b.append(f'<rect class="{cls}" x="{lx}" y="76" width="12" height="12" rx="2"/>')
-        b.append(text(lx + 18, 86.5, label, "t2", 12.5))
+        b.append(f'<rect class="{cls}" x="{lx}" y="94" width="12" height="12" rx="2"/>')
+        b.append(text(lx + 18, 104.5, label, "t2", 12.5))
         lx += 18 + 7.2 * len(label) + 26
     for i, (key, name) in enumerate(panels):
         x = x0 + i * (pw + gap)
@@ -441,32 +489,63 @@ def fig_replay():
 def fig_hypotheses():
     rows = hypotheses()
     counts = {}
+    parts_total = [0, 0, 0]
     for _, st in rows:
         cls = status_class(st)[0]
         counts[cls] = counts.get(cls, 0) + 1
+        for j, n in enumerate(status_parts(st)):
+            parts_total[j] += n
     cols = 11
     W = 820
-    cw, ch, gx, gy, x0, y0 = 64, 54, 6, 8, 28, 104
+    cw, ch, gx, gy, x0, y0 = 64, 54, 6, 8, 28, 122
     nrows = (len(rows) + cols - 1) // cols
     H = y0 + nrows * (ch + gy) + 34
     b = [text(28, 38, "Every prediction is committed before the run that tests it", size=17, weight=600),
          text(28, 60, f"{len(rows)} hypotheses so far: {counts.get('good', 0)} supported, "
               f"{counts.get('bad', 0)} refuted or not supported, {counts.get('warn', 0)} mixed or invalid, "
-              f"{counts.get('none', 0)} pending; failures stay in the log.", "t2", 13)]
+              f"{counts.get('none', 0)} pending; failures stay in the log.", "t2", 13),
+         text(28, 78, f"{sum(parts_total)} registered parts in all: "
+              f"{parts_total[0]} held, {parts_total[1]} did not, "
+              f"{parts_total[2]} were partial or could not be evaluated.",
+              "t2", 13)]
     lx = 28
     for cls, label in (("good", "supported"), ("bad", "refuted or not supported"), ("warn", "partly, inconclusive, invalid"),
                        ("none", "pending")):
-        b.append(f'<rect class="{cls}" x="{lx}" y="76" width="12" height="12" rx="2"/>')
-        b.append(text(lx + 18, 86.5, label, "t2", 12.5))
+        b.append(f'<rect class="{cls}" x="{lx}" y="94" width="12" height="12" rx="2"/>')
+        b.append(text(lx + 18, 104.5, label, "t2", 12.5))
         lx += 18 + 7.0 * len(label) + 24
     for i, (hid, st) in enumerate(rows):
         cls, label = status_class(st)
+        g, bad_, w = status_parts(st)
+        total = g + bad_ + w
         x = x0 + (i % cols) * (cw + gx)
         y = y0 + (i // cols) * (ch + gy)
         b.append(f'<rect class="chip" x="{x}" y="{y}" width="{cw}" height="{ch}" rx="7"/>')
-        b.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{cw}" height="5" rx="2"/>')
+        if total <= 1:
+            # One part, or none. A single bar carries everything there is.
+            b.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{cw}" '
+                     f'height="5" rx="2"/>')
+        else:
+            # The bar is segmented in proportion to the parts, so a row that
+            # is mostly supported looks mostly supported.
+            seg, ox = 0.0, x
+            for n, c in ((g, "good"), (bad_, "bad"), (w, "warn")):
+                if not n:
+                    continue
+                wd = cw * n / total
+                b.append(f'<rect class="{c}" x="{ox:.2f}" y="{y}" '
+                         f'width="{wd:.2f}" height="5" rx="2"/>')
+                ox += wd
+                seg += wd
         b.append(text(x + cw / 2, y + 27, hid, "t1", 14, "middle", 700))
-        b.append(text(x + cw / 2, y + 44, label, "t2", 9.5 if len(label) > 12 else 10.5, "middle"))
+        if total > 1:
+            lab = (f"{g} of {total} ok" if g else
+                   f"{bad_} of {total} refuted" if bad_ else
+                   f"{w} of {total} other")
+        else:
+            lab = label
+        b.append(text(x + cw / 2, y + 44, lab, "t2",
+                      9.5 if len(lab) > 12 else 10.5, "middle"))
     b.append(text(W - 28, H - 14, "Source: docs/experiments.md", "t3", 11, "end"))
     desc = "; ".join(f"{h} {status_class(s)[1]}" for h, s in rows)
     return svg(W, H, b, "Pre-registered hypotheses", desc)
