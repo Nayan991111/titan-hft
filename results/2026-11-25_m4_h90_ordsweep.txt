@@ -599,3 +599,11 @@ h90_ratio cached=0 seqcst_over_acqrel=0.9873 fencedstore_over_acqrel=0.4369 spre
 h90_ratio cached=1 seqcst_over_acqrel=0.9083 fencedstore_over_acqrel=2.0789 spread=2.2887
 h90_sign contended cheaper=seqcst wins=1 of=1 p=1.000e+00 threshold=27
 h90_band group_with_acqrel_at_or_above=0.90 group_with_fencedstore_at_or_below=0.50 sign_threshold=27 launches=30
+
+CORRECTION, appended 2026-11-25. The h90_sign line above was emitted
+before the launch grouping was recovered and reads wins=1 of=1,
+because the run script omitted the launch stamp and the paired test
+ran over a single group. It is superseded by the line below and is
+left in place rather than deleted. See docs/defects.md D47.
+
+h90_sign_corrected contended cheaper=seqcst wins=16 of=30 p=8.555e-01 p_decimal=0.8555 threshold=27
