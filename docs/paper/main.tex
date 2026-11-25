@@ -1017,6 +1017,39 @@ and
 \label{fig:wait}
 \end{figure}
 
+\subsection{Which part of the ordering pair carries the cost}
+
+The comparison so far has two arms, and two arms cannot say whether the cost
+sits in the acquire or in the release. The arms differ on both sides at once:
+one is an acquire load paired with a store-release, the other is the same
+acquire load paired with a barrier and a plain store.
+
+A third arm settles it, and it required no new code. Rust's sequentially
+consistent ordering lowers on this part to \texttt{ldar}, the RCsc acquire,
+which orders against earlier loads in a way \texttt{ldapr} does not. It is
+strictly stronger than the acquire-release arm's load and it carries no
+explicit barrier, so it sits between the two arms in ordering strength. The
+implementation existed from the start and no arm list had ever dispatched it.
+
+Contended, the three arms cost 204.493, 201.900 and 89.338 cycles per message
+for acquire-release, sequential consistency and the fenced store. The ratio of
+the middle arm to the first is 0.9873, against a bound of 0.90 registered in
+advance as the point at which the two would be treated as one group, and the
+fenced arm sits at 0.4369 in the same cells. Strengthening the acquire from
+RCpc to RCsc costs 1.3\%. Moving the ordering to the store side changes the
+cost by a factor of 2.29.
+
+The launch-by-launch test agrees by failing. The sequentially consistent arm
+is cheaper in 16 of 30 launches, p=0.8555 by the exact two-sided sign test,
+against a registered 27 of 30. A difference of 1.3\% has no stable sign, which
+is what it means for two arms to be one group, and had the point estimate
+separated them this would have contradicted it.
+
+So the ordering strength of the acquire is not what this paper is measuring.
+Section~\ref{sec:cycles} reached the same place by decomposing the pair and
+swapping one side at a time; this reaches it by adding a third ordering policy
+that shares none of those arms. Both say the cost is on the store side.
+
 \subsection{The comparison does not depend on how the consumer waits}
 \label{sec:wait}
 

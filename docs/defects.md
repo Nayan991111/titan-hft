@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-25: forty six closed, none partly closed, none open. Forty six entries in all.**
+**Status at 2026-11-25: forty eight closed, none partly closed, none open. Forty eight entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2086,3 +2086,93 @@ as not licensing its registered consequence. The H90 row and the verdict
 script both carry the pointer to this entry so the number cannot be read out
 of the file without the caveat attached. No claim in the manuscript rests on
 it. The taxonomy in the discussion goes from seven instances to eight.
+## D47. A verdict script reported a refutation from a sample of one, because
+the run script forgot to stamp the launch number
+
+**Found** 2026-11-25, in the H90 verdict output, by the printed line
+`launches=1` against a file holding thirty process launches.
+**Severity** high in kind and contained in effect. A false refutation is the
+worst output this protocol can produce, because unlike a missing result it is
+a claim. It was printed, it reached a terminal, and it was wrong. Nothing was
+written into the manuscript from it.
+
+The launch label is not emitted by the measurement binary. Every run script
+since the protocol began has stamped it in with
+`sed "s/^bd /bd launch=$i /"` as the records leave the binary. The H90 run
+script did not. So every record in the file carried no launch field, the
+verdict script's `f.get("launch", "?")` grouped all 540 records under one
+label, and the paired sign test ran over a sample of one and printed
+`REFUTED ... 1 of 1 launches, p=1.000`.
+
+**What the data actually says.** The thirty launches are real and independent;
+only the label was lost. Each invocation emits exactly one `bd_config` line
+followed by its own records, and the file is appended in invocation order, so
+the grouping is recoverable from the file's structure without measuring
+anything again. Every one of the thirty blocks holds exactly eighteen records,
+which is the invariant that makes the recovery checkable. Recovered, the test
+reads 16 of 30, p=0.8555, which is not a refutation of anything and is exactly
+what part (b) predicts when it groups the two arms.
+
+**Checked for spread.** H84, H88 and H89 each carry as many distinct launch
+labels as they have configuration blocks, so every sign test already in the
+manuscript is sound. H90 is the only affected run and it is not yet cited.
+
+**CLOSED 2026-11-25** Three changes. The verdict script recovers the launch
+grouping from block boundaries when the field is absent and says in its header
+which source it used. It verifies that every block holds the same number of
+records before trusting the recovery. And part (c) now returns unevaluable,
+never a refutation, when the grouping cannot be trusted, because a sign test
+over one group is not evidence against anything. The underlying rule: a paired
+statistic must assert that it found the pairs, and a missing key is a reason
+to stop rather than a reason to use a default.
+
+## D48. The figure on the repository's front page called forty one recorded
+verdicts "pending", and nothing checked it
+
+**Found** 2026-11-25, by the user looking at the repository's own README.
+**Severity** moderate and public, which is the part that matters. This figure
+is the first thing a reader of the repository sees. It stated 76 hypotheses
+with 24 pending while the register held 94 rows with two pending.
+
+Two independent faults in the generator, both of the same family.
+
+The verdict classifier matched only the first word of the verdict column.
+Early rows carry one word. From H37 onward a row reports several registered
+parts at once, as "(a) SUPPORTED, (b) REFUTED, ...", and none of those start
+with a word the classifier knew. It had no failure branch, so every one of
+them fell through to a default of "pending" and was drawn in grey. Forty one
+rows with recorded verdicts, several of them refutations this paper is built
+on, were shown to the public as not yet run.
+
+The row regular expression admitted an identifier of the form `H` followed by
+digits and at most a single trailing `b`. The register contains `H30c`. That
+row has been missing from the figure since it was written, and the figure's
+own total was one short of the register's without anything noticing.
+
+**Why it is the same fault twice.** Both are a parser choosing a default
+instead of refusing. A check that cannot read its input and guesses is worse
+than no check, because it produces a confident wrong answer with no signal
+that anything went unread.
+
+**One adjacent fragility, found while fixing this and not counted as a
+separate entry because no row has ever been misread by it.**
+check_figure_claims.py counts a row as a refutation when the word appears
+anywhere in its verdict cell. For forty nine rows that has coincided with the
+verdict. It is a rule narrower than the claim it stands for, in the same
+family as the two faults above, and it bit immediately: the first draft of the
+H90 row used the word while describing D47's erroneous printing and the count
+rose by one for a row that refutes nothing. The row was reworded rather than
+the rule changed, because changing the rule would move counts already
+published on three figures, and the rule is recorded here so the next person
+to write a verdict containing the word in prose knows what it costs.
+
+**CLOSED 2026-11-25** The classifier returns None for text it cannot read and
+the generator exits naming the rows, so the figure is never drawn from a
+guess; it was confirmed to refuse, and it named `H30b` before that format was
+added. The identifier pattern admits any single letter suffix, and the
+generator now counts every row carrying an H identifier and refuses if the
+parsed count differs. The figure is covered by check_figure_claims.py for the
+first time, on both its stated total and the number of cards it draws, and
+that check was confirmed to refuse a figure reverted to 76 before being
+trusted. Multi-part verdicts are reported as mixed rather than collapsed to
+whichever part came first.

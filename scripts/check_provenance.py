@@ -124,6 +124,14 @@ CITED: dict[str, str] = {
     "0.077303": "2026-11-23_m4_h89_waitissue.txt",
     "1.0800": "2026-11-23_m4_h89_waitissue.txt",
     "2.6935": "2026-11-23_m4_h89_waitissue.txt",
+    # H90, the three-point ordering spectrum. Emitted by
+    # scripts/h90_verdicts.py --emit at the precision quoted here.
+    "204.493": "2026-11-25_m4_h90_ordsweep.txt",
+    "201.900": "2026-11-25_m4_h90_ordsweep.txt",
+    "89.338": "2026-11-25_m4_h90_ordsweep.txt",
+    "0.9873": "2026-11-25_m4_h90_ordsweep.txt",
+    "0.4369": "2026-11-25_m4_h90_ordsweep.txt",
+    "0.8555": "2026-11-25_m4_h90_ordsweep.txt",
 }
 
 PERCENT: dict[str, tuple[str, str]] = {

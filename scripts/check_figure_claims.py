@@ -149,6 +149,36 @@ def main():
     if f"{refuted} rows record" not in abstract:
         problems.append(f"fig-abstract.svg does not state '{refuted} rows record a refutation'")
 
+    # hypotheses.svg is on the repository's front page and was not covered by
+    # any check. It sat at 76 hypotheses with 24 pending while the register
+    # held 94 rows with two pending, because nothing compared the two. D48.
+    # The count is recomputed here from the register and from the figure's
+    # own rendered text, so the figure cannot drift again without this
+    # failing. Only the total is checked: the breakdown is the generator's
+    # classification, and duplicating that logic here would make this a
+    # second copy of the thing it is meant to audit rather than a check on it.
+    # The register holds hypothesis rows and exploratory calibrations. The
+    # figure draws the hypotheses only, so it is compared against that count
+    # and not against the total, which is what `rows` carries.
+    hrows = sum(
+        1 for ln in DOC.read_text(encoding="utf-8").splitlines()
+        for q in [[c.strip() for c in ln.split("|")]]
+        if len(q) > 4 and re.fullmatch(r"H\S+", q[1]))
+    hyp_svg = FIGS / "hypotheses.svg"
+    if not hyp_svg.exists():
+        problems.append("hypotheses.svg is missing")
+    else:
+        hyp = hyp_svg.read_text(encoding="utf-8")
+        if f"{hrows} hypotheses so far" not in hyp:
+            problems.append(
+                f"hypotheses.svg does not state '{hrows} hypotheses so far'; "
+                f"regenerate it with scripts/figures.py")
+        drawn = len(re.findall(r">H\d+[a-z]?<", hyp))
+        if drawn != hrows:
+            problems.append(
+                f"hypotheses.svg draws {drawn} cards for {hrows} register "
+                f"rows; one of them is being dropped silently")
+
     print(f"peak, 7,000,000 spin : {hero[1]:.4f} at p{100 * hero[0]:.4f}, "
           f"{hero[2]}/{hero[3]}, p={hero[4]:.3g}")
     print(f"clustering at p99.9  : {cl[1]:.4f}, {cl[2]}/{cl[3]}, p={cl[4]:.3g}")

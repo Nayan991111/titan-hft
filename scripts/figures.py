@@ -270,28 +270,74 @@ def hypotheses():
     rows = []
     for line in EXPERIMENTS.read_text().splitlines():
         p = [c.strip() for c in line.split("|")]
-        if len(p) > 4 and re.fullmatch(r"H\d+b?", p[1]):
+        if len(p) > 4 and re.fullmatch(r"H\d+[a-z]?", p[1]):
             rows.append((p[1], p[3]))
     if not rows:
         sys.exit(f"{EXPERIMENTS}: no hypothesis table")
+    # Every row whose identifier begins with H must appear. The earlier
+    # regex admitted only a single trailing "b" and silently dropped H30c,
+    # so the figure under-reported the register by one for weeks. Counting
+    # the candidates separately and comparing is the only way a drop of this
+    # kind announces itself.
+    candidates = sum(
+        1 for line in EXPERIMENTS.read_text().splitlines()
+        for q in [[c.strip() for c in line.split("|")]]
+        if len(q) > 4 and re.fullmatch(r"H\S+", q[1]))
+    if candidates != len(rows):
+        sys.exit(f"{EXPERIMENTS}: {candidates} rows carry an H identifier but "
+                 f"only {len(rows)} were parsed. Refusing to draw a figure "
+                 f"that under-reports the register; see D48.")
+    unreadable = [h for h, st in rows if status_class(st) is None]
+    if unreadable:
+        sys.exit(f"{EXPERIMENTS}: cannot read the verdict of {unreadable}. "
+                 f"Refusing to draw the figure rather than calling them "
+                 f"pending; see D48.")
     return rows
 
 
+# Verdicts are written in two eras. Early rows carry one word. From H37
+# onward a row reports several registered parts at once, as "(a) SUPPORTED,
+# (b) REFUTED, ...". The earlier classifier matched only the opening word and
+# fell through to "pending" for anything else, so 41 rows with recorded
+# verdicts were drawn on the public figure as not yet run. That is D48. A
+# classifier that cannot read its input must say so, not pick a default, so
+# this one returns None and the caller refuses to draw the figure.
+_VERDICT = re.compile(
+    r"not supported|not testable|not evaluated|not evaluable|unevaluable"
+    r"|partly supported|inconclusive|invalid|confound|not established"
+    r"|supported|refuted|confirmed", re.I)
+
+_BUCKET = {
+    "supported": "good", "confirmed": "good",
+    "refuted": "bad", "not supported": "bad",
+    "partly supported": "warn", "inconclusive": "warn", "invalid": "warn",
+    "confound": "warn", "unevaluable": "warn", "not testable": "warn",
+    # H30b: an effect inside the noise floor is not a refutation and not a
+    # result. It is the absence of one, and it groups with the warn family.
+    "not established": "warn",
+    "not evaluated": "warn", "not evaluable": "warn",
+}
+
+
 def status_class(st):
-    s = st.lower()
-    if s.startswith(("supported", "confirmed")):
+    """Return (css class, label), or None when the text cannot be read.
+
+    None is a refusal and not a category. The caller turns it into an error
+    naming the row, because a figure that silently reports an unread verdict
+    as pending is worse than no figure.
+    """
+    s = st.lower().strip()
+    if s.startswith("registered, not yet run") or s in ("", "pending"):
+        return "none", "pending"
+    found = [m.group(0).lower() for m in _VERDICT.finditer(s)]
+    if not found:
+        return None
+    buckets = {_BUCKET[f] for f in found}
+    if buckets == {"good"}:
         return "good", "supported"
-    if s.startswith("not supported"):
-        return "bad", "not supported"
-    if s.startswith("refuted"):
+    if buckets == {"bad"}:
         return "bad", "refuted"
-    if s.startswith("inconclusive"):
-        return "warn", "inconclusive"
-    if s.startswith("partly"):
-        return "warn", "partly supported"
-    if s.startswith("invalid"):
-        return "warn", "invalid, rerun"
-    return "none", "pending"
+    return "warn", "mixed"
 
 
 def fig_hero():

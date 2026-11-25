@@ -56,8 +56,25 @@ def main():
     byl = defaultdict(lambda: defaultdict(list))
     ok = defaultdict(lambda: [0, 0])
     arms_mode = counters = side = None
+    # The launch label is stamped into each record by the run script. If the
+    # run script omitted it, the field is absent on every record and a naive
+    # default collapses thirty independent process launches into one group,
+    # which turns the paired sign test into a sample of one and lets it
+    # report a refutation. That happened; see D47.
+    #
+    # The label is recoverable from the file's own structure without
+    # re-measuring, because each invocation emits exactly one bd_config line
+    # followed by its own records, and the file is appended in invocation
+    # order. Blocks are counted here and the recovery is verified below
+    # against the invariant that every block holds the same number of
+    # records. Where the field is present it is used and the block index is
+    # ignored, so files written by earlier run scripts are read unchanged.
+    block = 0
+    block_counts = defaultdict(int)
+    stamped = 0
     for line in FILE.open(encoding="utf-8", errors="replace"):
         if line.startswith("bd_config"):
+            block += 1
             f = fields(line)
             arms_mode = arms_mode or f.get("arms")
             counters = counters or f.get("counters")
@@ -66,17 +83,31 @@ def main():
             continue
         f = fields(line)
         key = (f["order"], f["cached"])
+        if "launch" in f:
+            lab, stamped = f["launch"], stamped + 1
+        else:
+            lab = str(block)
+        block_counts[lab] += 1
         for k in KEYS:
             if k in f:
                 per[key][k].append(float(f[k]))
-                byl[(key, f.get("launch", "?"))][k].append(float(f[k]))
+                byl[(key, lab)][k].append(float(f[k]))
         ok[key][0] += int(f.get("sum_ok") == "1")
         ok[key][1] += 1
 
-    launches = sorted({l for (_k, l) in byl}, key=lambda s: int(s) if s.isdigit() else -1)
+    launches = sorted({l for (_k, l) in byl},
+                      key=lambda s: int(s) if s.isdigit() else -1)
+    sizes = set(block_counts.values())
+    # A recovered grouping is only trustworthy if every block is the same
+    # shape. One ragged block means the file is not what this assumes.
+    launch_source = ("stamped by the run script" if stamped else
+                     "recovered from bd_config block boundaries, see D47")
+    launch_ok = (len(launches) > 1 and len(sizes) == 1
+                 and (stamped == 0 or stamped == sum(block_counts.values())))
     print(f"file     : {FILE.name}")
-    print(f"arms={arms_mode}  counters={counters}  measured_side={side}  "
-          f"launches={len(launches)}")
+    print(f"arms={arms_mode}  counters={counters}  measured_side={side}")
+    print(f"launches={len(launches)}, {launch_source}; "
+          f"records per launch {sorted(sizes)}")
     if arms_mode != "ordsweep":
         print(f"FAIL: H90 requires arms=ordsweep, file says {arms_mode}")
         return 1
@@ -153,18 +184,30 @@ def main():
         # launch by launch. Report it whichever way (b) went, and say plainly
         # what it can and cannot settle for each branch.
         lo, hi = (("seqcst", "acqrel") if r < 1.0 else ("acqrel", "seqcst"))
-        w, n = launch_sign("0", lo, hi)
-        p = sign_p(w, n)
-        v["c"] = (w >= 27,
-                  f"contended, {lo} cheaper than {hi} in {w} of {n} launches, "
-                  f"exact two-sided sign test p={p:.3e}, against 27 of 30. "
-                  + ("The point estimate and the launch-by-launch ordering "
-                     "agree" if w >= 27 else
-                     "The ordering does not hold launch by launch. Where (b) "
-                     "grouped the two arms, that is the consistent reading "
-                     "and not a contradiction: a difference of this size has "
-                     "no stable sign. Where (b) separated them it would be a "
-                     "contradiction, and it is not what happened here"))
+        if not launch_ok:
+            v["c"] = (None,
+                      f"UNEVALUABLE. The launch grouping is not usable: "
+                      f"{len(launches)} launch(es), records per launch "
+                      f"{sorted(sizes)}. A paired test needs the pairs. This "
+                      f"is reported as unevaluable and never as a refutation, "
+                      f"because a sign test over one group is not evidence "
+                      f"against anything. See D47")
+            w = n = 0
+        else:
+            w, n = launch_sign("0", lo, hi)
+            p = sign_p(w, n)
+            v["c"] = (w >= 27,
+                      f"contended, {lo} cheaper than {hi} in {w} of {n} "
+                      f"launches, exact two-sided sign test p={p:.3e}, "
+                      f"against 27 of 30. "
+                      + ("The point estimate and the launch-by-launch "
+                         "ordering agree" if w >= 27 else
+                         "The ordering does not hold launch by launch. Where "
+                         "(b) grouped the two arms that is the consistent "
+                         "reading and not a contradiction, because a "
+                         "difference of this size has no stable sign. Where "
+                         "(b) separated them it would be a contradiction, "
+                         "and that is not what happened here"))
 
         sc, sr = spread("0"), spread("1")
         v["d"] = (sr is not None and sc is not None and sr < sc,
@@ -191,8 +234,11 @@ def main():
                       if cells[("seqcst", "0")] < cells[("acqrel", "0")]
                       else ("acqrel", "seqcst"))
             w, n = launch_sign("0", lo, hi)
+            pv = sign_p(w, n)
+            # Both forms, because the manuscript quotes a p of this size in
+            # decimal and the provenance gate matches the literal string.
             print(f"h90_sign contended cheaper={lo} wins={w} of={n} "
-                  f"p={sign_p(w, n):.3e} threshold=27")
+                  f"p={pv:.3e} p_decimal={pv:.4f} threshold=27")
         print("h90_band group_with_acqrel_at_or_above=0.90 "
               "group_with_fencedstore_at_or_below=0.50 "
               "sign_threshold=27 launches=30")
