@@ -36,7 +36,7 @@ use titan_platform::kperf::{events, Kperf, Session};
 use titan_platform::qos::{self, Qos};
 use titan_platform::rusage::Usage;
 use titan_spsc::barrier::{FencedLoad, FencedStore, Unordered};
-use titan_spsc::order::{AcqRel, Fenced, Order};
+use titan_spsc::order::{AcqRel, Fenced, Order, SeqCst};
 use titan_spsc::pad::{IndexCell, Pad128};
 use titan_spsc::ring::{channel, same_line_128};
 use titan_spsc::wait::{Spin, SpinHint, Wait, Wfe, Yield};
@@ -211,6 +211,28 @@ fn wait_sweep() -> bool {
     *F.get_or_init(|| std::env::args().any(|a| a == "waitsweep"))
 }
 
+/// Sweep ordering strength rather than wait strategy or capacity.
+///
+/// The measured arms until now were AcqRel and FencedStore, which on this
+/// part are `ldapr` acquire against `ldapr` acquire with `dmb ish` before a
+/// plain store. Those are the two ends of a three-point spectrum and the
+/// middle point was never run, although it has been implemented the whole
+/// time: `SeqCst` lowers to `ldar`, the RCsc acquire, which orders against
+/// earlier loads in a way `ldapr` does not and still costs no explicit
+/// barrier.
+///
+/// Measuring it separates two accounts of the central result that the two-arm
+/// comparison cannot tell apart: that the cost difference comes from the
+/// acquire flavour, or that it comes from the explicit barrier. The arms are
+/// otherwise identical, so the ring, the slot, the padding, the wait strategy
+/// and the epoch structure are held fixed and only the index access policy
+/// moves.
+fn ord_sweep() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "ordsweep"))
+}
+
 /// Vary the ring capacity at a fixed arm and wait strategy.
 fn cap_sweep() -> bool {
     use std::sync::OnceLock;
@@ -376,7 +398,20 @@ fn main() {
     // its regression across them was unevaluable. That is D29. Ring capacity is
     // a lever that acts on both: a smaller ring forces the producer to wait on
     // the consumer's cursor more often whatever the ordering costs.
-    let cases: Vec<(Case, bool)> = if cap_fine() {
+    let cases: Vec<(Case, bool)> = if ord_sweep() {
+        // Three ordering policies, each contended and each resident. The
+        // contended cells decide H90; the resident cells are the control,
+        // because an ordering spread that survives line residency is not
+        // about coherence traffic.
+        vec![
+            (case::<AcqRel, Pad128, SpinHint, false>, true),
+            (case::<SeqCst, Pad128, SpinHint, false>, true),
+            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<AcqRel, Pad128, SpinHint, true>, true),
+            (case::<SeqCst, Pad128, SpinHint, true>, true),
+            (case::<FencedStore, Pad128, SpinHint, true>, true),
+        ]
+    } else if cap_fine() {
         vec![
             (case::<AcqRel, Pad128, SpinHint, false>, true),
             (case::<AcqRel, Pad128, SpinHint, false>, true),
@@ -443,7 +478,9 @@ fn main() {
         pmu.is_some(),
         if producer_side() { "producer" } else { "consumer" },
         probe_spec().name,
-        if cap_fine() {
+        if ord_sweep() {
+            "ordsweep"
+        } else if cap_fine() {
             "capfine"
         } else if cap_sweep() {
             "capsweep"

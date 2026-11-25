@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Ninety three pre-registered hypothesis rows, forty eight of them refuted and published. One Apple M4 performance core." width="100%">
+  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Ninety four pre-registered hypothesis rows, forty eight of them refuted and published. One Apple M4 performance core." width="100%">
 </p>
 
 <p align="center">

@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-24: forty four closed, none partly closed, none open. Forty four entries in all.**
+**Status at 2026-11-25: forty five closed, none partly closed, none open. Forty five entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -1988,3 +1988,44 @@ requires all of them to exist so that naming a file one does not use cannot
 widen the search, and checks each quoted number against their union. Confirmed
 to fail on a fabricated caption number before being trusted: a figure quoting
 9.9999 is refused and the message names both files it searched.
+## D45. I said a paper was absent from the bibliography without reading the
+bibliography, for the second time
+
+**Found** 2026-11-25, by bibtex refusing a duplicate key within a minute of my
+making one.
+**Severity** none to the manuscript, which is why it is recorded. Nothing
+shipped. The entry was reverted before any build and the manuscript is
+byte-identical to what it was.
+
+Khayet and Morrison, ASPLOS 2026, is the nearest prior work to this paper. I
+asserted that the manuscript did not cite it, verified its metadata from the
+publisher's PDF, added a bibliography entry, and wrote a Related Work
+subsection positioning this work against it.
+
+All of that was already there. The entry sat at line 30 of refs.bib with
+fuller metadata than the one I added, including publisher, address and ISBN.
+The manuscript cited it twice, once in the Introduction at line 116 with the
+95.3 percent counterexample attached, and once in a Related Work subsection
+titled "The deferred measurement" that covers their experimental scope, their
+statistical practice and three relations to this work. The subsection I wrote
+restated the same argument a third time and would have made the paper worse.
+
+**This is the second occurrence of D38.** There, I reported Mytkowicz absent,
+added a duplicate key, and the build caught it. The fault is identical in
+shape: an assertion about what a file contains, made without reading the file,
+on a question a single grep settles in under a second. Twice is a pattern and
+not an accident.
+
+**What caught it.** Bibtex refused the duplicate key immediately, so the cost
+was a reverted edit rather than a published duplicate. The duplicate-key check
+in check_claims_semantics.py covers the same fault independently. Neither of
+them can catch the more expensive half, which is the redundant subsection: no
+check in this suite reads the manuscript for whether a new section repeats an
+argument already made. Reading it before writing is the only control, and that
+is a procedural rule rather than a gate.
+
+**CLOSED 2026-11-25** Duplicate entry reverted, redundant subsection discarded,
+manuscript unchanged apart from the hypothesis count that H90's registration
+required. The rule, written down because stating it twice has not been enough:
+before claiming a reference, a section or a result is absent, grep for it. The
+claim costs one second to check and two occurrences to learn.

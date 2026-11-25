@@ -7,7 +7,7 @@ abstract: >-
   cycle-level study of memory-ordering cost in a single-producer
   single-consumer ring on a fanless Apple M4. Includes the measurement
   harness, a user-space interface to the Apple performance monitoring unit,
-  every raw run, a register of 93 pre-registered hypothesis rows with their
+  every raw run, a register of 94 pre-registered hypothesis rows with their
   verdicts, a register of 44 logged defects in the authors' own method, and
   eleven automated checks that refuse a manuscript whose numbers, thresholds
   or figures do not match the files they are drawn from. The checks are
