@@ -231,8 +231,25 @@ explanation is not excluded: a barrier changes how far the producer runs ahead
 of the consumer, and instrumenting ring occupancy inside the hot loop would
 perturb the quantity being measured.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig-clock.pdf}
+\caption{The clock each arm actually ran at, with its interval, in both
+caching states. The paper reports costs in cycles, and that is only legitimate
+if the arms being compared ran at comparable frequencies: on a fanless part the
+clock is a property of the workload and its duration rather than of the
+machine, and it varies by a factor of four across the runs in this study. The
+arms here agree closely enough that the cycle comparisons are not frequency
+differences in disguise, which is why every table in this paper carries the
+clock measured in its own arm rather than a nominal figure. Drawn from
+\texttt{results/\allowbreak 2026-11-17\_\allowbreak m4\_\allowbreak barrier.txt}.}
+\label{fig:clock}
+\end{figure}
+
 The results are from one Apple M4 in one fanless chassis, one ring, one padding
-and one wait strategy, on performance cores. A cross-architecture control on
+and one wait strategy, on performance cores. Figure~\ref{fig:clock} shows that the compared arms
+ran at comparable clocks, so the cycle comparisons are not frequency
+differences in disguise. A cross-architecture control on
 x86-64 is reported, and it is reported with the limitation that the host is
 virtualized and exposes no frequency-scaling interface at all, so on that host
 the absence of the run-length effect and the invisibility of the clock cannot
