@@ -741,7 +741,7 @@ Everything behind this paper is archived under a persistent identifier:
 \url{https://github.com/Nayan991111/titan-hft}. The archive carries 331461
 committed records across 55 results files, the measurement harness, the
 user-space interface to the performance monitoring unit, the registration
-table of 94 hypothesis rows, the defect register of 54 entries, the analysis
+table of 94 hypothesis rows, the defect register of 55 entries, the analysis
 scripts, the eleven checks of Section~\ref{sec:gates} and this manuscript's
 source. The checks are documented separately, in \texttt{docs/gates.md}, so
 that a reader can adopt them without adopting anything else from this project.
@@ -1343,6 +1343,23 @@ the schedule decides how the race resolves. We draw the obvious inference and
 state it as a threat to anyone else's validity as much as ours: passing a
 correctness check under one thread arrangement is not evidence that a
 memory-ordering implementation is correct.
+
+\subsection{Whether the cost floor is a fair baseline}
+
+The ordering fraction compares an incorrect arm against a correct one, so a
+reader is right to ask whether the gap measures ordering or measures work the
+compiler removed once it was free to reorder. The instruction census answers
+it. On the consuming path the unordered arm emits 18 instructions against 19
+for acquire-release, and on the producing path 20 against 23. Every arm carries
+the same loop shape: two conditional branches, two compares, one pair load and
+two returns. The compiler did not restructure the loop when the ordering was
+removed; it deleted the ordering and left everything else standing.
+
+One to three instructions of difference accompany a factor of 21 in cycles.
+That disproportion is the point. If the unordered arm were cheap because less
+work is done, the instruction counts would show it and they do not. The
+fraction therefore bounds what the ordering semantics cost on this part, not
+what the optimiser recovered, and the bound is what we claim.
 
 \subsection{Statistics}
 

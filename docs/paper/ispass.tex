@@ -983,6 +983,23 @@ them. Its incorrectness is a race and the schedule decides how the race
 resolves. Passing a correctness check under one thread arrangement is not
 evidence that a memory-ordering implementation is correct.
 
+\textbf{Whether the cost floor is a fair baseline.}
+The ordering fraction compares an incorrect arm against a correct one, so a
+reader is right to ask whether the gap measures ordering or measures work the
+compiler removed once it was free to reorder. The instruction census answers
+it. On the consuming path the unordered arm emits 18 instructions against 19
+for acquire-release, and on the producing path 20 against 23. Every arm carries
+the same loop shape: two conditional branches, two compares, one pair load and
+two returns. The compiler did not restructure the loop when the ordering was
+removed; it deleted the ordering and left everything else standing.
+
+One to three instructions of difference accompany a factor of 21 in cycles.
+That disproportion is the point. If the unordered arm were cheap because less
+work is done, the instruction counts would show it and they do not. The
+fraction therefore bounds what the ordering semantics cost on this part, not
+what the optimiser recovered, and the bound is what we claim.
+
+
 \textbf{Statistics and resolution.} The inferential statistic throughout is the
 exact two-sided sign test over independent launches, assuming only that
 launches are exchangeable. Ninety-four hypothesis rows are registered, a

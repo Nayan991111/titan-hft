@@ -51,6 +51,13 @@ EXPERIMENTS = ROOT / "docs" / "experiments.md"
 # The script evaluates the expression and requires it to round to the printed
 # value, so an edit to either side is caught.
 DERIVED: dict[str, tuple[str, int]] = {
+    # The cost-floor fairness argument in Threats. Instruction totals per
+    # arm are sums over the per-opcode tallies on the census summary lines
+    # of results/census-aarch64.txt. 18 and 20 appear in that file as
+    # written; 19 and 23 are these sums and are declared as such, because
+    # a number this file computes is not a number the file contains.
+    "19": ("2+1+2+2+1+1+4+2+2+1+1", 0),
+    "23": ("2+1+2+2+1+1+5+2+2+1+2+2", 0),
     # Section 4 and the run-length subsection, arithmetic over H86 figures that
     # are themselves in results/2026-11-22_m4_h86_issue.txt.
     "7.77": ("100 * 16.9888 / 218.525", 2),
@@ -106,6 +113,11 @@ EXTERNAL: dict[str, str] = {
 # the shape of that result in words instead, and a number goes in only when
 # the file holding it is in the repository.
 CITED: dict[str, str] = {
+    # The cost-floor fairness argument. Instruction counts per arm come
+    # from the committed census, summed over the per-opcode tallies on the
+    # titan_census_pop_ and titan_census_push_ summary lines.
+    "18": "census-aarch64.txt",
+    "20": "census-aarch64.txt",
     # The wait-strategy result. Each of these is emitted into that file by
     # scripts/h88_verdicts.py --emit at the precision quoted here.
     "0.9661": "2026-11-23_m4_h88_waitstalls.txt",
