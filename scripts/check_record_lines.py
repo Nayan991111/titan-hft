@@ -93,6 +93,43 @@ def main():
     allowed = sum(LEGACY.values())
     print(f"checked {len(files)} result file(s), {checked} line(s), {records} record(s), "
           f"0 new prose lines wearing a record prefix ({allowed} allowlisted from 11 and 12 November)")
+
+    # The manuscript's Artifact subsection described the archive it ships with:
+    # a record total, a results-file count and the size of the defect register.
+    # All three were written once and never revisited. They said 330921 records
+    # across 54 files and a register of 44 entries, against 331461 across 55 and
+    # a register of 52. No gate compared them, because this script computes the
+    # true totals and only printed them. The numbers are now compared here,
+    # where they are already known, rather than recomputed somewhere else: a
+    # second implementation of the count would be a copy of the thing it audits
+    # rather than a check on it, which is the mistake D48 recorded. D53.
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    tex = (root / "docs" / "paper" / "main.tex").read_text(encoding="utf-8")
+    defects = (root / "docs" / "defects.md").read_text(encoding="utf-8")
+    entries = defects.count("**CLOSED")
+    art = []
+    m = re.search(r"carries (\d+)\s*\n?\s*committed records across (\d+) results files", tex)
+    if not m:
+        m = re.search(r"carries (\d+)[\s\n]+committed records across (\d+)[\s\n]+results files", tex)
+    if not m:
+        art.append("main.tex no longer states the archive's record and file counts "
+                   "in a form this check can read")
+    else:
+        if int(m.group(1)) != records:
+            art.append(f"main.tex says {m.group(1)} committed records; the files hold {records}")
+        if int(m.group(2)) != len(files):
+            art.append(f"main.tex says {m.group(2)} results files; {len(files)} are tracked")
+    d = re.search(r"defect register of (\d+) entries", tex)
+    if not d:
+        art.append("main.tex no longer states the size of the defect register")
+    elif int(d.group(1)) != entries:
+        art.append(f"main.tex says a defect register of {d.group(1)} entries; "
+                   f"docs/defects.md holds {entries}")
+    if art:
+        for a in art:
+            print("FAIL: " + a)
+        return 1
     return 0
 
 

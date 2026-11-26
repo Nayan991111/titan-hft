@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-26: fifty two closed, none partly closed, none open. Fifty two entries in all.**
+**Status at 2026-11-26: fifty three closed, none partly closed, none open. Fifty three entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2322,3 +2322,35 @@ Two dead labels remain in main.tex, sec:method and sec:queueing, with no \ref
 to either. They are harmless, invisible to a reader and to every gate, and
 removing them would be a deletion with nothing gained, so they are recorded
 here and left.
+
+## D53. The manuscript's own Artifact subsection described an archive that no
+## longer existed, and the gate that knows the true numbers only printed them
+
+**CLOSED 2026-11-26** The Artifact subsection tells a reviewer what they are
+being handed: the record total, the number of results files and the size of
+the defect register. It said 330921 committed records across 54 results files
+and a defect register of 44 entries. The files hold 331461 records across 55,
+and the register holds 53.
+
+This is the same drift as D49, D50, D51 and D52, and this time it is in the
+manuscript rather than in a document beside it. The README is read by whoever
+finds the repository. This paragraph is read by the reviewer deciding whether
+the artifact is what the paper claims, and the first thing such a reader does
+is count what they were given. Three numbers that do not match the archive,
+in the paragraph describing the archive, is the worst possible place for this
+class of error.
+
+The 44 is the same stale figure D50 found on the front page. It was corrected
+there and not here, because that fix was shaped to the README. Four defects in
+a row have now been one artifact drifting while its neighbour was gated.
+
+check_record_lines.py already computed the record total and the file count on
+every run and printed them for a human to read. Nothing compared them to the
+prose that quotes them. They are now compared inside that script, where the
+numbers are already known, rather than recounted somewhere else: a second
+implementation of the count would be a copy of the thing it audits rather than
+a check on it, which is what D48 recorded. The defect register's size is read
+from its own closed markers in the same place.
+
+Confirmed in both directions: the extended gate names all three stale figures
+in the manuscript as it stood, and passes once they are corrected.
