@@ -25,11 +25,11 @@ resident in L1. That a store-release can cost more than a stronger barrier has
 been reported before without a condition attached. Three conditions that decide
 it are measured here.
 
-The second is what the protocol itself revealed. Seven of the thresholds
+The second is what the protocol itself revealed. Eight of the thresholds
 pre-registered for this study were precise, checkable, honoured exactly as
 written, and not tests of the claims they were written for. **Pre-registration
-fixes a threshold; it does not aim one.** The seven instances, the register of
-44 defects they came from, and eleven automated checks that refuse a manuscript
+fixes a threshold; it does not aim one.** The eight instances, the register of
+50 defects they came from, and eleven automated checks that refuse a manuscript
 whose numbers or figures disagree with the files they come from are all here.
 The checks are documented in [docs/gates.md](docs/gates.md) so another project
 can adopt them without taking anything else from this one.

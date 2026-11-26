@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-26: forty nine closed, none partly closed, none open. Forty nine entries in all.**
+**Status at 2026-11-26: fifty closed, none partly closed, none open. Fifty entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2209,3 +2209,36 @@ names both occurrences rather than the first.
 The gate spells numbers between twenty and ninety nine and exits if the
 register leaves that range, so a hundredth hypothesis stops the build with a
 message rather than silently passing an unchecked claim.
+
+## D50. The front page described the paper's second contribution with the wrong
+## number, and counted the defect register at a size it left behind five
+## entries ago
+
+**CLOSED 2026-11-26** The README opened its account of the second contribution
+with "Seven of the thresholds" and repeated it as "The seven instances". The
+paper's title says eight, and its discussion says all eight. D46 raised the
+taxonomy from seven to eight when the spread registered for H90 part (d) was
+found to be a magnitude written against a claim about reversal, and the front
+page was never revisited. So the first thing any reader met was a count that
+the paper itself contradicts in its title.
+
+In the same sentence the README described "the register of 44 defects". The
+register held forty nine. The number was true when it was written and nothing
+updated it, five entries ago.
+
+This is D48 again at a different address. There, a figure on the front page
+drifted from the register because nothing compared them. The fix gated the
+figure. It did not gate the prose beside it, and the prose drifted next. Each
+time the lesson has been applied only to the specific artifact that failed.
+
+The cost was not hypothetical. An outside reader summarising this repository
+quoted "44 logged defects" back to us, having taken it from the README. A
+stale number on a front page does not stay on the front page.
+
+Both counts now come from the files that own them.
+check_claims_semantics.py derives the defect count from the closed markers in
+this register and the threshold count from the paper's own title, and refuses
+a README that disagrees with either. It was confirmed to refuse the README as
+it stood, naming all three occurrences rather than the first. It also refuses
+a README that stops stating the counts at all, so the check cannot be
+satisfied by deleting the claim.

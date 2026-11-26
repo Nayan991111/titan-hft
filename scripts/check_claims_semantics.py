@@ -246,6 +246,37 @@ def main():
         if f"## {d}." not in reg:
             bad.append(f"{d} is enforced here but absent from docs/defects.md")
 
+    # The README is the front page and nothing checked a single number in it
+    # against the repository it describes. It claimed a register of 44 defects
+    # while the register held 49, and it described the paper's second
+    # contribution as seven thresholds while the paper's own title said eight,
+    # because D46 raised the taxonomy and the front page was not revisited.
+    # A reader met the wrong count before reaching the paper, and a third party
+    # quoted the stale 44 back to us. D50. Both counts are now derived from the
+    # files that own them and the README must agree.
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    closed = reg.count("**CLOSED")
+    stated = re.findall(r"register of\s+([\w-]+)\s+defects", readme)
+    if not stated:
+        bad.append("README no longer states the size of the defect register; "
+                   "this check exists to keep that number true")
+    for s in stated:
+        if s != str(closed):
+            bad.append(f"README says 'register of {s} defects' but "
+                       f"docs/defects.md holds {closed} closed entries")
+
+    title = re.search(r"and (\w+) Pre-Registered Thresholds", tex)
+    if not title:
+        bad.append("main.tex title no longer names the threshold count")
+    else:
+        want = title.group(1).lower()
+        for phrase in (r"(\w+) of the thresholds", r"The (\w+) instances"):
+            for s in re.findall(phrase, readme):
+                if s.lower() != want:
+                    bad.append(
+                        f"README says '{s}' where the paper's title says "
+                        f"'{title.group(1)}' thresholds; the two must agree")
+
     print(f"table: {h} hypothesis rows, {e} exploratory rows")
     if bad:
         for b in bad:
