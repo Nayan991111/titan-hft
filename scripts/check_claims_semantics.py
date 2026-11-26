@@ -282,6 +282,25 @@ def main():
         if int(c) != tests:
             bad.append(f"README says {c} tests; the tree holds {tests} #[test] attributes")
 
+    # Only main.tex was ever checked. While compressing the ISPASS variant a
+    # citation key was written from memory, hoefler2015scientific, which does
+    # not exist in refs.bib and never did: the paper has no Hoefler entry. It
+    # reached a compiled PDF and was caught by a LaTeX warning rather than by
+    # anything here, because ispass.tex is not a gated file. A fabricated
+    # citation is the one error this project cannot afford, so every .tex in
+    # docs/paper is now checked, not the one that happens to be the main
+    # document. D56.
+    bibkeys = set(re.findall(r"^@\w+\{([^,]+),",
+                             (ROOT / "docs" / "paper" / "refs.bib").read_text(encoding="utf-8"),
+                             re.M))
+    for texf in sorted((ROOT / "docs" / "paper").glob("*.tex")):
+        used = set()
+        for m in re.findall(r"\\cite[tp]?\{([^}]*)\}",
+                            texf.read_text(encoding="utf-8", errors="replace")):
+            used |= {c.strip() for c in m.split(",")}
+        for k in sorted(used - bibkeys):
+            bad.append(f"{texf.name} cites {k}, which is not in refs.bib")
+
     # Eight binaries existed that the README named nowhere, titan-barrier among
     # them. That is the binary the headline result comes from, so the Reproduce
     # section carried no command for the paper's central claim: a reader could

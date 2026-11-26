@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-26: fifty five closed, none partly closed, none open. Fifty five entries in all.**
+**Status at 2026-11-26: fifty six closed, none partly closed, none open. Fifty six entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2417,3 +2417,36 @@ other is exactly the laundering the provenance gate exists to prevent. They are
 now declared as derived sums with the arithmetic written out. The gate caught
 its own author attempting the substitution it was built to stop, which is the
 only evidence that matters for whether a check works.
+
+## D56. A citation key was written from memory into the ISPASS variant and the
+## reference it named does not exist
+
+**CLOSED 2026-11-26** While compressing Related Work for the nine-page variant,
+a sentence on reporting standards was attributed to Georges et al. and to
+Hoefler and Belli, citing hoefler2015scientific. There is no Hoefler entry in
+refs.bib and there never has been. The key was written from memory because the
+name appears in the repository's README among the influences on the protocol,
+and the distance between an influence named on a front page and a reference the
+bibliography carries is exactly the distance that fabricates a citation.
+
+It reached a compiled PDF. Nothing in this project caught it. It surfaced as a
+LaTeX warning about an undefined citation, which is visible only to whoever
+reads the build log, and the eleven gates said nothing because every one of
+them reads main.tex and ispass.tex is not a gated file. The variant was created
+three commits ago and inherited none of the protection the manuscript has.
+
+A fabricated citation is the single error this project cannot afford. Every
+other defect in this register is a number that drifted or a claim that outran
+its evidence, and all of them are recoverable. A reference to a paper that was
+not consulted is not a drift, and a reviewer who finds one stops reading.
+
+The citation is removed and the sentence now attributes the reporting standard
+to Georges et al. alone, which refs.bib carries. No other key in either
+document is fabricated: all 30 in each resolve.
+
+check_claims_semantics.py now reads every .tex file in docs/paper rather than
+the main document, collects every cite key, and refuses any that refs.bib does
+not define. Confirmed both ways. The general lesson is the one this register
+keeps recording in different forms: a check written for the artifact that
+exists does not cover the artifact added later, and the ISPASS variant will
+need the rest of the gates pointed at it before it is submitted.

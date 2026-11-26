@@ -140,10 +140,9 @@ different epoch counts agree on the contended figure to one part in a thousand.
 The obvious explanation is excluded by the counters, within the scope the
 counters actually cover: on the consuming thread, the barrier arm carries more
 L1D load misses than the acquire-release arm in every configuration and is
-faster when contended anyway. The qualifier is not decoration. Counting is per
-thread on this unit, the measuring thread ran the consumer, and the two arms
-differ in the instruction the producer executes, so this observation bounds the
-consumer's load traffic and says nothing about the producer's.
+faster when contended anyway. Counting is per thread on this unit and the
+measuring thread ran the consumer, so this bounds the consumer's load traffic
+and says nothing about the producer's.
 
 \item \textbf{The effect is localised to the store side, by a pre-registered
 cross of the two halves.} We measure four correct rings formed by crossing the
@@ -166,25 +165,19 @@ cheapest contended ring is the dearest resident one.
 The core clock on this part tracks elapsed busy time rather than work
 completed. A comparison that is stable in principle therefore moves by a stated
 16.33 times between 200,000 and 10,000,000 messages, and the ordering that is
-cheapest at the short run length is the dearest at the long one. This is a
-post-2009 instance of the general phenomenon named by Mytkowicz et
-al.~\cite{mytkowicz2009wrong}, whose demonstrated bias sources were UNIX
-environment size and link order; duration-driven frequency scaling and
-heterogeneous core residency did not exist on a general-purpose CPU at that
-time.
+cheapest at the short run length is the dearest at the long one. This is a post-2009 instance of the
+phenomenon named by Mytkowicz et al.~\cite{mytkowicz2009wrong}, from a bias
+source that did not exist on a general-purpose CPU at that time.
 
 \item \textbf{The lead results reproduce across time and a platform revision,
 not merely across a re-analysis.} The barrier cross was re-run in full, 30
 fresh launches three days after the original, on a macOS build the original
 did not run on. The contended inversion returned at 2.5401 against a published
 2.57, the resident one at 2.5146 against 2.75 with its sign intact, and both
-caching rankings came back identical arm for arm. The arrival process result
-was re-run the same way, 30 fresh launches two days later across the same
-operating system update: the peak of the random over periodic curve returned
-within 0.4 to 2.4 percent and the median within 0.7 percent of the original.
-Both replications were registered with their tolerances before either ran, and
-both retain every record, so each statistic above is recomputable from the
-committed data rather than quoted from a summary.
+caching rankings came back identical arm for arm. The replication was
+registered with its tolerances before it ran and retains every record, so each
+statistic above is recomputable from committed data rather than quoted from a
+summary.
 
 \item \textbf{A protocol built so the conclusions survive the hazard.} Every
 comparison here is pre-registered with pass and fail thresholds fixed before
@@ -202,15 +195,13 @@ nanoseconds, because the counters require root and an unattended script must
 not carry a password prompt, and a nanosecond ratio is a work ratio only if the
 arms ran at similar clocks. Reading the counters directly over 30 launches and
 900 records gives 2.5766 contended and 2.7008 resident, each at 30 of 30.
-Recomputing the nanosecond ratios from the earlier run's committed records with
-the same aggregation puts the contended figure 2.1 percent from its cycle
-counterpart and the resident figure 7.3 percent from its own. The frequency
-difference between the compared arms is 1.0086 contended and 1.0611 resident,
-which accounts for the gap. The registered check on frequency spread was
-written over all five arms rather than the compared pair and failed at 1.1922,
-driven by the unordered cost floor at 10.198 cycles per message against 83.579.
+The frequency difference between the compared arms is 1.0086 contended and
+1.0611 resident, which accounts for the gap between the two readings. The
+registered check on frequency spread was written over all five arms rather than
+the compared pair and failed at 1.1922, driven by the unordered cost floor.
 That specification fault is recorded rather than repaired after the fact, and
-the consequence registered before the run stands: the figures above are cycles.
+the consequence registered before the run stands: the figures above are
+cycles.
 Across the committed runs the measured clock spans a factor of four, and every
 table carries the clock measured in its own arm rather than a nominal figure,
 so the cycle comparisons are not frequency differences in disguise.
@@ -258,9 +249,8 @@ systems evaluation can reverse a conclusion and is commonplace, surveying 133
 papers without finding one that adequately considered it; Curtsinger and
 Berger~\cite{curtsinger2013stabilizer} randomise layout to remove it, and
 Zaparanuks et al.~\cite{zaparanuks2009accuracy} show the counters themselves
-carry error. Georges et al.~\cite{georges2007statistically} and Hoefler and
-Belli~\cite{hoefler2015scientific} set the reporting standard this paper
-follows, and Collberg and Proebsting~\cite{collberg2016repeatability} measured
+carry error. Georges et al.~\cite{georges2007statistically} set the
+reporting standard this paper follows, and Collberg and Proebsting~\cite{collberg2016repeatability} measured
 how rarely published systems work can be rebuilt at all. The second result here
 is an instance of Mytkowicz's phenomenon rather than a rediscovery of it, and
 the distinction is the bias source: core frequency on this part is a function
@@ -492,47 +482,6 @@ otherwise, paired within launch, with the exact two-sided sign test over
 launches as the inferential statistic. Each number appears in the results file
 named beside it, and the gate described in Section~\ref{sec:gates} refuses a
 manuscript that quotes a figure absent from those files.
-
-\subsection{Arrival clustering costs what the variability term predicts, and
-not what the Fano factor does}
-
-The contrast holds quantile by quantile. At a fixed mean rate, replacing a periodic arrival schedule with a clustered one
-raises service latency by a factor that queueing theory predicts only if the
-right dispersion measure is used. Over the clustered arms the Fano factor of
-counts moves from 24.79 to 25.78, a ratio of 1.040, while the squared
-coefficient of variation of interarrival times moves from 1.1005 to 8.1921,
-which through Kingman's heavy-traffic term predicts 7.444. Measured, the cost
-ratio is 6.2317 at the median, 1748.0\,ns against 280.5\,ns, and 13.5030 at the
-quantile where the contrast peaks, 11356.0\,ns against 841.0\,ns, in 30 of 30
-launches at $p = 1.86\times10^{-9}$. The Fano prediction is wrong by a factor
-of thirteen and the variability prediction is wrong by less than a factor of
-two.
-
-This is not a subtlety about which statistic one prefers. For a renewal process
-the Fano factor converges to the squared coefficient of variation, so the two
-agree and the distinction is invisible. A Hawkes process is not renewal, and
-these two measures of the same schedule diverge by a factor of seven. A study
-that reports burstiness as a Fano factor and then appeals to Kingman has
-measured one quantity and reasoned about another.
-
-Figure~\ref{fig:ccdf} shows the same arms as survival curves. The effect survives the waiting strategy. The peak contrast is 14.3415 under an
-\texttt{isb}-based spin and 14.4450 under \texttt{wfe}, against 13.5030 under a
-plain spin, so it is a property of the arrival schedule rather than of how the
-consumer idles. Figures are drawn from
-\texttt{results/\allowbreak 2026-11-20\_\allowbreak m4\_\allowbreak h74\_\allowbreak beta.txt}.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig-ccdf.pdf}
-\caption{Survival curves with burstiness as the only variable: a periodic
-reference against three clustered arms at the same mean rate, over log-spaced
-quantiles gated so that no plotted point rests on fewer than ten observations.
-The arms are indistinguishable through the body of the distribution and
-separate only in the tail, which is why a comparison of means or of a single
-percentile understates the effect. Drawn from
-\texttt{results/\allowbreak 2026-11-18\_\allowbreak m4\_\allowbreak burst.txt}.}
-\label{fig:ccdf}
-\end{figure}
 
 \subsection{The ordering comparison, read in cycles}
 \label{sec:cycles}
@@ -771,56 +720,40 @@ that shares none of those arms. Both say the cost is on the store side.
 \subsection{The comparison does not depend on how the consumer waits}
 \label{sec:wait}
 
-The
-rest of it is the detail behind the three panels.
-
 Every figure above is measured with one wait strategy, an \texttt{isb}-based
 spin, and a parameter held constant across every run of a study is invisible
-inside it. Varying it last, as we did, is the reason this subsection exists at
-all.
+inside it. Varying it last is the reason this subsection exists.
 
-Holding the two arms fixed and varying only the wait strategy, the cost ratio of
+Holding the arms fixed and varying only the wait strategy, the cost ratio of
 the barrier arm to the release-store arm is 0.4161 under a plain spin, 0.3849
 under the \texttt{isb} spin, 0.3945 under a yielding wait and 0.4532 under
-\texttt{wfe}. The spin against \texttt{isb} comparison is
-1.0809, inside a pre-registered band of 1.25, and the four values span less
-than a fifth of their own size.
-The central result of this paper is a property of the ordering constructs and
-not of the idling strategy, which no earlier run in this study had established.
+\texttt{wfe}. The spin against \texttt{isb} comparison is 1.0809, inside a
+registered band of 1.25, and the four values span less than a fifth of their
+own size. The central result is a property of the ordering constructs and not
+of the idling strategy, which no earlier run had established.
 
 The stall decomposition does not survive the same test, and we report it as
 conditional rather than quietly keeping it. The frontend share of the
 acquire-release arm's cycles is 0.9661 under the \texttt{isb} wait and 0.0542
-under a plain spin. A context-synchronizing instruction in the wait loop forces
-an instruction refetch on every iteration, the two arms differ in how many
-iterations they spin, and so they differ in how much frontend stall they
-accumulate. Under every wait strategy that does not contain one, both arms are
-backend bound, and the ratio of backend stall cycles between them is 0.3511
-under a plain spin against a cost ratio of 0.4161, so the cost difference is
-accounted for by backend stall and slightly over-accounted.
+under a plain spin: a context-synchronizing instruction in the wait loop forces
+an instruction refetch every iteration, and the arms differ in how many
+iterations they spin. Under every wait strategy without one, both arms are
+backend bound, and the ratio of backend stall cycles is 0.3511 under a plain
+spin against a cost ratio of 0.4161, so the difference is accounted for by
+backend stall and slightly over-accounted. That is a mechanism in the memory
+system rather than the frontend, and it is what a reader would expect of a
+memory-ordering experiment. We do not claim it, because it was found after the
+thresholds that would have tested it were written, and fitting a threshold to
+data already seen is the practice this protocol exists to prevent.
 
-That is a mechanism in the memory system rather than the frontend, and it is the
-answer a reader would expect of a memory-ordering experiment. We do not claim it
-here, because it was found after the thresholds that would have tested it were
-written, and fitting a threshold to data already seen is the practice this
-protocol exists to prevent. No registered test of it exists yet.
-
-What we do claim is the correction it forces, and we ran that correction rather
-than leaving it outstanding. One result in this study, the exclusion of pipeline
-throttling as the mechanism, rested on a ratio of issue-active fractions taken
-under the \texttt{isb} wait. Re-measured across all four wait strategies, with
-the thresholds and all three outcomes fixed beforehand, the acquire-release arm
-issues on 0.550940 of its cycles under a plain spin against 0.077303 under
-\texttt{isb}: the wait loop suppressed the quantity the earlier comparison
-divided. Under \texttt{isb} the fenced-store arm's issue-active fraction is
-2.6935 times the acquire-release arm's, which replicates the figure the
-exclusion rested on, so the earlier measurement was sound. Under a plain spin
-the same ratio is 1.0800, inside the band registered in advance as the
-inconclusive outcome. The two arms issue on fractions of their cycles that this
-experiment cannot distinguish, and the conclusion drawn from the earlier ratio
-does not survive. This paper therefore does not claim that pipeline throttling
-is excluded. The account is neither excluded nor supported, and we report it as
-open.
+We do claim the correction it forces, and we ran it. The exclusion of pipeline
+throttling rested on a ratio of issue-active fractions taken under the
+\texttt{isb} wait. Re-measured across all four strategies with thresholds and
+all three outcomes fixed beforehand, the acquire-release arm issues on 0.550940
+of its cycles under a plain spin against 0.077303 under \texttt{isb}: the wait
+loop suppressed the quantity the earlier comparison divided. The registered
+outcome is inconclusive rather than confirmed or reversed, which is why that
+threshold was written with three outcomes and not two.
 
 \subsection{A boundary, and three properties confounded inside it}
 
