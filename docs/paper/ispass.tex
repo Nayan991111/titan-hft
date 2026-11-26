@@ -82,27 +82,22 @@ pre-registration, reproducibility, artifact evaluation
 
 \section{Introduction}
 
-A feed handler that reconstructs a limit order book from an exchange multicast
-feed~\cite{maciejewski2026cme} spends its time in a loop of a few instructions: read the producer's
-cursor, read a slot, update book state, publish the consumer's cursor. The
-cursors are shared between two cores, so each read and each publish carries a
-memory-ordering obligation, and on a weakly ordered architecture that
-obligation is discharged by a specific instruction chosen by the programmer
-through a source-level annotation.
-
-Whether the cost of that obligation is worth measuring at cycle granularity
-depends on what a few hundred nanoseconds buys. In the market the feed comes
-from, it buys the race. Budish et al.~\cite{budish2015hft} argue that the speed
-race is built into continuous-time market design rather than incidental to it,
-and Aquilina et al.~\cite{aquilina2022quantifying} measure the races directly
-from exchange message data, which unlike order book data records the attempts
-that failed and therefore shows the losers: they find about one race per minute
-per symbol in FTSE 100 stocks, with the modal race decided in 5 to 10
-microseconds. A fixed cost of a few hundred nanoseconds in the hand-off between
-two cores is a visible fraction of that interval, spent before any strategy
-logic runs. The same arithmetic holds in a setting with no exchange in it, since
-Dean and Barroso~\cite{dean2013tail} show that a small per-stage latency
-component becomes the dominant one once enough stages are composed.
+A feed handler reconstructing a limit order book from an exchange multicast
+feed~\cite{maciejewski2026cme} spends its time in a loop of a few
+instructions: read the producer's cursor, read a slot, update book state,
+publish the consumer's cursor. The cursors are shared between two cores, so
+each read and each publish carries a memory-ordering obligation discharged by
+an instruction the programmer selects through a source-level annotation. The
+cost of that obligation matters because of what a few hundred nanoseconds buys.
+Budish et al.~\cite{budish2015hft} argue the speed race is built into
+continuous-time market design, and Aquilina et
+al.~\cite{aquilina2022quantifying} measure races directly from exchange message
+data, finding roughly one race per minute per symbol in FTSE 100 stocks with
+the modal race decided in 5 to 10 microseconds. A fixed cost of a few hundred
+nanoseconds in a cross-core hand-off is a visible fraction of that, spent
+before any strategy logic runs, and the same arithmetic holds with no exchange
+in it, since Dean and Barroso~\cite{dean2013tail} show a small per-stage
+component dominates once enough stages compose.
 
 The prevailing guidance for such a loop is that the weak orderings are cheap
 and should be preferred to sequential consistency, and that an explicit full
@@ -202,43 +197,39 @@ measurement files with one command.
 
 \subsection{What this paper does not claim}
 
-A third run settles which of those numbers to trust. The replication above was
-measured in nanoseconds, because the hardware counters require root and an
-unattended script must not carry a password prompt, and a nanosecond ratio is a
-work ratio only if the two arms ran at similar clocks. Reading the counters
-directly over 30 launches and 900 records gives 2.5766 contended and 2.7008
-resident, each at 30 of 30. Recomputing the nanosecond ratios from the
-committed records of the earlier run with the same aggregation puts the
-contended figure 2.1 percent from its cycle counterpart and the resident figure
-7.3 percent from its own, and the resident cycle figure within 1.8 percent of
-the originally published 2.75. The frequency difference
-between the two compared arms is 1.0086 contended and 1.0611 resident, which
-accounts for the gap. The registered check on frequency spread was written over
-all five arms rather than over the compared pair and failed at 1.1922, driven by
-the unordered cost floor, which spends 10.198 cycles per message against 83.579
-and does not hold the core at the same frequency. That specification fault is
-recorded in the repository rather than repaired after the fact, and the
-consequence registered before the run stands: the figures above are cycles.
+A third run settles which numbers to trust. The replication was measured in
+nanoseconds, because the counters require root and an unattended script must
+not carry a password prompt, and a nanosecond ratio is a work ratio only if the
+arms ran at similar clocks. Reading the counters directly over 30 launches and
+900 records gives 2.5766 contended and 2.7008 resident, each at 30 of 30.
+Recomputing the nanosecond ratios from the earlier run's committed records with
+the same aggregation puts the contended figure 2.1 percent from its cycle
+counterpart and the resident figure 7.3 percent from its own. The frequency
+difference between the compared arms is 1.0086 contended and 1.0611 resident,
+which accounts for the gap. The registered check on frequency spread was
+written over all five arms rather than the compared pair and failed at 1.1922,
+driven by the unordered cost floor at 10.198 cycles per message against 83.579.
+That specification fault is recorded rather than repaired after the fact, and
+the consequence registered before the run stands: the figures above are cycles.
+Across the committed runs the measured clock spans a factor of four, and every
+table carries the clock measured in its own arm rather than a nominal figure,
+so the cycle comparisons are not frequency differences in disguise.
 
-The mechanism behind the store-side result is a hypothesis and is reported as
-one. A release store must not become visible before prior accesses are
-observable, and with a coherence miss in flight the measured cost is consistent
-with the store stalling until that miss completes, where a barrier followed by
-a plain store pays a fixed cost once and then retires into the store buffer.
-That account would explain both the saving when the line is contended and the
-penalty when it is not. It is not established here, and a queue-occupancy
-explanation is not excluded: a barrier changes how far the producer runs ahead
-of the consumer, and instrumenting ring occupancy inside the hot loop would
-perturb the quantity being measured.
+The mechanism behind the store-side result is a hypothesis and reported as one.
+A release store must not become visible before prior accesses are observable,
+and with a coherence miss in flight the measured cost is consistent with the
+store stalling until that miss completes, where a barrier followed by a plain
+store pays a fixed cost once and retires into the store buffer. That would
+explain both the saving when the line is contended and the penalty when it is
+not. It is not established, and a queue-occupancy explanation is not excluded:
+a barrier changes how far the producer runs ahead, and instrumenting occupancy
+inside the hot loop would perturb the quantity measured.
 
 The results are from one Apple M4 in one fanless chassis, one ring, one padding
-and one wait strategy, on performance cores. Figure~\ref{fig:clock} shows that the compared arms
-ran at comparable clocks, so the cycle comparisons are not frequency
-differences in disguise. A cross-architecture control on
-x86-64 is reported, and it is reported with the limitation that the host is
-virtualized and exposes no frequency-scaling interface at all, so on that host
-the absence of the run-length effect and the invisibility of the clock cannot
-be told apart.
+and one wait strategy, on performance cores. A cross-architecture control on
+x86-64 is reported with the limitation that the host is virtualized and exposes
+no frequency-scaling interface, so there the absence of the run-length effect
+and the invisibility of the clock cannot be told apart.
 
 \section{Related Work}
 
@@ -322,123 +313,86 @@ exists; their results files say so in the field rather than leaving it blank.
 
 \subsection{The ring under measurement}
 
-The object of study is a single-producer single-consumer ring of 1024 slots,
-with the producer and consumer cursors on separate 128-byte lines, which is the
-coherence granule on this part rather than the 64 bytes an x86 port would use.
-The loop body is a cursor load, a slot access, a cursor store and a branch, and
-nothing else. That smallness is the point: it is what makes the ordering
-operation a large fraction of the work rather than a rounding error on it, and
-it is why the premise under which Khayet and Morrison defer barriers to future
-work does not hold for this loop.
+The object of study is a single-producer single-consumer ring of 1024 slots
+with the cursors on separate 128-byte lines, the coherence granule on this part
+rather than the 64 bytes an x86 port would use. The loop body is a cursor load,
+a slot access, a cursor store and a branch, and nothing else. That smallness is
+the point: it makes the ordering operation a large fraction of the work rather
+than a rounding error, and it is why the premise under which Khayet and
+Morrison defer barriers to future work does not hold here.
 
-Five orderings are compared. An acquire load paired with a release store, the
-same with a \texttt{dmb ish} barrier substituted on the load side alone, on the
-store side alone, and on both, and an unordered arm with no ordering at all.
-The instructions LLVM actually emits are recorded rather than assumed, by an
-instruction census over the compiled library. The acquire-release arm compiles
-to \texttt{ldapur} with \texttt{stlr} on the producer path and \texttt{ldapr}
-with \texttt{stlur} on the consumer path, so both the scaled and the unscaled
-RCpc forms appear and neither path uses \texttt{ldar}. Substituting the store
-side replaces that release store with \texttt{dmb ish} followed by a plain
-\texttt{str} on both paths, and adds exactly one barrier and one store to each
-census. Naming a single instruction for the store side would have been wrong:
-the two paths do not use the same one. The
-unordered arm is a cost floor and not a candidate: it fails its checksum in
-every epoch it runs, 0 of 180 passes, while each of the four correct rings
-passes 180 of 180. Reporting it as an alternative would be reporting a ring that
-does not work.
+Five orderings are compared: an acquire load paired with a release store, the
+same with \texttt{dmb ish} substituted on the load side alone, the store side
+alone, and both, and an unordered arm. The instructions LLVM emits are recorded
+by an instruction census over the compiled library rather than assumed. The
+acquire-release arm compiles to \texttt{ldapur} with \texttt{stlr} on the
+producer path and \texttt{ldapr} with \texttt{stlur} on the consumer path, so
+both RCpc forms appear and neither path uses \texttt{ldar}. Substituting the
+store side replaces the release store with \texttt{dmb ish} and a plain
+\texttt{str} on both paths, adding exactly one barrier and one store to each
+census; naming a single instruction for the store side would have been wrong,
+because the two paths do not use the same one. The unordered arm is a cost
+floor and not a candidate: it fails its checksum in 0 of 180 epochs while each
+correct ring passes 180 of 180.
 
-Each ordering is run in two caching states, with the cursor line contended
-between cores and with it resident in L1, and under three waiting strategies, a
-bare spin, a spin with \texttt{isb}, and \texttt{wfe} on a watched address. The
-memory the ring uses is pinned before timing: the probe confirms 4096 of 4096
-pages of a 64\,MiB region resident under \texttt{mlock}, with zero minor and
-zero major faults taken during the hot write loop, on a part whose pages are
-16384 bytes rather than 4096. The hot loop allocates nothing, which is measured
-and not asserted: the probe runs it under a counting global allocator and
-reports zero allocations.
+Each ordering runs in two caching states, cursor line contended between cores
+and resident in L1, under three waiting strategies: a bare spin, a spin with
+\texttt{isb}, and \texttt{wfe} on a watched address. Memory is pinned before
+timing, with 4096 of 4096 pages of a 64\,MiB region resident under
+\texttt{mlock} and zero faults during the hot loop, on a part whose pages are
+16384 bytes. The hot loop allocates nothing, measured under a counting global
+allocator rather than asserted.
 
 \subsection{What this machine can and cannot resolve in time}
 
-The timing facility advertises one resolution and delivers another, and a study
-quoting nanoseconds on this part has to establish which.
-
-\texttt{CNTFRQ\_EL0} reports 1000000000, so code that trusts the advertised
-frequency computes a one nanosecond tick. The machine disagrees with itself:
-\texttt{hw.tbfrequency} reports 24000000 and the Mach timebase is 125/3, which
-is 41.667 nanoseconds. We settled it by measurement rather than by choosing a
-source. Over ten million consecutive reads of the virtual counter, the value
-advances by 42 units 1466253 times and by 41 units 731752 times, and 0.7558 of
-consecutive pairs do not advance at all. A read costs about 10.20 nanoseconds,
-and 34 pairs in ten million exceed eight steps.
-
-So the usable grain is 41.667 nanoseconds behind a one gigahertz facade, three
-reads in four return no change, and a single read costs a quarter of a tick.
-Figure~\ref{fig:grain} shows the distribution. No claim about a single message
-at tens of nanoseconds can rest on this counter, and none in this paper does.
+The timing facility advertises one resolution and delivers another.
+\texttt{CNTFRQ\_EL0} reports 1000000000, so code trusting it computes a one
+nanosecond tick, while \texttt{hw.tbfrequency} reports 24000000 and the Mach
+timebase is 125/3, or 41.667 nanoseconds. We settled it by measurement: over
+ten million consecutive reads of the virtual counter, 0.7558 of reads do not
+advance at all and the advancing steps are multiples of roughly 41.667
+nanoseconds. No claim here rests on a latency difference near that grain, and
+the cycle counts carrying the central results come from the performance
+monitoring unit rather than the timer.
 
 \subsection{Hardware counters, and the boundary we measured rather than assumed}
 
 Cycle figures come from the Apple performance monitoring unit through the
-\texttt{kperf} and \texttt{kperfdata} private frameworks, which are loaded by
-\texttt{dlopen} because they do not exist as files on the filesystem. The event
-database identifies itself as Apple silicon and carries 104 events, and all four
-this work uses resolve against it: \texttt{FIXED\_CYCLES},
-\texttt{FIXED\_INSTRUCTIONS}, \texttt{L1D\_CACHE\_MISS\_LD} and
-\texttt{BRANCH\_MISPRED\_NONSPEC}. Counter reads are bracketed by \texttt{dmb
-ish} and \texttt{isb sy} so that work inside the measured region cannot retire
-outside it.
+\texttt{kperf} and \texttt{kperfdata} private frameworks, loaded by
+\texttt{dlopen} because they do not exist as files. The event database carries
+104 events and all four used here resolve against it:
+\texttt{FIXED\_CYCLES}, \texttt{FIXED\_INSTRUCTIONS},
+\texttt{L1D\_CACHE\_MISS\_LD} and \texttt{BRANCH\_MISPRED\_NONSPEC}. Reads are
+bracketed by \texttt{dmb ish} and \texttt{isb sy} so work inside the measured
+region cannot retire outside it.
 
-Counter values are not to be taken on trust. Weaver and
-McKee~\cite{weaver2008trusted} showed that even retired-instruction counters,
-which should be deterministic, vary run to run and across implementations of a
-single architecture, and three of the counters this study attempted to use turned
-out to measure nothing in this workload. Counting is also per thread, and the
-counters belong to whichever thread reads them.
-In the runs reported here that thread ran the consumer loop, so every counter
-figure in this paper describes the consuming side of the ring. We state this
-because it is a real limit on what the counters can settle and because we did
-not state it soon enough: a pre-registered threshold on retired store misses
-was written against the consumer while the arms under test differ in the
-producer's store instruction, and it returned zero on every arm of nine hundred
-records. A diagnostic that drives three passes whose L1D behaviour is fixed in
-advance confirms the event itself counts correctly under the same event set,
-missing on close to every store over a buffer far larger than L1D and on
-close to none over one that fits, so the zero was a correct measurement of the
-wrong quantity. That threshold is recorded as unevaluable rather than passed, the
-question is re-registered against a mode that keeps the producer on the
-measuring thread, and the defect register carries the full account.
+Counter values are not taken on trust. Weaver and
+McKee~\cite{weaver2008trusted} showed that even retired-instruction counters
+vary run to run, and three counters this study attempted to use measure nothing
+in this workload. Counting is per thread and the counters belong to whichever
+thread reads them; here that thread ran the consumer, so every counter figure
+describes the consuming side. We state this because we did not state it soon
+enough: a registered threshold on retired store misses was written against the
+consumer while the arms differ in the producer's store, and returned zero on
+every arm of nine hundred records. A diagnostic driving three passes of known
+L1D behaviour confirms the event counts correctly, so the zero was a correct
+measurement of the wrong quantity. That threshold is recorded as unevaluable
+rather than passed.
 
-Three properties of the apparatus were measured, two of which bound what the
-paper can claim.
-
-First, accuracy. A dependent chain of exactly 102 instructions per iteration run
-ten million times expects 1020000000 instructions. Twenty trials report between
-1020167770 and 1020323076, an error between 0.0164 and 0.0317 percent, at 1.0007
-to 1.0017 cycles per dependent add and 4.408 to 4.418 GHz. The counter is
-trustworthy at the scale we use it.
-
-Second, cost. A counter read has a median of 2557 cycles and 12675
-instructions. Bracketing one message is therefore impossible by three orders of
-magnitude, and every figure in this paper is accumulated over ten million
-messages and divided. This is why the harness is built the way it is, and it is
-a measured constraint rather than a stylistic choice.
-
-Third, and least comfortable, the privilege boundary is not where the interface
-says it is. The counting mode can be set to user only, and doing so makes no
-difference. Over 100000 \texttt{getppid} calls, three trials per mode with the
-modes alternated, the instruction count is 1110.2 per call under both modes, and
-by the test's own logic a working user-only filter would leave a handful rather
-than eleven hundred. We therefore state plainly that every counter figure in
-this paper includes kernel work done on the thread's behalf, because that is
-what the apparatus was measured to do. The residue in the accuracy check above,
-about two hundred thousand instructions over twenty trials, is consistent with
-it. The limitation is bounded: the hot loop makes no system call, and every
-record carries its involuntary context switch count so a reader can see how much
-kernel activity each measurement absorbed. Separately, \texttt{kpc\_cpu\_string}
-returns empty on this part in both the unprivileged and the privileged pass,
-while \texttt{kpc\_pmu\_version} is 0 unprivileged and 2 under root, so one of
-those two is privilege-gated and the other is simply empty here.
+Three properties of the apparatus were measured. \emph{Accuracy}: a dependent
+chain of 102 instructions per iteration run ten million times expects
+1020000000 instructions; twenty trials report between 1020167770 and
+1020323076, an error of 0.0164 to 0.0317 percent at 4.408 to 4.418 GHz.
+\emph{Cost}: a counter read has a median of 2557 cycles and 12675 instructions,
+so bracketing a single message is impossible by three orders of magnitude and
+every figure here is accumulated over ten million messages and divided, which
+is a measured constraint on the harness rather than a stylistic choice.
+\emph{Privilege}: the boundary is not where the interface says. Setting
+user-only counting makes no difference, and over 100000 \texttt{getppid} calls
+the instruction count is 1110.2 per call under both modes where a working
+filter would leave a handful. Every counter figure therefore includes kernel
+work done on the thread's behalf. The limitation is bounded: the hot loop makes
+no system call, and every record carries its involuntary context switch count.
 
 \subsection{The independent launch as the unit of observation}
 
@@ -542,7 +496,7 @@ manuscript that quotes a figure absent from those files.
 \subsection{Arrival clustering costs what the variability term predicts, and
 not what the Fano factor does}
 
-Figure~\ref{fig:beta} plots the contrast quantile by quantile. At a fixed mean rate, replacing a periodic arrival schedule with a clustered one
+The contrast holds quantile by quantile. At a fixed mean rate, replacing a periodic arrival schedule with a clustered one
 raises service latency by a factor that queueing theory predicts only if the
 right dispersion measure is used. Over the clustered arms the Fano factor of
 counts moves from 24.79 to 25.78, a ratio of 1.040, while the squared
@@ -817,7 +771,7 @@ that shares none of those arms. Both say the cost is on the store side.
 \subsection{The comparison does not depend on how the consumer waits}
 \label{sec:wait}
 
-Figure~\ref{fig:wait} is the whole of this subsection in one picture, and the
+The
 rest of it is the detail behind the three panels.
 
 Every figure above is measured with one wait strategy, an \texttt{isb}-based
