@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-26: fifty one closed, none partly closed, none open. Fifty one entries in all.**
+**Status at 2026-11-26: fifty two closed, none partly closed, none open. Fifty two entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2277,3 +2277,48 @@ check_claims_semantics.py now reads the title out of main.tex and requires the
 README to quote it verbatim, whitespace normalised, rather than checking a
 count inside it. Confirmed both ways: it passes on the corrected README and
 refuses the README as it stood, naming the title main.tex actually carries.
+
+## D52. The binary behind the headline result was named nowhere in the README,
+## so the paper's central claim had no reproduce command
+
+**CLOSED 2026-11-26** An exhaustive pass over every tracked file, rather than
+over whichever artifact had just failed, found eight binaries in the tree that
+the README names nowhere: titan-barrier, titan-greeks, titan-paths,
+titan-arrivals, titan-queue, titan-walk, titan-common and titan-feed-sim in
+part. Four of them produce result rows the README itself prints.
+
+titan-barrier is the one that matters. It produced the ordering cross, the
+issue and stall probes, and H90, which is the headline. The Reproduce section
+listed twenty seven commands and not one of them ran it. A reader following
+the documentation could reproduce the order book, the pipeline, the wire
+formats and the risk checks, and could not reproduce the result the paper is
+named after. In a project whose argument is that its numbers can be rerun from
+committed files, the central number was the one with no instructions.
+
+Three further staleness findings came from the same pass, all in documents
+that are rarely reopened. docs/paper.md carries a banner whose purpose is to
+tell a reader the current state so they do not trust the frozen document
+beneath it; that banner said 81 hypothesis rows, four exploratory calibrations
+and 37 results files against an actual 94, five and 55, so the orientation
+note needed orienting. docs/paper/README.md ended with a Status section
+reporting that the Abstract, Introduction and Related Work were written and
+that sections were being added one at a time, which described the manuscript
+as it stood weeks ago rather than the seven complete sections and fifteen
+pages that exist. The same file documented the build as a bare pdflatex and
+bibtex sequence, which produces a PDF this project's own dash check refuses,
+because the ligature rewriting lives in build.sh; it now documents build.sh
+and keeps the raw sequence only to show the stages. Its dash check reported
+109 files against an actual 167.
+
+Nothing was deleted in any of these. The Status section keeps the record that
+the paper was written a section at a time, as history rather than as status.
+
+check_claims_semantics.py now enumerates every titan binary in the crates tree
+and refuses a README that fails to name one. Confirmed both ways: it passes on
+the corrected README and names titan-barrier when that binary is removed from
+it. A binary added later cannot be left undocumented.
+
+Two dead labels remain in main.tex, sec:method and sec:queueing, with no \ref
+to either. They are harmless, invisible to a reader and to every gate, and
+removing them would be a deletion with nothing gained, so they are recorded
+here and left.

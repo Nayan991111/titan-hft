@@ -265,6 +265,24 @@ def main():
             bad.append(f"README says 'register of {s} defects' but "
                        f"docs/defects.md holds {closed} closed entries")
 
+    # Eight binaries existed that the README named nowhere, titan-barrier among
+    # them. That is the binary the headline result comes from, so the Reproduce
+    # section carried no command for the paper's central claim: a reader could
+    # not rerun it from the documentation, in a project whose argument is that
+    # its results can be rerun. D52. Every binary in the tree must now appear in
+    # the README, so a new one cannot be added and left undocumented.
+    bins = set()
+    for cargo in ROOT.glob("crates/*/Cargo.toml"):
+        for m in re.findall(r'^\s*name\s*=\s*"(titan-[a-z0-9]+)"',
+                            cargo.read_text(encoding="utf-8"), re.M):
+            bins.add(m)
+    for b in ROOT.glob("crates/*/src/bin/titan-*.rs"):
+        bins.add(b.stem)
+    missing = sorted(b for b in bins if b not in readme)
+    if missing:
+        bad.append("binaries that exist but the README never names: "
+                   + ", ".join(missing))
+
     # D50 gated the two phrasings in the body and not the paper's title quoted
     # three lines above them, so the README went on announcing the paper under
     # a title the paper does not have, through the commit that was supposed to

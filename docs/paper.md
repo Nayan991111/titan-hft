@@ -2,8 +2,8 @@
 > paper's current claims.**
 >
 > This was the Gate 4 planning note, written on 73 pre-registered hypotheses
-> and 25 results files. The study now carries 81 hypothesis rows, four
-> exploratory calibrations and 37 results files, and several claims here have
+> and 25 results files. The study now carries 94 hypothesis rows, five
+> exploratory calibrations and 55 results files, and several claims here have
 > since been retracted or re-grounded. The manuscript is `docs/paper/main.tex`
 > and the defect register is `docs/defects.md`; where this file and either of
 > those disagree, they are right and this is stale.

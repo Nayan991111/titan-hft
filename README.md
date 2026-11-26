@@ -29,7 +29,7 @@ The second is what the protocol itself revealed. Eight of the thresholds
 pre-registered for this study were precise, checkable, honoured exactly as
 written, and not tests of the claims they were written for. **Pre-registration
 fixes a threshold; it does not aim one.** The eight instances, the register of
-51 defects they came from, and eleven automated checks that refuse a manuscript
+52 defects they came from, and eleven automated checks that refuse a manuscript
 whose numbers or figures disagree with the files they come from are all here.
 The checks are documented in [docs/gates.md](docs/gates.md) so another project
 can adopt them without taking anything else from this one.
@@ -267,10 +267,12 @@ reader's light or dark theme.
 | Crate or binary | Purpose |
 |---|---|
 | `titan-platform` | Pinned memory, counter timer and its measured resolution, QoS, kperf PMU sessions, allocation and `getrusage` accounting, a fixed-memory log-linear latency histogram. Self-test: `titan-probe`. |
-| `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip) and `titan-stream` (throughput). |
+| `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip), `titan-stream` (throughput) and `titan-barrier` (the ordering cross: which side of an acquire-release pair carries the cost, with `ordsweep`, `capfine`, `issueprobe`, `stallprobe` and `trafficprobe` modes). **`titan-barrier` produced the headline result.** |
 | `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation), `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule), `titan-fanout` (one book writer, several strategy readers: per-reader ring copies or seqlock snapshots), `titan-agg` (one exposure limit shared by several strategy threads: atomic add, compare-and-swap or per-strategy totals), `titan-wire` (the same price-level updates decoded from binary, FIX 4.4 and JSON) `titan-arb` (A/B line arbitration and MoldUDP64 gap recovery, exact delivery asserted under seeded loss) `titan-cross` (one book consolidated across two exchanges, and the locked and crossed markets it exposes) and `titan-heap` (the same feed through a heap of orders instead of sorted price levels). |
-| `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. |
-| `scripts/` | Data download, instruction census, statistics, figures. |
+| `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. `titan-greeks` (Black-Scholes price and all five first-order sensitivities, fused against independent functions, single against double precision) and `titan-paths` (path-dependent accumulation per step, stored against fused, branchless against branching extremes, barrier abandonment). |
+| `titan-common` | Shared types and helpers used across the crates. |
+| `titan-itch` binaries, continued | `titan-arrivals` (arrival-schedule generation and the interarrival statistics that predict tail cost), `titan-queue` (queue position and cancellation behaviour) and `titan-walk` (price-impact power law over a fixed population). |
+| `scripts/` | Data download, instruction census, statistics, figures, and eleven checks that refuse a manuscript disagreeing with its own data. |
 
 ## Roadmap
 
@@ -357,6 +359,13 @@ scripts/fanout_census.sh                                                        
 ./target/release/titan-pipeline file=data/20190730.BX_ITCH_50 from=34200 span=30 speed=1 gaps   # latency by arrival gap
 sudo ./target/release/titan-pipeline rates=1000000,6627 limit=100000 waits=wfe,spin path=none pmu   # waiting alone, with counters
 ./target/release/titan-pipeline rates=1000000,6627 limit=100000 waits=isb split warm=book          # keep the book warm while idle
+
+sudo ./target/release/titan-barrier 2000000 3 pmu ordsweep    # THE HEADLINE RESULT: where the RCsc acquire sits between the RCpc acquire and the explicit barrier (H90)
+sudo ./target/release/titan-barrier 10000000 3 pmu           # the ordering cross: which side of the pair carries the cost (H69, H76, H77)
+sudo ./target/release/titan-barrier 10000000 3 pmu issueprobe   # whether the barrier wins by suppressing issue rate (H86 to H89)
+sudo ./target/release/titan-barrier 10000000 3 pmu stallprobe   # where the unaccounted cycles go
+./target/release/titan-greeks 3 bg pmu                       # Black-Scholes price and five sensitivities (H65)
+./target/release/titan-paths 3 bg pmu                        # path-dependent accumulation per step (H66)
 
 python3 scripts/analyze.py output.txt         # statistics over epochs
 python3 scripts/figures.py                    # redraw docs/figures from results/

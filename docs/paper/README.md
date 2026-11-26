@@ -40,7 +40,7 @@ single em dash or en dash survives. It currently reports zero.
 LaTeX and BibTeX source it also rejects the ligature sequences, which render as
 dashes without being dash characters. A line may opt out with an explicit
 verbose marker, and only the two `\patchcmd` calls use it, because a line whose
-job is to delete a ligature has to name it. It reports 109 files and zero
+job is to delete a ligature has to name it. It reports 167 files and zero
 violations.
 
 **An earlier version of this file argued the six IEEE dashes should stay
@@ -57,7 +57,18 @@ arXiv looks for it.
 
 ## Status
 
-Written so far, complete and with no placeholders: Abstract, Section 1
-Introduction, Section 2 Related Work. The document compiles with zero undefined
-citations and zero undefined references at every stage. Sections are added one
-complete section at a time and the document compiles after each.
+Complete. Seven sections (Introduction, Related Work, Method, Results,
+Discussion, Threats to Validity, Conclusion), 15 pages, 31 references, eight
+embedded figures, and an abstract of 1877 characters against arXiv's 1920
+limit. No placeholders anywhere.
+
+The document compiles with zero undefined citations, zero undefined
+references and zero overfull boxes. Eleven checks in `scripts/` run against it
+and must all pass before a commit: they refuse a number in the prose that
+cannot be traced to a committed results file, a caption quoting a figure
+absent from the file it names, a figure stale against its generator, a dash in
+the rendered PDF, and a README that disagrees with the manuscript.
+
+Sections were added one complete section at a time, with the document
+compiling after each. That is how it was written, not a description of where
+it has reached.
