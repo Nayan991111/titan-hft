@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-25: forty eight closed, none partly closed, none open. Forty eight entries in all.**
+**Status at 2026-11-26: forty nine closed, none partly closed, none open. Forty nine entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2176,3 +2176,36 @@ first time, on both its stated total and the number of cards it draws, and
 that check was confirmed to refuse a figure reverted to 76 before being
 trusted. Multi-part verdicts are reported as mixed rather than collapsed to
 whichever part came first.
+
+## D49. The paper stated the size of its own register in words, and the words
+## said ninety three while the register held ninety four
+
+**CLOSED 2026-11-26** The manuscript stated the size of the pre-registration twice, once in the
+discussion of what pre-registration requires and once in the statistics
+subsection of the threats. Both said "Ninety-three hypothesis rows". The
+register holds ninety four, and the figure on the repository's front page is
+gated against that number and drew ninety four. So the paper contradicted its
+own figure, in a sentence whose entire purpose was to tell a reader how large
+the family of tests is before asking them to judge a marginal result.
+
+Where the wrong number came from is visible in the gate's own output: ninety
+three is the count of rows carrying a recorded verdict, not the count of rows.
+The two differ by the single row still pending, H85. A number that is correct
+about one quantity was written against another, which is the same failure
+recorded in D46, in a different place.
+
+Nothing caught it because the count was spelled out. check_provenance.py reads
+numbers, and "Ninety-three" is not a number to it, so the one gate that exists
+to stop an untraceable figure reaching the prose was structurally blind to this
+whole class of claim. The figure was gated after D48 and the prose was not, so
+the two drifted apart with a check sitting between them that could not see it.
+
+Both occurrences now read ninety four. check_figure_claims.py reconstructs the
+spelled-out form from the register, requires it to appear in main.tex, and
+refuses any other spelled-out count attached to the phrase. The gate was
+confirmed to refuse the manuscript as it stood before the correction, and it
+names both occurrences rather than the first.
+
+The gate spells numbers between twenty and ninety nine and exits if the
+register leaves that range, so a hundredth hypothesis stops the build with a
+message rather than silently passing an unchecked claim.

@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "results"
 FIGS = ROOT / "docs" / "figures"
 DOC = ROOT / "docs" / "experiments.md"
+TEX = ROOT / "docs" / "paper" / "main.tex"
 
 RUNS = {"5M": "2026-11-18_m4_burst.txt", "7M": "2026-11-19_m4_burst7.txt"}
 WAITS = ("spin", "isb", "wfe")
@@ -178,6 +179,34 @@ def main():
             problems.append(
                 f"hypotheses.svg draws {drawn} cards for {hrows} register "
                 f"rows; one of them is being dropped silently")
+
+    # The manuscript states the register's size in words, not numerals, so
+    # check_provenance.py never saw it: that gate reads numbers. main.tex
+    # claimed "Ninety-three hypothesis rows" in two places while the register
+    # held 94 and the gated figure drew 94, so the paper contradicted its own
+    # front-page figure for as long as both existed. D49. The spelled-out form
+    # is reconstructed from the register and required to appear, and the stale
+    # one is forbidden, so prose and register cannot drift apart again.
+    _ONES = ("", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+    _TENS = {2: "twenty", 3: "thirty", 4: "forty", 5: "fifty",
+             6: "sixty", 7: "seventy", 8: "eighty", 9: "ninety"}
+
+    def _spell(n: int) -> str:
+        if not 20 <= n <= 99:
+            raise SystemExit(f"FAIL: register size {n} outside the range this gate spells")
+        tens, ones = divmod(n, 10)
+        return _TENS[tens] + (f"-{_ONES[ones]}" if ones else "")
+
+    want = _spell(hrows)
+    tex = TEX.read_text(encoding="utf-8")
+    stated = re.findall(r"([A-Za-z]+(?:-[a-z]+)?) hypothesis rows", tex)
+    if not stated:
+        problems.append("main.tex states no spelled-out hypothesis row count")
+    for s in stated:
+        if s.lower() != want:
+            problems.append(
+                f"main.tex says '{s} hypothesis rows' but the register holds "
+                f"{hrows}; it should read '{want.capitalize()}'")
 
     print(f"peak, 7,000,000 spin : {hero[1]:.4f} at p{100 * hero[0]:.4f}, "
           f"{hero[2]}/{hero[3]}, p={hero[4]:.3g}")
