@@ -14,7 +14,7 @@
 ## The paper
 
 **When a Full Barrier Beats a Store-Release, and When It Does Not: A
-Pre-Registered Measurement Study on a Fanless Apple M4, and Seven
+Pre-Registered Measurement Study on a Fanless Apple M4, and Eight
 Pre-Registered Thresholds That Did Not Test Their Claims**
 
 Two contributions. The first is measured: in a single-producer
@@ -29,7 +29,7 @@ The second is what the protocol itself revealed. Eight of the thresholds
 pre-registered for this study were precise, checkable, honoured exactly as
 written, and not tests of the claims they were written for. **Pre-registration
 fixes a threshold; it does not aim one.** The eight instances, the register of
-50 defects they came from, and eleven automated checks that refuse a manuscript
+51 defects they came from, and eleven automated checks that refuse a manuscript
 whose numbers or figures disagree with the files they come from are all here.
 The checks are documented in [docs/gates.md](docs/gates.md) so another project
 can adopt them without taking anything else from this one.
@@ -256,7 +256,7 @@ reader's light or dark theme.
 | Memory | Hot data sits in page-aligned, pre-faulted, `mlock`ed 16 KiB pages. A counting global allocator checks that measured regions allocate nothing. |
 | Correctness of what is timed | Differential tests against a reference book after every message; mutation checks (removing backward-shift deletion, off-by-one in wrap-around or binary search, dropping empty levels) make the tests fail; the `full` and `direct` stages must emit identical orders or the run aborts. |
 | Bias control | Stage order rotates between epochs; hypotheses are committed before the runs; failed predictions stay in the log with their verdicts. |
-| Statistics | Per-epoch medians, bootstrap 95% CI, two-sided Mann-Whitney U (exact when there are no ties), Cliff's delta ([`scripts/analyze.py`](scripts/analyze.py), standard library only). |
+| Statistics | Every hypothesis from H56 onward is decided by an **exact two-sided sign test across independent launches**, which assumes only that launches are exchangeable and makes no distributional assumption about latency; the count of agreeing launches is reported with each result, so a reader can apply whatever correction they prefer. No family-wise correction is applied across the register, and a marginal row should be read as one test among many. The earlier `PRELIMINARY PROTOCOL:` rows, which compare epochs inside one process rather than launches, use per-epoch medians, bootstrap 95% CI, two-sided Mann-Whitney U (exact when there are no ties) and Cliff's delta ([`scripts/analyze.py`](scripts/analyze.py), standard library only). |
 
 <p align="center">
   <img src="docs/figures/hypotheses.svg" alt="Grid of the pre-registered hypotheses with their status: supported, refuted or not supported, inconclusive, pending." width="100%">

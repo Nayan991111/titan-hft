@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-26: fifty closed, none partly closed, none open. Fifty entries in all.**
+**Status at 2026-11-26: fifty one closed, none partly closed, none open. Fifty one entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2242,3 +2242,38 @@ a README that disagrees with either. It was confirmed to refuse the README as
 it stood, naming all three occurrences rather than the first. It also refuses
 a README that stops stating the counts at all, so the check cannot be
 satisfied by deleting the claim.
+
+## D51. The front page announced the paper under a title the paper does not
+## have, and the fix for D50 did not look at it
+
+**CLOSED 2026-11-26** D50 found the README describing the second contribution
+as seven thresholds and gated the two phrasings that carried the count. Three
+lines above them the README quotes the paper's title in bold, and that quote
+also said seven. The gate written to stop exactly this drift was given the two
+sentences that had failed and not the line above them, so the commit that
+closed D50 shipped with the headline still wrong.
+
+This is the third occurrence of one pattern. D48 gated a figure and left the
+prose beside it. D50 gated the prose and left the title above it. Each fix has
+been shaped to the artifact that happened to fail rather than to the class of
+claim, and each time the next thing along the same shelf was already wrong.
+
+The title is the first line of the README anyone takes seriously, and it is
+what a reader carries to the PDF. For as long as both existed the repository
+announced the paper under a name the paper does not have.
+
+A second, separate staleness was found in the same read. The methods table
+gave the project's statistics as per-epoch medians, bootstrap intervals,
+Mann-Whitney U and Cliff's delta. Those are real and still used, but only for
+the rows tagged PRELIMINARY PROTOCOL, which compare epochs inside one process.
+Every hypothesis from H56 onward is decided by the exact two-sided sign test
+across independent launches, and the manuscript says so six times. The sign
+test appeared nowhere in that table. Nothing in it was false; the primary
+statistic of the study was simply missing, so a reader of the README came away
+with the superseded method. Nothing was deleted: the row now gives the sign
+test and scopes the earlier statistics to the rows they belong to.
+
+check_claims_semantics.py now reads the title out of main.tex and requires the
+README to quote it verbatim, whitespace normalised, rather than checking a
+count inside it. Confirmed both ways: it passes on the corrected README and
+refuses the README as it stood, naming the title main.tex actually carries.

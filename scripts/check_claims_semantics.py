@@ -265,6 +265,23 @@ def main():
             bad.append(f"README says 'register of {s} defects' but "
                        f"docs/defects.md holds {closed} closed entries")
 
+    # D50 gated the two phrasings in the body and not the paper's title quoted
+    # three lines above them, so the README went on announcing the paper under
+    # a title the paper does not have, through the commit that was supposed to
+    # fix exactly this. The title is the first line of the README a reader
+    # takes seriously and it was the one line still wrong. D51. The whole
+    # title is now compared, not a count inside it, so no future edit to it
+    # can drift the front page without this failing.
+    tt = re.search(r"\\title\{(.+?)\}\s*\n\s*\n", raw, re.S)
+    if not tt:
+        bad.append("main.tex has no \\title this check can read")
+    else:
+        want = re.sub(r"\s+", " ", tt.group(1).replace("\\\\", " ")).strip()
+        got = re.sub(r"\s+", " ", readme)
+        if want not in got:
+            bad.append(f"README does not quote the paper's title verbatim; "
+                       f"main.tex says: {want}")
+
     title = re.search(r"and (\w+) Pre-Registered Thresholds", tex)
     if not title:
         bad.append("main.tex title no longer names the threshold count")
