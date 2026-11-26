@@ -29,7 +29,7 @@ The second is what the protocol itself revealed. Eight of the thresholds
 pre-registered for this study were precise, checkable, honoured exactly as
 written, and not tests of the claims they were written for. **Pre-registration
 fixes a threshold; it does not aim one.** The eight instances, the register of
-53 defects they came from, and eleven automated checks that refuse a manuscript
+54 defects they came from, and eleven automated checks that refuse a manuscript
 whose numbers or figures disagree with the files they come from are all here.
 The checks are documented in [docs/gates.md](docs/gates.md) so another project
 can adopt them without taking anything else from this one.
@@ -331,7 +331,7 @@ quit `powermetrics`, Instruments and Docker first.
 
 ```sh
 cargo build --release
-cargo test --release -- --test-threads=1      # 74 tests (73 on macOS), including hostile input
+cargo test --release -- --test-threads=1      # 102 tests, including hostile input
 ./target/release/titan-probe                  # platform self-test, no root
 sudo ./target/release/titan-probe pmu         # also programs and validates the PMU
 

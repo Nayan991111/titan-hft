@@ -265,6 +265,23 @@ def main():
             bad.append(f"README says 'register of {s} defects' but "
                        f"docs/defects.md holds {closed} closed entries")
 
+    # The README told a reader to expect 74 tests, 73 on macOS. The tree holds
+    # 102 test attributes and a run on the target machine reported 101 passed
+    # and 1 ignored, which is the same 102. The figure was written once and the
+    # suite grew by a third underneath it. Nothing checked it because checking
+    # it looked like it needed a cargo run; it does not, because the attributes
+    # are countable in the source. D54.
+    tests = 0
+    for rs in list(ROOT.glob("crates/**/*.rs")) + list(ROOT.glob("tests/**/*.rs")):
+        tests += len(re.findall(r"^\s*#\[test\]", rs.read_text(encoding="utf-8",
+                                                                errors="replace"), re.M))
+    claimed = re.findall(r"#\s*(\d+)\s+tests", readme)
+    if not claimed:
+        bad.append("README no longer states how many tests there are")
+    for c in claimed:
+        if int(c) != tests:
+            bad.append(f"README says {c} tests; the tree holds {tests} #[test] attributes")
+
     # Eight binaries existed that the README named nowhere, titan-barrier among
     # them. That is the binary the headline result comes from, so the Reproduce
     # section carried no command for the paper's central claim: a reader could
