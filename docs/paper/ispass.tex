@@ -463,7 +463,7 @@ will be open-sourced on acceptance; the identifier and repository are withheld
 here because they name the authors. The archive carries 331461 committed
 records across 55 results files, the measurement harness, the user-space
 interface to the performance monitoring unit, the registration table of 94
-hypothesis rows, the defect register of 57 entries, the analysis scripts, the
+hypothesis rows, the defect register of 58 entries, the analysis scripts, the
 eleven checks of Section~\ref{sec:gates} and this manuscript's source. The checks are documented separately, in \texttt{docs/gates.md}, so
 that a reader can adopt them without adopting anything else from this project.
 
@@ -763,10 +763,10 @@ faster at capacity 2 in 20 of 20 launches and slower at capacity 1024 in 20 of
 
 \begin{table}[t]
 \centering
-\caption{Cost per message in cycles, contended, by ring capacity, with the
-writeback rate per cycle. The sign of the comparison changes three times and
-the acquire-release arm breaks discontinuously between capacities 8 and 16.
-From \texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.}
+\caption{Cost per message in cycles, contended, by ring capacity. The sign of
+the comparison changes three times and the acquire-release arm breaks
+discontinuously between capacities 8 and 16. From
+\texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.}
 \label{tab:cap}
 \begin{tabular}{rrrrr}
 \hline
@@ -781,25 +781,19 @@ capacity & acq-rel & fenced-store & faster & advantage \\
 \end{tabular}
 \end{table}
 
-Two features of that table deserve more weight than the sign change itself. The
-acquire-release arm falls from 153.838 cycles at capacity 2 to 63.972 at
-capacity 8 and then jumps to 173.725 at capacity 16, a factor of 2.716, with
-refills per message rising from 0.5254 to 2.0824 and writebacks from 0.2564 to
-0.9985, each close to fourfold. The fenced-store arm moves by a factor of 0.935
-across the same step. Whatever happens between capacities 8 and 16 happens to
-one arm.
+The break matters more than the sign change. The acquire-release arm falls from
+153.838 cycles at capacity 2 to 63.972 at capacity 8 and jumps to 173.725 at
+16, a factor of 2.716, with refills per message rising from 0.5254 to 2.0824
+and writebacks from 0.2564 to 0.9985. The fenced-store arm moves by 0.935
+across the same step. Whatever happens between 8 and 16 happens to one arm.
 
-And capacity is not a separable variable in this design. The slot type is eight
-bytes and the slot region is page aligned, so capacity alone sets the slot
-array's footprint at 16, 32, 64, 128 and 8192 bytes, which first fills a
-128-byte line at exactly the capacity where the break occurs. Capacity alone
-also sets how far the producer may run ahead of the consumer. Three candidate
-causes move together and naming the one that labels the axis would not be an
-inference. We therefore claim that the sign of the comparison depends on ring
-capacity over the range measured, non-monotonically, and that which property of
-the ring governs it is open. A pre-registered two-by-two that varies the slot
-footprint by a factor of sixteen while holding the slot count and the run-ahead
-fixed is the next measurement and is registered but not yet run.
+Capacity is not separable here. The slot type is eight bytes and the region is
+page aligned, so capacity alone sets the footprint at 16, 32, 64, 128 and 8192
+bytes, first filling a 128-byte line at exactly the capacity where the break
+occurs, and also sets how far the producer may run ahead. Three candidate
+causes move together, so we claim dependence on capacity and not on any
+particular property of the ring. A design separating footprint from slot count
+is registered and not yet run.
 
 \section{Discussion}
 
@@ -961,7 +955,7 @@ two counters that would have tested the alternatives do not measure anything in
 this workload. We report an effect with a location and without a mechanism,
 which is less than we set out to find and is what the measurements support.
 
-The study's other contribution is methodological and was not planned. Five
+The study's other contribution is methodological and was not planned. Eight
 pre-registered thresholds were honoured exactly and tested the wrong quantity,
 and the register that records them is published with the paper so that the
 failure mode can be criticised rather than inferred. Pre-registration in

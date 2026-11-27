@@ -282,6 +282,24 @@ def main():
         if int(c) != tests:
             bad.append(f"README says {c} tests; the tree holds {tests} #[test] attributes")
 
+    # The conclusion of both manuscripts said five pre-registered thresholds
+    # while the title and the discussion said eight. The taxonomy grew from
+    # five to seven to eight over the study and the closing paragraph was never
+    # revisited, so the last thing a reviewer reads contradicted the title of
+    # the paper, in a document already archived under a DOI. The README check
+    # added at D50 compared the README to the title and never compared a
+    # manuscript to itself. D58.
+    for texf in sorted((ROOT / "docs" / "paper").glob("*.tex")):
+        body = re.sub(r"\s+", " ", texf.read_text(encoding="utf-8", errors="replace"))
+        tm = re.search(r"and (\w+) Pre-Registered Thresholds", body)
+        if not tm:
+            continue
+        want = tm.group(1).lower()
+        for n in re.findall(r"(\w+)\s+(?:pre-registered|registered)\s+thresholds", body, re.I):
+            if n.lower() != want:
+                bad.append(f"{texf.name} says '{n} thresholds' in its body but "
+                           f"'{tm.group(1)}' in its title")
+
     # Only main.tex was ever checked. While compressing the ISPASS variant a
     # citation key was written from memory, hoefler2015scientific, which does
     # not exist in refs.bib and never did: the paper has no Hoefler entry. It

@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-27: fifty seven closed, none partly closed, none open. Fifty seven entries in all.**
+**Status at 2026-11-27: fifty eight closed, none partly closed, none open. Fifty eight entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2484,3 +2484,33 @@ reads anonymous, and the Artifact subsection states the intent to open-source
 on acceptance rather than naming the repository, which is what the ISPASS
 submission instructions ask for in place of an identifying URL. No name,
 affiliation, identifier or repository link remains in it.
+
+## D58. The conclusion of both manuscripts contradicted their own title, in a
+## document already archived under a DOI
+
+**CLOSED 2026-11-27** The closing paragraph of main.tex and of the ISPASS
+variant read "Five pre-registered thresholds were honoured exactly and tested
+the wrong quantity". The title of both says eight, the discussion says eight,
+and the register holds eight. The taxonomy grew from five to seven and then to
+eight across the study, D46 recording the last of those, and the conclusion was
+never revisited.
+
+The conclusion is the last paragraph a reviewer reads and the one they carry
+away. For a paper whose second contribution is that a threshold can be precise,
+honoured and still wrong, having the count of those thresholds disagree with
+the title is not a typographical slip. It is the paper failing its own standard
+in the sentence that states the standard.
+
+This is in main.tex, which is the document archived under the DOI, so it has
+been publicly wrong since the deposit.
+
+Nothing caught it for two reasons. The README check added at D50 compares the
+README to the paper's title and never compares a manuscript to itself. And it
+would not have matched anyway: the number sits at the end of a line with
+"pre-registered thresholds" wrapped onto the next, which also defeated the
+search used to hunt for it this morning. The same line-wrap blindness that D57
+fixed in the record gate was present in the search looking for this.
+
+check_claims_semantics.py now reads each manuscript's own title, then checks
+every threshold count in that manuscript's body against it, on whitespace
+normalised text so a wrap cannot hide one. Confirmed both ways.
