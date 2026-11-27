@@ -212,3 +212,115 @@ mod tests {
         }
     }
 }
+
+/// A ring slot carrying a `u64` payload in a chosen footprint.
+///
+/// H84 found the acquire-release arm breaking by 2.716 in cost between ring
+/// capacities 8 and 16 while the fenced-store arm did not move. In that design
+/// the slot was eight bytes and the region page aligned, so capacity alone set
+/// the slot array's footprint, the number of slots and how far the producer
+/// could run ahead. Three candidate causes moved together and the experiment
+/// could not name one. Widening the slot separates the footprint from the other
+/// two: at a fixed capacity a 128 byte slot occupies sixteen times the bytes of
+/// an eight byte slot while the slot count and the run-ahead are unchanged.
+///
+/// The payload is what the checksum reads. The padding exists only to move the
+/// footprint and is never read.
+pub trait Slot: Copy + Send + Default {
+    /// Bytes this slot occupies, used to report the manipulation in the record
+    /// rather than inferring it from the flag that requested it.
+    const BYTES: usize;
+    fn pack(v: u64) -> Self;
+    fn unpack(self) -> u64;
+}
+
+impl Slot for u64 {
+    const BYTES: usize = 8;
+    #[inline(always)]
+    fn pack(v: u64) -> Self {
+        v
+    }
+    #[inline(always)]
+    fn unpack(self) -> u64 {
+        self
+    }
+}
+
+/// A slot padded to a full 128 byte coherence granule on this part.
+#[repr(C, align(128))]
+#[derive(Clone, Copy)]
+pub struct Slot128 {
+    v: u64,
+    _pad: [u64; 15],
+}
+
+impl Default for Slot128 {
+    #[inline(always)]
+    fn default() -> Self {
+        Self { v: 0, _pad: [0; 15] }
+    }
+}
+
+impl Slot for Slot128 {
+    const BYTES: usize = 128;
+    #[inline(always)]
+    fn pack(v: u64) -> Self {
+        Self { v, _pad: [0; 15] }
+    }
+    #[inline(always)]
+    fn unpack(self) -> u64 {
+        self.v
+    }
+}
+
+/// Producer over a ring whose slot type is chosen at the call site.
+///
+/// Kept separate from `WaitingProducer` rather than adding a parameter to it,
+/// so that every existing call site compiles unchanged. The two differ only in
+/// the slot type and the pack and unpack at the boundary.
+pub struct SlotProducer<S: Slot, O: Order, P: IndexCell, W: Wait, const CACHED: bool> {
+    pub inner: Producer<S, O, P, CACHED>,
+    _w: PhantomData<W>,
+}
+
+/// Consumer counterpart to [`SlotProducer`].
+pub struct SlotConsumer<S: Slot, O: Order, P: IndexCell, W: Wait, const CACHED: bool> {
+    pub inner: Consumer<S, O, P, CACHED>,
+    _w: PhantomData<W>,
+}
+
+/// A ring of `capacity` slots of type `S`.
+pub fn channel_slot<S: Slot, O: Order, P: IndexCell, W: Wait, const CACHED: bool>(
+    capacity: usize,
+) -> (SlotProducer<S, O, P, W, CACHED>, SlotConsumer<S, O, P, W, CACHED>) {
+    let (p, c) = ring::<S, O, P, CACHED>(capacity);
+    (SlotProducer { inner: p, _w: PhantomData }, SlotConsumer { inner: c, _w: PhantomData })
+}
+
+impl<S: Slot, O: Order, P: IndexCell, W: Wait, const CACHED: bool> Tx
+    for SlotProducer<S, O, P, W, CACHED>
+{
+    #[inline(always)]
+    fn send(&mut self, v: u64) {
+        let s = S::pack(v);
+        while !self.inner.push(s) {
+            let sh = &*self.inner.s;
+            W::wait(sh.ix.head.index(), sh.ix.head.index().load(Ordering::Relaxed));
+        }
+    }
+}
+
+impl<S: Slot, O: Order, P: IndexCell, W: Wait, const CACHED: bool> Rx
+    for SlotConsumer<S, O, P, W, CACHED>
+{
+    #[inline(always)]
+    fn recv(&mut self) -> u64 {
+        loop {
+            if let Some(v) = self.inner.pop() {
+                return v.unpack();
+            }
+            let sh = &*self.inner.s;
+            W::wait(sh.ix.tail.index(), sh.ix.head.index().load(Ordering::Relaxed));
+        }
+    }
+}

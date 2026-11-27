@@ -38,14 +38,14 @@ use titan_platform::rusage::Usage;
 use titan_spsc::barrier::{FencedLoad, FencedStore, Unordered};
 use titan_spsc::order::{AcqRel, Fenced, Order, SeqCst};
 use titan_spsc::pad::{IndexCell, Pad128};
-use titan_spsc::ring::{channel, same_line_128};
+use titan_spsc::ring::{channel_slot, same_line_128, Slot, Slot128};
 use titan_spsc::wait::{Spin, SpinHint, Wait, Wfe, Yield};
 use titan_spsc::{Rx, Tx};
 
 const CAPACITY: usize = 1024;
 
 /// Measure one arm. Returns true when the consumer's sum was exact.
-fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
+fn case<S: Slot + 'static, O: Order, P: IndexCell, W: Wait, const C: bool>(
     epoch: usize,
     n: usize,
     pmu: Option<&Session>,
@@ -53,13 +53,15 @@ fn case<O: Order, P: IndexCell, W: Wait, const C: bool>(
 ) -> bool {
     let warm = n / 10 + 1000;
     let total = (warm + n) as u64;
-    let (mut tx, mut rx) = channel::<O, P, W, C>(cap);
+    let (mut tx, mut rx) = channel_slot::<S, O, P, W, C>(cap);
     let (ha, ta) = tx.inner.index_addresses();
     let layout = format!(
-        " head_off128={} tail_off128={} same_line={}",
+        " head_off128={} tail_off128={} same_line={} slot_bytes={} slot_footprint={}",
         ha % 128,
         ta % 128,
-        same_line_128(ha, ta) as u8
+        same_line_128(ha, ta) as u8,
+        S::BYTES,
+        cap * S::BYTES
     );
     let (sum, u0, c0, t0, t1, c1);
     if producer_side() {
@@ -258,6 +260,29 @@ fn cap_fine() -> bool {
     *F.get_or_init(|| std::env::args().any(|a| a == "capfine"))
 }
 
+/// Separate the slot array's footprint from the slot count and the run-ahead.
+///
+/// H84 found the acquire-release arm breaking by 2.716 in cost between
+/// capacities 8 and 16 while the fenced-store arm moved by 0.935. In that
+/// design an eight byte slot and a page aligned region meant capacity alone
+/// set the footprint, which first fills a 128 byte line at exactly capacity
+/// 16, and capacity alone set how far the producer may run ahead. Three
+/// candidate causes moved together.
+///
+/// This is the two by two that separates them: each arm at capacity 8 and 16,
+/// each with an eight byte slot and with a 128 byte padded slot. The padded
+/// slot makes the footprint many cache lines at both capacities while leaving
+/// the slot count and the run-ahead alone, so if the break survives there it
+/// was never about the footprint. H85.
+fn pad_sweep() -> bool {
+    use std::sync::OnceLock;
+    static F: OnceLock<bool> = OnceLock::new();
+    *F.get_or_init(|| std::env::args().any(|a| a == "padsweep"))
+}
+
+/// Capacities in case order for the footprint cross.
+const PAD_SWEEP: [usize; 8] = [8, 16, 8, 16, 8, 16, 8, 16];
+
 fn probe_spec() -> &'static ProbeSpec {
     const DEFAULT: ProbeSpec = ProbeSpec {
         name: "default",
@@ -398,71 +423,84 @@ fn main() {
     // its regression across them was unevaluable. That is D29. Ring capacity is
     // a lever that acts on both: a smaller ring forces the producer to wait on
     // the consumer's cursor more often whatever the ordering costs.
-    let cases: Vec<(Case, bool)> = if ord_sweep() {
+    let cases: Vec<(Case, bool)> = if pad_sweep() {
+        vec![
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<Slot128, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<Slot128, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<Slot128, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<Slot128, FencedStore, Pad128, SpinHint, false>, true),
+        ]
+    } else if ord_sweep() {
         // Three ordering policies, each contended and each resident. The
         // contended cells decide H90; the resident cells are the control,
         // because an ordering spread that survives line residency is not
         // about coherence traffic.
         vec![
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<SeqCst, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, true>, true),
-            (case::<SeqCst, Pad128, SpinHint, true>, true),
-            (case::<FencedStore, Pad128, SpinHint, true>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, SeqCst, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, true>, true),
+            (case::<u64, SeqCst, Pad128, SpinHint, true>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, true>, true),
         ]
     } else if cap_fine() {
         vec![
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
         ]
     } else if cap_sweep() {
         vec![
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
         ]
     } else if wait_sweep() {
         vec![
-            (case::<AcqRel, Pad128, Spin, false>, true),
-            (case::<AcqRel, Pad128, SpinHint, false>, true),
-            (case::<AcqRel, Pad128, Yield, false>, true),
-            (case::<AcqRel, Pad128, Wfe, false>, true),
-            (case::<FencedStore, Pad128, Spin, false>, true),
-            (case::<FencedStore, Pad128, SpinHint, false>, true),
-            (case::<FencedStore, Pad128, Yield, false>, true),
-            (case::<FencedStore, Pad128, Wfe, false>, true),
+            (case::<u64, AcqRel, Pad128, Spin, false>, true),
+            (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+            (case::<u64, AcqRel, Pad128, Yield, false>, true),
+            (case::<u64, AcqRel, Pad128, Wfe, false>, true),
+            (case::<u64, FencedStore, Pad128, Spin, false>, true),
+            (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+            (case::<u64, FencedStore, Pad128, Yield, false>, true),
+            (case::<u64, FencedStore, Pad128, Wfe, false>, true),
         ]
     } else {
         vec![
-        (case::<AcqRel, Pad128, SpinHint, false>, true),
-        (case::<FencedLoad, Pad128, SpinHint, false>, true),
-        (case::<FencedStore, Pad128, SpinHint, false>, true),
-        (case::<Fenced, Pad128, SpinHint, false>, true),
-        (case::<Unordered, Pad128, SpinHint, false>, false),
-        (case::<AcqRel, Pad128, SpinHint, true>, true),
-        (case::<FencedLoad, Pad128, SpinHint, true>, true),
-        (case::<FencedStore, Pad128, SpinHint, true>, true),
-        (case::<Fenced, Pad128, SpinHint, true>, true),
-        (case::<Unordered, Pad128, SpinHint, true>, false),
+        (case::<u64, AcqRel, Pad128, SpinHint, false>, true),
+        (case::<u64, FencedLoad, Pad128, SpinHint, false>, true),
+        (case::<u64, FencedStore, Pad128, SpinHint, false>, true),
+        (case::<u64, Fenced, Pad128, SpinHint, false>, true),
+        (case::<u64, Unordered, Pad128, SpinHint, false>, false),
+        (case::<u64, AcqRel, Pad128, SpinHint, true>, true),
+        (case::<u64, FencedLoad, Pad128, SpinHint, true>, true),
+        (case::<u64, FencedStore, Pad128, SpinHint, true>, true),
+        (case::<u64, Fenced, Pad128, SpinHint, true>, true),
+        (case::<u64, Unordered, Pad128, SpinHint, true>, false),
         ]
     };
     // One capacity per case, in case order, so a record carries the ring it ran
     // under rather than a constant that stopped being true.
-    let caps: Vec<usize> = if cap_fine() {
+    let caps: Vec<usize> = if pad_sweep() {
+        PAD_SWEEP.to_vec()
+    } else if cap_fine() {
         CAP_FINE.to_vec()
     } else if cap_sweep() {
         CAP_SWEEP.to_vec()
@@ -474,11 +512,13 @@ fn main() {
     println!(
         "bd_config messages={n} epochs={epochs} cases={} capacity={} pmu={} measured_side={} counters={} arms={}",
         cases.len(),
-        if cap_sweep() || cap_fine() { "swept".to_string() } else { CAPACITY.to_string() },
+        if cap_sweep() || cap_fine() || pad_sweep() { "swept".to_string() } else { CAPACITY.to_string() },
         pmu.is_some(),
         if producer_side() { "producer" } else { "consumer" },
         probe_spec().name,
-        if ord_sweep() {
+        if pad_sweep() {
+            "padsweep"
+        } else if ord_sweep() {
             "ordsweep"
         } else if cap_fine() {
             "capfine"
