@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="820" height="714" viewBox="0 0 820 714" role="img" aria-labelledby="title desc">
 <title id="title">Pre-registered hypotheses</title>
-<desc id="desc">H1 supported; H1b refuted; H2 supported; H3 refuted; H3b refuted; H4 refuted; H5 supported; H6 refuted; H7 refuted; H8 refuted; H9 refuted; H10 supported; H11 supported; H12 supported; H13 supported; H14 mixed; H15 supported; H16 supported; H17 mixed; H18 supported; H19 supported; H20 supported; H21 refuted; H22 supported; H23 supported; H24 supported; H25 refuted; H21b supported; H26 mixed; H27 refuted; H28 supported; H29 supported; H30 mixed; H31 supported; H32 refuted; H33 refuted; H34 supported; H35 refuted; H36 supported; H30b mixed; H30c supported; H37 mixed; H38 mixed; H39 supported; H40 supported; H41 supported; H42 supported; H43 mixed; H44 supported; H45 refuted; H46 mixed; H47 mixed; H48 mixed; H49 mixed; H50 supported; H51 mixed; H52 supported; H53 mixed; H54 supported; H55 supported; H56 supported; H57 mixed; H58 mixed; H59 supported; H60 mixed; H61 mixed; H62 mixed; H63 mixed; H64 mixed; H65 mixed; H66 mixed; H67 mixed; H68 mixed; H69 mixed; H70 mixed; H71 refuted; H72 mixed; H75 supported; H76 supported; H74 mixed; H77 mixed; H78 mixed; H79 mixed; H80 mixed; H81 mixed; H82 mixed; H83 mixed; H84 supported; H85 pending; H86 mixed; H87 mixed; H88 supported; H89 mixed; H90 supported</desc>
+<desc id="desc">H1 supported; H1b refuted; H2 supported; H3 refuted; H3b refuted; H4 refuted; H5 supported; H6 refuted; H7 refuted; H8 refuted; H9 refuted; H10 supported; H11 supported; H12 supported; H13 supported; H14 mixed; H15 supported; H16 supported; H17 mixed; H18 supported; H19 supported; H20 supported; H21 refuted; H22 supported; H23 supported; H24 supported; H25 refuted; H21b supported; H26 mixed; H27 refuted; H28 supported; H29 supported; H30 mixed; H31 supported; H32 refuted; H33 refuted; H34 supported; H35 refuted; H36 supported; H30b mixed; H30c supported; H37 mixed; H38 mixed; H39 supported; H40 supported; H41 supported; H42 supported; H43 mixed; H44 supported; H45 refuted; H46 mixed; H47 mixed; H48 mixed; H49 mixed; H50 supported; H51 mixed; H52 supported; H53 mixed; H54 supported; H55 supported; H56 supported; H57 mixed; H58 mixed; H59 supported; H60 mixed; H61 mixed; H62 mixed; H63 mixed; H64 mixed; H65 mixed; H66 mixed; H67 mixed; H68 mixed; H69 mixed; H70 mixed; H71 refuted; H72 mixed; H75 supported; H76 supported; H74 mixed; H77 mixed; H78 mixed; H79 mixed; H80 mixed; H81 mixed; H82 mixed; H83 mixed; H84 supported; H85 mixed; H86 mixed; H87 mixed; H88 supported; H89 mixed; H90 supported</desc>
 <style>
   .bg { fill: #fcfcfb; } .frame { fill: none; stroke: #e4e3df; }
   .t1 { fill: #0b0b0b; } .t2 { fill: #52514e; } .t3 { fill: #75746f; }
@@ -34,8 +34,8 @@
 <rect class="bg" x="0.5" y="0.5" width="819" height="713" rx="10"/>
 <rect class="frame" x="0.5" y="0.5" width="819" height="713" rx="10"/>
 <text x="28.0" y="38.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" text-anchor="start">Every prediction is committed before the run that tests it</text>
-<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">94 hypotheses so far: 38 supported, 16 refuted or not supported, 39 mixed or invalid, 1 pending; failures stay in the log.</text>
-<text x="28.0" y="78.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">220 registered parts in all: 126 held, 69 did not, 25 were partial or could not be evaluated.</text>
+<text x="28.0" y="60.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">94 hypotheses so far: 38 supported, 16 refuted or not supported, 40 mixed or invalid, 0 pending; failures stay in the log.</text>
+<text x="28.0" y="78.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start">224 registered parts in all: 129 held, 70 did not, 25 were partial or could not be evaluated.</text>
 <rect class="good" x="28" y="94" width="12" height="12" rx="2"/>
 <text x="46.0" y="104.5" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" text-anchor="start">supported</text>
 <rect class="bad" x="133.0" y="94" width="12" height="12" rx="2"/>
@@ -433,9 +433,10 @@
 <text x="760.0" y="583.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H84</text>
 <text x="760.0" y="600.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">5 of 5 ok</text>
 <rect class="chip" x="28" y="618" width="64" height="54" rx="7"/>
-<rect class="none" x="28" y="618" width="64" height="5" rx="2"/>
+<rect class="good" x="28.00" y="618" width="48.00" height="5" rx="2"/>
+<rect class="bad" x="76.00" y="618" width="16.00" height="5" rx="2"/>
 <text x="60.0" y="645.0" class="t1" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">H85</text>
-<text x="60.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">pending</text>
+<text x="60.0" y="662.0" class="t2" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle">3 of 4 ok</text>
 <rect class="chip" x="98" y="618" width="64" height="54" rx="7"/>
 <rect class="good" x="98.00" y="618" width="24.00" height="5" rx="2"/>
 <rect class="bad" x="122.00" y="618" width="24.00" height="5" rx="2"/>

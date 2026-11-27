@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-27: fifty eight closed, none partly closed, none open. Fifty eight entries in all.**
+**Status at 2026-11-27: fifty nine closed, none partly closed, none open. Fifty nine entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2514,3 +2514,40 @@ fixed in the record gate was present in the search looking for this.
 check_claims_semantics.py now reads each manuscript's own title, then checks
 every threshold count in that manuscript's body against it, on whitespace
 normalised text so a wrap cannot hide one. Confirmed both ways.
+
+
+## D59. The H85 run went out on a delivery script that did not capture the
+power state, so a 480 record file carries no evidence of the condition it was
+measured under.
+
+**CLOSED 2026-11-27** Every result in this project is supposed to arrive with its power state in the
+file, because the M4 is fanless and the clock spans a factor of four between
+battery and wall power. The standard run script captures pmset at the start and
+the end of a sweep and writes a POWER line. The script written to deliver the
+H85 padsweep did not. It checked the record count, the launch count, the block
+count, the checksum column and the four footprints, and it did not check the
+one environmental fact that the rest of the register treats as mandatory.
+
+The operator reports the charger was connected. That is not the point. The
+artifact is what a reader has, and the artifact is silent, so the register row
+for H85 may not say wall power and now does not. The verdicts themselves are
+unaffected: every registered part of H85 is a within-file comparison between
+cells measured in the same launches under whatever condition held, and the
+twenty launch design is there precisely so that a shared environmental state
+cancels out of the comparison. What is lost is the ability to state the
+condition, not the ability to trust the contrast.
+
+check_power_lines.py caught both halves of this within a minute of the file
+entering the tree: the missing POWER line, and the register row that claimed a
+power state no cited run recorded. The gate written after D-era H79, where a
+row said wall power and nobody had read the file, did exactly its job on the
+first file that tested it again.
+
+The fix is to the file and to the row, not to the gate. The results file now
+carries a POWER line that states plainly that the state was not recorded and
+why, which is the only honest value it can hold, and the H85 row cites this
+entry instead of a condition. The delivery script pattern is the defect worth
+remembering: a bespoke script written to run one experiment inherited none of
+the standard script's environmental discipline, and the checks it did carry
+were all about the data and none about the conditions. Any future one-off run
+script copies the POWER capture first and the record counting second.
