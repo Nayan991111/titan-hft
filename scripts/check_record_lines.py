@@ -105,27 +105,32 @@ def main():
     # rather than a check on it, which is the mistake D48 recorded. D53.
     import pathlib
     root = pathlib.Path(__file__).resolve().parent.parent
-    tex = (root / "docs" / "paper" / "main.tex").read_text(encoding="utf-8")
     defects = (root / "docs" / "defects.md").read_text(encoding="utf-8")
     entries = defects.count("**CLOSED")
     art = []
-    m = re.search(r"carries (\d+)\s*\n?\s*committed records across (\d+) results files", tex)
-    if not m:
-        m = re.search(r"carries (\d+)[\s\n]+committed records across (\d+)[\s\n]+results files", tex)
-    if not m:
-        art.append("main.tex no longer states the archive's record and file counts "
-                   "in a form this check can read")
-    else:
-        if int(m.group(1)) != records:
-            art.append(f"main.tex says {m.group(1)} committed records; the files hold {records}")
-        if int(m.group(2)) != len(files):
-            art.append(f"main.tex says {m.group(2)} results files; {len(files)} are tracked")
-    d = re.search(r"defect register of (\d+) entries", tex)
-    if not d:
-        art.append("main.tex no longer states the size of the defect register")
-    elif int(d.group(1)) != entries:
-        art.append(f"main.tex says a defect register of {d.group(1)} entries; "
-                   f"docs/defects.md holds {entries}")
+    # D53 added this check and pointed it at main.tex alone. The ISPASS variant
+    # then carried a defect count of 54 against a register of 56 for a day,
+    # because a variant created after a gate was written inherits nothing. The
+    # same shape as D51 and D56. Every manuscript in docs/paper is checked now,
+    # so a document added later is covered the moment it exists. D57.
+    for tf in sorted((root / "docs" / "paper").glob("*.tex")):
+        tex = tf.read_text(encoding="utf-8", errors="replace")
+        n = tf.name
+        m = re.search(r"carries\s+(\d+)\s+committed\s+records\s+across\s+(\d+)\s+results\s+files", tex)
+        if not m:
+            art.append(f"{n} no longer states the archive's record and file counts "
+                       "in a form this check can read")
+        else:
+            if int(m.group(1)) != records:
+                art.append(f"{n} says {m.group(1)} committed records; the files hold {records}")
+            if int(m.group(2)) != len(files):
+                art.append(f"{n} says {m.group(2)} results files; {len(files)} are tracked")
+        d = re.search(r"defect\s+register\s+of\s+(\d+)\s+entries", tex)
+        if not d:
+            art.append(f"{n} no longer states the size of the defect register")
+        elif int(d.group(1)) != entries:
+            art.append(f"{n} says a defect register of {d.group(1)} entries; "
+                       f"docs/defects.md holds {entries}")
     if art:
         for a in art:
             print("FAIL: " + a)

@@ -13,7 +13,7 @@ agrees. Semantic checks ask whether the number is the right number for the
 claim it supports. Every gate built here before 2026-11-20 was mechanical.
 The Fano defect below passed all of them.
 
-**Status at 2026-11-26: fifty six closed, none partly closed, none open. Fifty six entries in all.**
+**Status at 2026-11-27: fifty seven closed, none partly closed, none open. Fifty seven entries in all.**
 Partly closed are D4, where the lead results are now fully recomputable but a
 cycle-level replication still needs an interactive run with root, and D8,
 where the hypothesis that latency tracks the coefficient of variation rather
@@ -2450,3 +2450,37 @@ not define. Confirmed both ways. The general lesson is the one this register
 keeps recording in different forms: a check written for the artifact that
 exists does not cover the artifact added later, and the ISPASS variant will
 need the rest of the gates pointed at it before it is submitted.
+
+## D57. The ISPASS variant carried a defect count two behind the register, and
+## the gate written the day before to stop that read only the main manuscript
+
+**CLOSED 2026-11-27** D53 found three stale numbers in the manuscript's
+Artifact subsection and added a check comparing them to the files that own
+them. That check read main.tex. The ISPASS variant, created three commits
+later, inherited the paragraph and then diverged: it said a defect register of
+54 entries while the register held 56.
+
+This is the third consecutive defect with one shape. D51: a gate covered the
+prose and not the title above it. D56: eleven gates covered main.tex and not
+the variant, and a fabricated citation reached a compiled PDF. Now D57: a gate
+written yesterday for exactly this class of drift covered one of two
+manuscripts. Each fix has been aimed at the file that failed rather than at
+every file of that kind, and the next file along has been wrong each time.
+
+The record and defect-count checks now iterate over every .tex in docs/paper,
+as the citation check already does after D56. A manuscript added later is
+covered the moment it exists rather than when someone remembers it.
+
+Two smaller faults were found in the same pass. The patterns matched a single
+space between words, so they broke when the anonymised rewrite wrapped
+"committed records" across a line; they now tolerate any whitespace, because a
+check that constrains how prose may be line-wrapped will eventually be
+satisfied by reflowing text rather than by fixing a number. And the variant was
+confirmed against both failure directions and on both documents, not only on
+the one that had failed.
+
+The variant is also now anonymised for double-blind review. The author block
+reads anonymous, and the Artifact subsection states the intent to open-source
+on acceptance rather than naming the repository, which is what the ISPASS
+submission instructions ask for in place of an identifying URL. No name,
+affiliation, identifier or repository link remains in it.
