@@ -280,6 +280,20 @@ that, because cost is not in its vocabulary. This paper measures the quantity
 the models leave out, on hardware, with the semantics held fixed by the models
 rather than argued about.
 
+Two 2026 studies measure the same silicon from different angles. Khayet and
+Morrison~\cite{khayet2026arm} compare Apple's runtime-configurable TSO mode
+against the Arm weak model across 49 applications and ask what weak
+consistency buys at application scale. The unit there is the application and
+the unit here is the construct: they measure whether weakness pays at all,
+while this paper measures what each ordering choice costs inside one hand-off
+loop and whether the ranking survives a change in cursor residency, in which
+half of the ring is modified, and in the ring's cache geometry. Wang et
+al.~\cite{wang2026charting} reverse engineer M4 cache behaviour to construct
+eviction sets, reading cycles through the same performance monitoring unit used
+here, and the difficulty they report in characterising this part is part of why
+the counter definitions in this study are treated as claims to be validated
+rather than as documentation to be trusted.
+
 \subsection{Cache-conscious single-producer queues}
 
 The ring measured here descends from a line of work on making single-producer
