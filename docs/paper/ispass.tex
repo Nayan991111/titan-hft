@@ -753,7 +753,7 @@ loop suppressed the quantity the earlier comparison divided. The registered
 outcome is inconclusive rather than confirmed or reversed, which is why that
 threshold was written with three outcomes and not two.
 
-\subsection{A boundary, and three properties confounded inside it}
+\subsection{A boundary, and which property of the ring produces it}
 
 The comparison is not a fixed property of the two instruction sequences. Swept
 over ring capacity with the cursor line contended, its sign changes three times
@@ -787,13 +787,18 @@ The break matters more than the sign change. The acquire-release arm falls from
 and writebacks from 0.2564 to 0.9985. The fenced-store arm moves by 0.935
 across the same step. Whatever happens between 8 and 16 happens to one arm.
 
-Capacity is not separable here. The slot type is eight bytes and the region is
-page aligned, so capacity alone sets the footprint at 16, 32, 64, 128 and 8192
-bytes, first filling a 128-byte line at exactly the capacity where the break
-occurs, and also sets how far the producer may run ahead. Three candidate
-causes move together, so we claim dependence on capacity and not on any
-particular property of the ring. A design separating footprint from slot count
-is registered and not yet run.
+Capacity is not separable here by design alone. The slot type is eight bytes
+and the region is page aligned, so capacity sets the footprint at 16, 32, 64,
+128 and 8192 bytes, first filling a 128-byte line at exactly the capacity where
+the break occurs, and it also sets how far the producer may run ahead. A second
+design separates them: padding the slot to 128 bytes raises the footprint
+sixteenfold while holding the slot count and the run-ahead. The break does not
+survive it. The same capacity step costs 1.0057 padded, reaching the registered
+threshold of 2.0 in 0 of 20 launches, against 2.0902 unpadded in 18 of 20,
+$p = 4.0\times10^{-4}$, and writebacks and refills saturate at 1.0 and 2.0 per
+message as the footprint reaches one line, then stay flat across a further
+factor of sixteen. The break is a cache-line crossing. We registered the
+opposite prediction, and its refutation is what identified the cause.
 
 \section{Discussion}
 
@@ -893,12 +898,11 @@ account for a difference of 2.5. Retired store misses and retired memory order
 violations are unmeasurable on this part, and we treat them as unmeasured
 rather than as evidence of absence.
 
-\textbf{Capacity is confounded.} The capacity sweep varies slot count, byte
-footprint and producer lead together, because the slot type is a fixed eight
-bytes. The discontinuity in one arm falls exactly where the footprint first
-fills a cache line, which is suggestive and is not evidence. A design
-separating footprint from the other two is registered and not yet run, so we
-claim dependence on capacity and not on any particular property of the ring.
+\textbf{The padded arm moves more bytes.} Separating footprint from slot count
+required a 128-byte slot, which also raises the bytes copied per message. Both
+comparisons that carry the conclusion hold the slot size fixed on each side, so
+neither is confounded by it, but no claim is made about the absolute cost of
+the padded arms.
 
 \textbf{Correctness testing does not establish ordering correctness.} The
 unordered arm exists as a cost floor and is incorrect. Measured on the

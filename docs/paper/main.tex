@@ -1121,7 +1121,7 @@ does not survive. This paper therefore does not claim that pipeline throttling
 is excluded. The account is neither excluded nor supported, and we report it as
 open.
 
-\subsection{A boundary, and three properties confounded inside it}
+\subsection{A boundary, and which property of the ring produces it}
 
 The comparison is not a fixed property of the two instruction sequences. Swept
 over ring capacity with the cursor line contended, its sign changes three times
@@ -1162,12 +1162,23 @@ bytes and the slot region is page aligned, so capacity alone sets the slot
 array's footprint at 16, 32, 64, 128 and 8192 bytes, which first fills a
 128-byte line at exactly the capacity where the break occurs. Capacity alone
 also sets how far the producer may run ahead of the consumer. Three candidate
-causes move together and naming the one that labels the axis would not be an
-inference. We therefore claim that the sign of the comparison depends on ring
-capacity over the range measured, non-monotonically, and that which property of
-the ring governs it is open. A pre-registered two-by-two that varies the slot
-footprint by a factor of sixteen while holding the slot count and the run-ahead
-fixed is the next measurement and is registered but not yet run.
+causes move together, so capacity alone cannot name the one responsible. A
+pre-registered two-by-two settles it. Padding the slot to 128 bytes raises the
+footprint by a factor of sixteen while holding the slot count and the run-ahead,
+and across 20 independent launches the break does not survive that change. With
+the padded slot the capacity step from 8 to 16 costs 1.0057, reaching the
+registered threshold of 2.0 in 0 of 20 launches; with the eight-byte slot the
+identical step costs 2.0902 and is slower in 18 of 20, $p = 4.0\times10^{-4}$.
+The fenced-store control stays at 1.0310, inside its registered band of 1.25 in
+20 of 20. The counters locate the same boundary without reference to cost:
+writebacks and refills per message are 0.3191 and 0.6492 at a 64-byte
+footprint, 0.9993 and 2.0942 at 128 bytes, 1.0001 and 2.0002 at 1024, and
+0.9706 and 2.0000 at 2048. Both saturate as the footprint reaches one 128-byte
+line and stay flat across a further factor of sixteen, and cost follows them.
+The sign change is therefore a property of the ring's cache geometry and not of
+its capacity. We had registered the opposite prediction, that the break would
+survive at large footprint and so belong to the slot count or the run-ahead,
+and its refutation is what identified the cause.
 
 \section{Discussion}
 
@@ -1323,15 +1334,15 @@ memory order violations, are unmeasurable on this part for reasons recorded in
 the artifact, and we treat them as unmeasured rather than as evidence of
 absence.
 
-\subsection{Capacity is confounded}
+\subsection{The padded arm moves more bytes than the unpadded one}
 
-The capacity sweep varies the slot count, the slot array's byte footprint and
-how far the producer may run ahead, all together, because the slot type is a
-fixed eight bytes. The discontinuity in one arm falls at exactly the capacity
-where the footprint first fills a cache line, which is suggestive and is not
-evidence. A pre-registered design that separates footprint from the other two is
-registered and not yet run, and until it is we claim dependence on capacity and
-not dependence on any particular property of the ring.
+Separating the slot array's byte footprint from the slot count required a
+128-byte slot type, and that raises the bytes copied per message along with the
+footprint. The two comparisons that carry the conclusion each hold the slot size
+fixed on both sides, 128 bytes throughout the discriminator and eight bytes
+throughout the capacity step it is contrasted with, so neither is confounded by
+the copy cost. What the design cannot support is any claim about the absolute
+cost of the padded arms, and none is made.
 
 \subsection{Correctness testing does not establish ordering correctness}
 
