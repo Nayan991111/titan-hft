@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Ninety four pre-registered hypothesis rows, forty eight of them refuted and published. One Apple M4 performance core." width="100%">
+  <img src="docs/figures/fig-abstract.svg" alt="Graphical abstract. At one fixed mean rate, a random Poisson arrival schedule costs 3.44 times the per-message latency of a perfectly periodic one at the 98.12th percentile, with 30 of 30 independent launches agreeing. Clustering on top of that randomness costs 1.17 times at p99.9, with 26 of 30 agreeing. Capacity is measured first and the rate read off it. One Apple M4 performance core." width="100%">
 </p>
 
 <p align="center">
@@ -48,7 +48,7 @@ can adopt them without taking anything else from this one.
 }
 ```
 
-## Headline result: when messages arrive matters more than how they bunch
+## The arrival-schedule result: when messages arrive matters more than how they bunch
 
 At a fixed mean rate, a **random** arrival schedule costs up to **3.44 times**
 the per-message latency of a perfectly **periodic** one, while **clustering**
@@ -116,7 +116,7 @@ nothing, and each hypothesis is committed to
 </p>
 
 > **Two protocols live in this repository and the difference matters.** The
-> headline results above, and every hypothesis from H56 onward, use the final
+> results above, and every hypothesis from H56 onward, use the final
 > protocol: at least 30 independent process launches per configuration, on wall
 > power confirmed at both ends of the run, with the launch as the unit of
 > observation and a paired sign test across launches. Nineteen earlier rows in
@@ -198,6 +198,7 @@ every row below carries the clock measured in its own arm.
 | A/B feed lines and gap recovery over MoldUDP64, per delivered message above the floor | one line 7.5 cycles; a second lossless line 10.7 (1.43x, 1.67x on the synthetic feed); with 3% loss on each line, recovery through the other line and the re-request server costs no more, since lost packets never arrive. Delivery stayed exact in every epoch (one checksum across all conditions), 47 requests and 2,351 resent messages on the real feed | same |
 | One book consolidated across two exchanges (BX and PSX, 2019-07-30, 8,849 shared symbols, 59.2 million messages merged by timestamp) | keeping the consolidated top as messages arrive costs 23.5 cycles per message on top of the two venue books (15% of them); re-reading both venues for every instrument every 1,000 messages costs 110, a 4.7x difference that is 3.1x the instructions and 5.3x the L1D misses. Counting every displayed order the two venues locked 360 times and crossed 33 times inside continuous trading; counting only levels of at least 100 shares, 82 and 2, with the longest cross falling from 212.8 s to 0.110 ms. The apparent cross-venue arbitrage is almost entirely odd lots, which are not protected quotations. A view rebuilt every 1,000 messages missed both round-lot crossings; the incremental view, 5.3x cheaper per message, saw both | [`results/2026-11-14_m4_fix_cross.txt`](results/2026-11-14_m4_fix_cross.txt) |
 | The order book as a heap of orders, per message above decoding alone (real BX feed, 10 million messages, every structure at its best) | sorted price levels 94.9 cycles for the best price and 94.9 for the best price with its depth, the same operation; a binary heap of orders with an index 161.1 and 218.3, so 1.70x and 2.30x. Which deletion policy wins reverses with the feed: lazy against indexed is 1.53 on the real feed and 0.79 on the synthetic one, because an index costs per sift step and lazy deletion costs per stale pop (4,200,776 against 50,547) | [`results/2026-11-14_m4_heap_pruned.txt`](results/2026-11-14_m4_heap_pruned.txt) |
+| Which property of the ring governs the H84 sign change: slot count, bytes occupied, or producer run-ahead | **The bytes.** With a 128-byte padded slot the break is absent: 215.173 against 213.955 cycles, ratio **1.0057**, and 0 of 20 launches reach the registered bar of 2.0. With an 8-byte slot the same capacity step breaks: 82.764 to 172.992, ratio **2.0902**, 18 of 20 launches, p = 4.0e-04. Slot count and run-ahead double in both steps; only one crosses a 128-byte line. L1D writebacks and refills saturate at 1.0 and 2.0 per message at that line and stay flat across a further factor of sixteen in footprint | [`results/2026-11-27_m4_h85_padsweep.txt`](results/2026-11-27_m4_h85_padsweep.txt) |
 | How long a real order rests, from its own timestamps (NASDAQ BX 2019-07-30, 4.4 million orders that ended inside the window) | of those that arrived at the best price, 2.71% are gone within 100 us, 9.94% within 1 ms, 20.66% within 10 ms and 53.88% within 1 s, with a mean of 21.6 s. Posting quotes for milliseconds describes a minority of real orders, not the norm | same |
 
 <p align="center">
@@ -267,7 +268,7 @@ reader's light or dark theme.
 | Crate or binary | Purpose |
 |---|---|
 | `titan-platform` | Pinned memory, counter timer and its measured resolution, QoS, kperf PMU sessions, allocation and `getrusage` accounting, a fixed-memory log-linear latency histogram. Self-test: `titan-probe`. |
-| `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip), `titan-stream` (throughput) and `titan-barrier` (the ordering cross: which side of an acquire-release pair carries the cost, with `ordsweep`, `capfine`, `issueprobe`, `stallprobe` and `trafficprobe` modes). **`titan-barrier` produced the headline result.** |
+| `titan-spsc` | SPSC ring with selectable ordering (`ldapr`, `ldar`, `dmb`), 64 or 128-byte index cells in one 128-byte-aligned block, optional index caching, and four waits (`spin`, `isb`, `yield`, `wfe` on the exclusive monitor). `titan-pingpong` (cross-core round trip), `titan-stream` (throughput) and `titan-barrier` (the ordering cross: which side of an acquire-release pair carries the cost, with `ordsweep`, `capfine`, `issueprobe`, `stallprobe`, `trafficprobe` and `padsweep` modes). **`titan-barrier` produced the headline result.** |
 | `titan-itch` | NASDAQ TotalView-ITCH 5.0 decoder (in place, no copies); L3 order book (open-addressed order table with Fibonacci hashing and backward-shift deletion, sorted price levels, fixed-point prices); reference book; synthetic feed generator; the trading decision (signal plus eight pre-trade checks of the kind SEC Rule 15c3-5 requires). `titan-replay` (book replay with full verification), `titan-t2t` (single-core trading path with stage ablation), `titan-pipeline` (open-loop two-core pipeline with per-message latency taken from the schedule), `titan-fanout` (one book writer, several strategy readers: per-reader ring copies or seqlock snapshots), `titan-agg` (one exposure limit shared by several strategy threads: atomic add, compare-and-swap or per-strategy totals), `titan-wire` (the same price-level updates decoded from binary, FIX 4.4 and JSON) `titan-arb` (A/B line arbitration and MoldUDP64 gap recovery, exact delivery asserted under seeded loss) `titan-cross` (one book consolidated across two exchanges, and the locked and crossed markets it exposes) and `titan-heap` (the same feed through a heap of orders instead of sorted price levels). |
 | `titan-core`, `titan-feed-sim` | The original prototype, kept as a baseline. `titan-greeks` (Black-Scholes price and all five first-order sensitivities, fused against independent functions, single against double precision) and `titan-paths` (path-dependent accumulation per step, stored against fused, branchless against branching extremes, barrier abandonment). |
 | `titan-common` | Shared types and helpers used across the crates. |
@@ -319,7 +320,7 @@ reader's light or dark theme.
 - [x] Where the RCsc acquire sits between the RCpc acquire and the explicit barrier (H90). It sits with the weak end: strengthening the acquire costs 1.3%, moving the ordering to the store side costs a factor of 2.29
 - [x] Final protocol: 30 independent launches per configuration on wall power, one reproduction script (`scripts/reproduce_paper_artifacts.sh`), archived results, eleven automated checks that refuse a manuscript disagreeing with its own data
 - [x] Paper written: 15 pages, 31 verified references, archived under [10.5281/zenodo.24490481](https://doi.org/10.5281/zenodo.24490481)
-- [ ] Which property of the ring governs the sign change: the number of slots, the bytes they occupy, or how far the producer runs ahead (H85, registered and not yet run)
+- [x] Which property of the ring governs the sign change: the number of slots, the bytes they occupy, or how far the producer runs ahead (H85). **The bytes.** The registered discriminator was refuted, and the refutation is what settled it: the break is absent when the slot is padded so the footprint is large at both capacities, and present when the same capacity step crosses one 128-byte line, so H84's sign change is cache geometry and not capacity
 - [ ] Time constant of the keep-warm effect, with the period swept and its energy cost measured (H34 established the effect, not its time constant)
 - [ ] Scheduler study: core migrations and preemption tails without thread affinity, over long runs (H64 covers preemption under the protocol, not migration)
 - [ ] arXiv announcement, then IEEE ISPASS, then the gate suite to JOSS as software
@@ -364,6 +365,7 @@ sudo ./target/release/titan-barrier 2000000 3 pmu ordsweep    # THE HEADLINE RES
 sudo ./target/release/titan-barrier 10000000 3 pmu           # the ordering cross: which side of the pair carries the cost (H69, H76, H77)
 sudo ./target/release/titan-barrier 10000000 3 pmu issueprobe   # whether the barrier wins by suppressing issue rate (H86 to H89)
 sudo ./target/release/titan-barrier 10000000 3 pmu stallprobe   # where the unaccounted cycles go
+sudo ./target/release/titan-barrier 2000000 3 pmu trafficprobe padsweep   # which ring property governs the sign change (H85)
 ./target/release/titan-greeks 3 bg pmu                       # Black-Scholes price and five sensitivities (H65)
 ./target/release/titan-paths 3 bg pmu                        # path-dependent accumulation per step (H66)
 
