@@ -24,3 +24,10 @@ docs/paper/*.pdf
 # the authorship gate caught its first real footprint.
 t[0-9]*.sh
 t[0-9]*.patch
+
+# The anonymised conference variant is kept out of the public tree while it is
+# under double-blind review. It lives on the author machine and returns here on
+# notification. The public preprint is docs/paper/main.tex, which carries a
+# different title, which is what the venue permits.
+docs/paper/ispass.tex
+docs/paper/ispass.bbl
