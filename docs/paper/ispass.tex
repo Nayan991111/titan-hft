@@ -757,29 +757,9 @@ threshold was written with three outcomes and not two.
 
 The comparison is not a fixed property of the two instruction sequences. Swept
 over ring capacity with the cursor line contended, its sign changes three times
-across five capacities, as Table~\ref{tab:cap} shows. The acquire-release arm is
-faster at capacity 2 in 20 of 20 launches and slower at capacity 1024 in 20 of
-20, each at $p = 1.91\times10^{-6}$.
-
-\begin{table}[t]
-\centering
-\caption{Cost per message in cycles, contended, by ring capacity. The sign of
-the comparison changes three times and the acquire-release arm breaks
-discontinuously between capacities 8 and 16. From
-\texttt{results/\allowbreak 2026-11-22\_\allowbreak m4\_\allowbreak h84\_\allowbreak capfine.txt}.}
-\label{tab:cap}
-\begin{tabular}{rrrrr}
-\hline
-capacity & acq-rel & fenced-store & faster & advantage \\
-\hline
-2 & 153.838 & 165.898 & acq-rel & 1.0784 \\
-4 & 91.997 & 86.072 & fenced-store & 1.0688 \\
-8 & 63.972 & 76.105 & acq-rel & 1.1897 \\
-16 & 173.725 & 71.194 & fenced-store & 2.4402 \\
-1024 & 219.433 & 85.340 & fenced-store & 2.5713 \\
-\hline
-\end{tabular}
-\end{table}
+across capacities 2, 4, 8, 16 and 1024, which are tabulated in full in the
+artifact. The acquire-release arm is faster at capacity 2 in 20 of 20 launches
+and slower at capacity 1024 in 20 of 20, each at $p = 1.91\times10^{-6}$.
 
 The break matters more than the sign change. The acquire-release arm falls from
 153.838 cycles at capacity 2 to 63.972 at capacity 8 and jumps to 173.725 at
@@ -804,37 +784,33 @@ opposite prediction, and its refutation is what identified the cause.
 
 \textbf{What a practitioner can take from this.} The usual guidance is to use
 the weakest ordering that is sufficient, on the understanding that weaker is
-cheaper. On this part that is not a performance rule. A store-release is
-cheaper than a full barrier plus a plain store when the cursor line is resident
-in L1, by 2.7008 in cycles, and more expensive when the line is contended, by
-2.5766, and which regime a queue is in depends on how the threads are scheduled
-rather than on anything in the source. The comparison also depends
-non-monotonically on ring capacity: the arm that is faster at capacity 2 is
-slower at capacity 16. The reading is therefore narrow and we state it narrowly.
-On a fanless M4, for a single-producer single-consumer ring with padded cursors,
-the ordering construct is not a constant factor and cannot be chosen once for
-all configurations by strength alone. It must be measured in the configuration
-it will run in.
+cheaper. On this part that is not a performance rule. A store-release is cheaper than a full barrier plus a plain store when the
+cursor line is resident in L1 and more expensive when it is contended, and
+which regime a queue is in depends on how the threads are scheduled
+rather than on anything in the source. The comparison also turns on the ring's cache
+geometry: the arm that is faster when the slot array fits inside one line is
+slower once it spans two. On a fanless M4, for a single-producer
+single-consumer ring with padded cursors, the ordering construct is not a
+constant factor and cannot be chosen by strength alone. It has to be measured
+in the configuration it will run in.
 
+\looseness=-1
 \textbf{What the apparatus taught us.} Eight registered thresholds in this
 study were precise, checkable, fixed before the data existed, and not tests of
-the claims they were written for. One was written over five arms when the claim
-concerned a pair; one over an absolute quantity when the claim concerned a
-composition; one against the thread that does not execute the instruction under
-test; one was a measurability guard scoped more widely than the comparison it
-guarded; one normalised a quantity by the very thing under comparison, so the
-comparison appeared twice in the answer; one cross-checked two counters whose
-definitions do not make them proportional, so neither outcome could have meant
-anything, and its registered consequence is recorded as void; one placed its
-test on the single cell we judged cleanest while the claim was scoped over
-every cell, and the registered cell missed the bound by 0.0200 while three of
-four cleared it; and one compared the magnitude of a spread across three arms
-when the claim concerned whether an effect persists, so it could not see that
-the rank order of the arms reverses between conditions, and reported a pass on
-a margin of one part in 7600.
+the claims they were written for. They fail in two ways. Four are scoped
+wrongly: over five arms when the claim concerned a pair, against the thread
+that does not execute the instruction under test, more widely than the
+comparison being guarded, and on the single cell we judged cleanest while the
+claim ranged over every cell, where that cell missed the bound by 0.0200 while
+three of four cleared it. Four measure a quantity that merely moves with the
+claim: an absolute where the claim concerned a composition, a ratio normalised
+by the thing under comparison so that it appears twice in the answer, a
+cross-check between counters whose definitions do not make them proportional,
+whose registered consequence is therefore recorded as void, and a spread
+magnitude that could not see the rank order of the arms reverse and passed on a
+margin of one part in 7600. The register carries each in full.
 
-Locating this against the literature takes care, because that literature has
-already drawn a distinction nearby. Nosek et
+That literature has already drawn a distinction nearby. Nosek et
 al.~\cite{nosek2018preregistration} set out pre-registration as the separation
 of hypothesis generation from testing.
 Ledgerwood~\cite{ledgerwood2018distinguish} replied that two things are
@@ -843,6 +819,7 @@ a theory falsifiable, and pre-registering an analysis plan, which controls the
 type I error rate. Nosek et al.~\cite{nosek2018reply} accepted the
 complementarity and argued a prediction without a plan is inert.
 
+\looseness=-1
 Every threshold above satisfies both halves. Each was a directional prediction,
 and each came with a plan specific enough to execute without further choices:
 cells, statistic, comparison and bound were written down and pushed before the
@@ -875,14 +852,13 @@ strategy. Adding that last axis showed it had been carrying two results: the
 stall decomposition is substantially a measurement of the
 context-synchronizing instruction in the wait loop, and the exclusion of
 pipeline throttling rests on an issue-rate comparison that the same instruction
-suppresses. Neither was visible while the parameter was fixed, because its
-effect was credited to whatever moved against it. Both were re-measured against
-thresholds written before the data existed. The cost ratios survived, moving by
+suppresses. Neither was visible while the parameter was fixed,
+because its effect was credited to whatever moved against it. Re-measured
+against thresholds written beforehand, the cost ratios survived, moving by
 1.0809 between the two extreme wait strategies inside a registered band of
 1.25; the stall attribution did not, and the throttling exclusion returned
-inconclusive. We state the general form because we expect it is common: a
-parameter held constant across every run of a study cannot be seen inside that
-study.
+inconclusive. A parameter held constant across every run of a study cannot be
+seen inside that study.
 
 \textbf{What the counters describe.} Counting is per thread on this unit, so
 every counter figure here is about one side of the ring and the side is named
@@ -913,10 +889,9 @@ resolves. Passing a correctness check under one thread arrangement is not
 evidence that a memory-ordering implementation is correct.
 
 \textbf{Whether the cost floor is a fair baseline.}
-The ordering fraction compares an incorrect arm against a correct one, so a
-reader is right to ask whether the gap measures ordering or measures work the
-compiler removed once it was free to reorder. The instruction census answers
-it. On the consuming path the unordered arm emits 18 instructions against 19
+The ordering fraction compares an incorrect arm against a correct one, so the
+gap might measure ordering or might measure work the compiler removed once it
+was free to reorder. The instruction census answers it. On the consuming path the unordered arm emits 18 instructions against 19
 for acquire-release, and on the producing path 20 against 23. Every arm carries
 the same loop shape: two conditional branches, two compares, one pair load and
 two returns. The compiler did not restructure the loop when the ordering was
@@ -947,24 +922,20 @@ carrying the central results come from the performance monitoring unit.
 A store-release and a full barrier followed by a plain store are not ordered by
 cost on this part. Which is cheaper depends on whether the cursor line is
 contended, on which half of the ring the construct is changed, and on the ring's
-capacity, and the comparison changes sign along all three. The effect is large,
-2.5766 in cycles contended and 2.7008 in the other direction when resident, and
-it reproduces across thirty independent launches and across both threads of the
-ring.
+cache geometry, and the comparison changes sign along all three. The effect is
+large, 2.5766 in cycles contended and 2.7008 in the other direction when
+resident, and it reproduces across thirty independent launches.
 
 Most of the cost difference is time spent waiting on the load-store unit after
-an L1D miss, and we could not identify what produces that waiting. The
-coherence traffic explanation does not survive controlling for duration, and the
-two counters that would have tested the alternatives do not measure anything in
-this workload. We report an effect with a location and without a mechanism,
-which is less than we set out to find and is what the measurements support.
+an L1D miss, and we could not identify what produces it. We report an effect
+with a location and without a mechanism, which is what the measurements
+support.
 
-The study's other contribution is methodological and was not planned. Eight
-pre-registered thresholds were honoured exactly and tested the wrong quantity,
-and the register that records them is published with the paper so that the
-failure mode can be criticised rather than inferred. Pre-registration in
-systems measurement prevents a threshold from moving. It does not prevent a
-threshold from pointing somewhere else, and that needs a separate discipline.
+The other contribution was not planned. Eight pre-registered thresholds were
+honoured exactly and tested the wrong quantity, and the register recording them
+is published so the failure mode can be criticised rather than inferred.
+Pre-registration prevents a threshold from moving, not from pointing somewhere
+else, and that needs a separate discipline.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
